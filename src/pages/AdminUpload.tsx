@@ -32,7 +32,7 @@ export function AdminUpload() {
         complete: (results) => {
           resolve(results.data);
         },
-        error: (error) => {
+        error: (error: Error) => {
           reject(error);
         },
       });
