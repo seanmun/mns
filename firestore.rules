@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+             request.auth.token.role == 'admin';
+    }
+
+    function getUserEmail() {
+      return request.auth.token.email;
+    }
+
+    function isTeamOwner(teamId) {
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/teams/$(teamId)) &&
+             getUserEmail() in get(/databases/$(database)/documents/teams/$(teamId)).data.owners;
+    }
+
+    function isRosterOwner(leagueId, teamId) {
+      return isTeamOwner(teamId);
+    }
+
+    function isRosterLocked(leagueId, teamId) {
+      let roster = get(/databases/$(database)/documents/rosters/$(leagueId + '_' + teamId));
+      return roster.data.status == 'adminLocked';
+    }
+
+    function isLeagueMember(leagueId) {
+      // Check if user owns any team in this league
+      return isSignedIn() && (
+        isAdmin() ||
+        exists(/databases/$(database)/documents/teams/$(request.auth.uid))
+      );
+    }
+
+    // Leagues collection
+    match /leagues/{leagueId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Teams collection
+    match /teams/{teamId} {
+      // Allow reading if signed in (query filtering happens client-side)
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Players collection
+    match /players/{playerId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn(); // Temporarily allow all signed-in users to write
+    }
+
+    // Rosters collection
+    match /rosters/{rosterId} {
+      // rosterId format: {leagueId}_{teamId}
+      allow read: if isSignedIn() && (
+        resource.data.teamId in request.auth.token.teamIds ||
+        isAdmin()
+      );
+
+      allow create: if isSignedIn() && (
+        request.resource.data.teamId in request.auth.token.teamIds ||
+        isAdmin()
+      );
+
+      allow update: if isSignedIn() && (
+        // Owners can update their own roster if not locked
+        (resource.data.teamId in request.auth.token.teamIds &&
+         resource.data.status != 'adminLocked') ||
+        // Admins can always update
+        isAdmin()
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // User profiles (optional for future use)
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+  }
+}

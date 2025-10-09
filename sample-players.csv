@@ -1,0 +1,11 @@
+name,fantraxId,position,salary,nbaTeam,teamId,priorYearRound,isRookie,rookieRound,rookiePick,redshirtEligible
+LeBron James,lbj001,SF/PF,45000000,LAL,,3,false,,,false
+Stephen Curry,sc30,PG/SG,51900000,GSW,,2,false,,,false
+Kevin Durant,kd35,SF/PF,47000000,PHX,,4,false,,,false
+Giannis Antetokounmpo,ga34,PF/C,48000000,MIL,,1,false,,,false
+Victor Wembanyama,vw001,C,12000000,SAS,,,,true,1,1,true
+Chet Holmgren,ch007,C,10000000,OKC,,,,true,1,4,true
+Brandon Miller,bm024,SF,8000000,CHA,,,,true,1,7,true
+Scoot Henderson,sh003,PG,9000000,POR,,,,true,1,10,true
+Jaime Jaquez,jj011,SF,4000000,MIA,,,,true,2,5,true
+Nikola Jokic,nj015,C,51400000,DEN,,5,false,,,false
