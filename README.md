@@ -52,7 +52,7 @@ This application helps fantasy basketball league managers handle keeper decision
 ### Stacking Rules (see [keeperAlgorithms.ts](src/lib/keeperAlgorithms.ts))
 - **Bottom-of-Draft stacking**: Multiple keepers in same round → stack downward (14 → 1)
 - **Top-of-Draft rule**: Only one Round 1 keeper is free
-- **Franchise tags**: Additional Round 1 keepers require $15 franchise tag each and get reassigned to next available round
+- **Franchise tags**: To keep more than one 1st round keeper, you must pay $15 for each additional first-round keeper. Additional Round 1 keepers get reassigned to next available round.
 
 ### Redshirts
 - **Eligibility**: Only rookies in their first contract year

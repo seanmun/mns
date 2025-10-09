@@ -88,7 +88,7 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
 
   // TOP-OF-DRAFT STACKING (Round 1 special handling)
   // Only one Round-1 keeper is free; extras need franchise tags
-  const round1Keepers = keepers.filter((k) => k.keeperRound === 1);
+  const round1Keepers = keepers.filter((k) => k.baseRound === 1);
   let franchiseTags = 0;
 
   if (round1Keepers.length > 1) {

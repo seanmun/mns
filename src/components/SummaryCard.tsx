@@ -39,14 +39,19 @@ export function SummaryCard({ summary, maxKeepers = 8 }: SummaryCardProps) {
 
         <div className="space-y-2 text-sm">
           {summary.franchiseTags > 0 && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">
-                Franchise Tags ({summary.franchiseTags} × $
-                {CAP_CONSTANTS.FRANCHISE_TAG_FEE})
-              </span>
-              <span className="font-medium">
-                {formatMoney(summary.franchiseTagDues)}
-              </span>
+            <div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">
+                  Franchise Tags ({summary.franchiseTags} × $
+                  {CAP_CONSTANTS.FRANCHISE_TAG_FEE})
+                </span>
+                <span className="font-medium">
+                  {formatMoney(summary.franchiseTagDues)}
+                </span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1 italic">
+                Additional 1st round keepers beyond the first
+              </div>
             </div>
           )}
 

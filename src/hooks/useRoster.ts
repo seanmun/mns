@@ -122,6 +122,20 @@ interface UpdateRosterParams {
   tradeDelta: number;
 }
 
+// Helper to remove undefined values from an object
+function removeUndefined(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefined);
+  } else if (obj && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => [k, removeUndefined(v)])
+    );
+  }
+  return obj;
+}
+
 export async function updateRoster(params: UpdateRosterParams) {
   const { leagueId, teamId, entries, allPlayers, tradeDelta } = params;
   const rosterId = `${leagueId}_${teamId}`;
@@ -141,14 +155,14 @@ export async function updateRoster(params: UpdateRosterParams) {
   const rosterRef = doc(db, 'rosters', rosterId);
   const rosterDoc = await getDoc(rosterRef);
 
-  const updateData = {
+  const updateData = removeUndefined({
     teamId,
     leagueId,
     seasonYear: new Date().getFullYear(),
     entries: stackedEntries,
     summary,
     status: rosterDoc.exists() ? rosterDoc.data().status : 'draft',
-  };
+  });
 
   if (rosterDoc.exists()) {
     await updateDoc(rosterRef, updateData);
@@ -181,13 +195,13 @@ export async function saveScenario(params: SaveScenarioParams) {
   const currentData = rosterDoc.data() as RosterDoc;
   const scenarios = currentData.savedScenarios || [];
 
-  const newScenario = {
+  const newScenario = removeUndefined({
     scenarioId: `scenario_${Date.now()}`,
     name: scenarioName,
     timestamp: Date.now(),
     entries,
     summary,
-  };
+  });
 
   await updateDoc(rosterRef, {
     savedScenarios: [...scenarios, newScenario],
@@ -202,5 +216,24 @@ export async function submitRoster(leagueId: string, teamId: string) {
 
   await updateDoc(rosterRef, {
     status: 'submitted',
+  });
+}
+
+export async function deleteScenario(leagueId: string, teamId: string, scenarioId: string) {
+  const rosterId = `${leagueId}_${teamId}`;
+  const rosterRef = doc(db, 'rosters', rosterId);
+  const rosterDoc = await getDoc(rosterRef);
+
+  if (!rosterDoc.exists()) {
+    throw new Error('Roster does not exist');
+  }
+
+  const currentData = rosterDoc.data() as RosterDoc;
+  const scenarios = currentData.savedScenarios || [];
+
+  const updatedScenarios = scenarios.filter((s) => s.scenarioId !== scenarioId);
+
+  await updateDoc(rosterRef, {
+    savedScenarios: updatedScenarios,
   });
 }

@@ -50,6 +50,12 @@ export function TeamSelect() {
         setLeagues(new Map(leagueData.map((l) => [l.id, l])));
 
         setLoading(false);
+
+        // Auto-redirect if user has only one team
+        if (teamData.length === 1) {
+          const team = teamData[0];
+          navigate(`/league/${team.leagueId}/team/${team.id}`);
+        }
       } catch (error) {
         console.error('Error fetching teams:', error);
         setLoading(false);
@@ -57,7 +63,7 @@ export function TeamSelect() {
     };
 
     fetchTeams();
-  }, [user]);
+  }, [user, navigate]);
 
   const handleSelectTeam = (team: Team) => {
     navigate(`/league/${team.leagueId}/team/${team.id}`);

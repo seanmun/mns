@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { useRoster, useTeamPlayers, useTeam, updateRoster, submitRoster, saveScenario } from '../hooks/useRoster';
+import { useRoster, useTeamPlayers, useTeam, updateRoster, submitRoster, saveScenario, deleteScenario } from '../hooks/useRoster';
 import { RosterTable } from '../components/RosterTable';
 import { CapThermometer } from '../components/CapThermometer';
 import { SummaryCard } from '../components/SummaryCard';
 import { StackingAssistant } from '../components/StackingAssistant';
+import { SavedScenarios } from '../components/SavedScenarios';
 import { baseKeeperRound, stackKeeperRounds, computeSummary, validateRoster } from '../lib/keeperAlgorithms';
-import type { RosterEntry, Decision } from '../types';
+import type { RosterEntry, Decision, SavedScenario } from '../types';
 
 export function OwnerDashboard() {
   const { leagueId, teamId } = useParams<{ leagueId: string; teamId: string }>();
@@ -99,6 +100,15 @@ export function OwnerDashboard() {
     try {
       setIsSaving(true);
 
+      // First, ensure roster exists by saving current state
+      await updateRoster({
+        leagueId: leagueId!,
+        teamId: teamId!,
+        entries,
+        allPlayers: playersMap,
+        tradeDelta: team?.capAdjustments.tradeDelta || 0,
+      });
+
       const { franchiseTags } = stackKeeperRounds([...entries]);
       const summary = computeSummary({
         entries,
@@ -116,12 +126,33 @@ export function OwnerDashboard() {
       });
 
       setScenarioName('');
+      setIsDirty(false);
       alert('Scenario saved successfully!');
     } catch (error) {
       console.error('Error saving scenario:', error);
       alert('Failed to save scenario. Please try again.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleLoadScenario = (scenario: SavedScenario) => {
+    const confirmed = window.confirm(
+      `Load scenario "${scenario.name}"? This will replace your current keeper selections.`
+    );
+
+    if (!confirmed) return;
+
+    setEntries(scenario.entries);
+    setIsDirty(true);
+  };
+
+  const handleDeleteScenario = async (scenarioId: string) => {
+    try {
+      await deleteScenario(leagueId!, teamId!, scenarioId);
+    } catch (error) {
+      console.error('Error deleting scenario:', error);
+      alert('Failed to delete scenario. Please try again.');
     }
   };
 
@@ -287,6 +318,17 @@ export function OwnerDashboard() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Saved Scenarios */}
+        {roster?.savedScenarios && roster.savedScenarios.length > 0 && (
+          <div className="mt-6">
+            <SavedScenarios
+              scenarios={roster.savedScenarios}
+              onLoad={handleLoadScenario}
+              onDelete={!isLocked ? handleDeleteScenario : undefined}
+            />
           </div>
         )}
       </div>

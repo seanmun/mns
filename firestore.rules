@@ -8,8 +8,12 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() &&
-             request.auth.token.role == 'admin';
+      // Temporarily allow specific email as admin for testing
+      // TODO: Set proper custom claims via Firebase Admin SDK
+      return isSignedIn() && (
+             request.auth.token.role == 'admin' ||
+             request.auth.token.email == 'smunley13@gmail.com'
+      );
     }
 
     function getUserEmail() {
@@ -62,18 +66,18 @@ service cloud.firestore {
     match /rosters/{rosterId} {
       // rosterId format: {leagueId}_{teamId}
       allow read: if isSignedIn() && (
-        resource.data.teamId in request.auth.token.teamIds ||
+        isTeamOwner(resource.data.teamId) ||
         isAdmin()
       );
 
       allow create: if isSignedIn() && (
-        request.resource.data.teamId in request.auth.token.teamIds ||
+        isTeamOwner(request.resource.data.teamId) ||
         isAdmin()
       );
 
       allow update: if isSignedIn() && (
         // Owners can update their own roster if not locked
-        (resource.data.teamId in request.auth.token.teamIds &&
+        (isTeamOwner(resource.data.teamId) &&
          resource.data.status != 'adminLocked') ||
         // Admins can always update
         isAdmin()
