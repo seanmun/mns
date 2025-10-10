@@ -215,6 +215,16 @@ export function OwnerDashboard() {
     return franchiseTags;
   }, [entries]);
 
+  const sortedPlayers = useMemo(() => {
+    return [...players].sort((a, b) => {
+      const entryA = entries.find(e => e.playerId === a.id);
+      const entryB = entries.find(e => e.playerId === b.id);
+      const baseRoundA = entryA?.baseRound ?? 999;
+      const baseRoundB = entryB?.baseRound ?? 999;
+      return baseRoundA - baseRoundB;
+    });
+  }, [players, entries]);
+
   const isLocked = roster?.status === 'adminLocked' || roster?.status === 'submitted';
 
   if (teamLoading || playersLoading || rosterLoading) {
@@ -266,7 +276,7 @@ export function OwnerDashboard() {
         {/* Roster table */}
         <div className="mb-6">
           <RosterTable
-            players={players}
+            players={sortedPlayers}
             entries={entries}
             onDecisionChange={handleDecisionChange}
             isLocked={isLocked}
