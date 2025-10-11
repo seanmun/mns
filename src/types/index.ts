@@ -1,5 +1,5 @@
 // Core decision type
-export type Decision = "KEEP" | "DROP" | "REDSHIRT";
+export type Decision = "KEEP" | "DROP" | "REDSHIRT" | "INT_STASH";
 export type RosterStatus = "draft" | "submitted" | "adminLocked";
 
 // League configuration
@@ -37,10 +37,12 @@ export interface Team {
   name: string;
   abbrev: string;
   owners: string[];  // email addresses
+  ownerNames?: string[];  // owner display names
   capAdjustments: TeamCapAdjustments;
   settings: {
     maxKeepers: number;  // typically 8
   };
+  banners?: number[];  // Championship years (e.g., [2024, 2023])
 }
 
 // Player
@@ -49,6 +51,7 @@ export interface RookieDraftInfo {
   pick: number;  // 1-12
   redshirtEligible: boolean;
   redshirtedLastYear?: boolean;
+  intEligible: boolean;
 }
 
 export interface PlayerRoster {
@@ -89,6 +92,7 @@ export interface RosterEntry {
 export interface RosterSummary {
   keepersCount: number;
   redshirtsCount: number;
+  intStashCount: number;
   capUsed: number;
   capBase: number;
   capTradeDelta: number;
@@ -98,6 +102,7 @@ export interface RosterSummary {
   franchiseTags: number;
   franchiseTagDues: number;     // $15 * tags
   redshirtDues: number;         // $10 * count
+  firstApronFee: number;        // $50 if over 170M
   activationDues: number;       // future charges (not applied now)
   totalFees: number;            // sum of all dues
 }
@@ -127,6 +132,9 @@ export const CAP_CONSTANTS = {
   BASE: 210_000_000,
   TRADE_LIMIT: 40_000_000,
   MAX: 250_000_000,
+  FIRST_APRON: 170_000_000,
+  SECOND_APRON: 210_000_000,
+  FIRST_APRON_FEE: 50,
   PENALTY_START: 210_000_000,
   PENALTY_RATE_PER_M: 2,
   REDSHIRT_FEE: 10,
@@ -146,6 +154,48 @@ export interface CSVPlayerRow {
   rookiePick?: number;
   isInternational?: boolean;
   onIR?: boolean;
+}
+
+// Projected Stats
+export interface ProjectedStats {
+  fantraxId: string;      // Document ID (matches player.fantraxId)
+  name: string;
+  nbaTeam: string;
+  position: string;
+  rkOv: number;           // Overall rank
+  age: number;
+  salary: number;
+  score: number;          // Fantasy score
+  adp: number;            // ADP
+  fgPercent: number;      // FG%
+  threePointMade: number; // 3PM
+  ftPercent: number;      // FT%
+  points: number;         // PTS
+  rebounds: number;       // REB
+  assists: number;        // AST
+  steals: number;         // ST
+  blocks: number;         // BLK
+  assistToTurnover: number; // A/TO
+  salaryScore: number;    // Points per million (PPM)
+  seasonYear: string;     // "2025-26"
+}
+
+// Previous Season Stats (2024-25)
+export interface PreviousStats {
+  fantraxId: string;      // Document ID (matches player.fantraxId)
+  name: string;
+  nbaTeam: string;
+  position: string;
+  fgPercent: number;      // FG%
+  threePointMade: number; // 3PM
+  ftPercent: number;      // FT%
+  points: number;         // PTS
+  rebounds: number;       // REB
+  assists: number;        // AST
+  steals: number;         // ST
+  blocks: number;         // BLK
+  assistToTurnover: number; // A/TO
+  seasonYear: string;     // "2024-25"
 }
 
 // User roles

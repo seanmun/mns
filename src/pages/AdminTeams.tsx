@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import type { Team, League } from '../types';
@@ -9,7 +9,11 @@ export function AdminTeams() {
   const [leagues, setLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const navigate = useNavigate();
+
+  // Available championship years
+  const championshipYears = [2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
 
   // Form state
   const [formData, setFormData] = useState({
@@ -17,8 +21,10 @@ export function AdminTeams() {
     abbrev: '',
     leagueId: '',
     owners: '',
+    ownerNames: '',
     maxKeepers: 8,
     tradeDelta: 0,
+    banners: [] as number[],
   });
 
   useEffect(() => {
@@ -51,6 +57,21 @@ export function AdminTeams() {
     }
   };
 
+  const handleEdit = (team: Team) => {
+    setEditingTeam(team);
+    setFormData({
+      name: team.name,
+      abbrev: team.abbrev,
+      leagueId: team.leagueId,
+      owners: team.owners.join(', '),
+      ownerNames: team.ownerNames?.join(', ') || '',
+      maxKeepers: team.settings.maxKeepers,
+      tradeDelta: team.capAdjustments.tradeDelta,
+      banners: team.banners || [],
+    });
+    setShowForm(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -65,21 +86,35 @@ export function AdminTeams() {
         .map((email) => email.trim())
         .filter((email) => email.length > 0);
 
-      const newTeam = {
+      const ownerNamesArray = formData.ownerNames
+        .split(',')
+        .map((name) => name.trim())
+        .filter((name) => name.length > 0);
+
+      const teamData = {
         name: formData.name,
         abbrev: formData.abbrev,
         leagueId: formData.leagueId,
         owners: ownersArray,
+        ownerNames: ownerNamesArray,
         capAdjustments: {
           tradeDelta: formData.tradeDelta,
         },
         settings: {
           maxKeepers: formData.maxKeepers,
         },
+        banners: formData.banners,
       };
 
-      await addDoc(collection(db, 'teams'), newTeam);
-      alert('Team created successfully!');
+      if (editingTeam) {
+        // Update existing team
+        await updateDoc(doc(db, 'teams', editingTeam.id), teamData);
+        alert('Team updated successfully!');
+      } else {
+        // Create new team
+        await addDoc(collection(db, 'teams'), teamData);
+        alert('Team created successfully!');
+      }
 
       // Reset form
       setFormData({
@@ -87,17 +122,29 @@ export function AdminTeams() {
         abbrev: '',
         leagueId: '',
         owners: '',
+        ownerNames: '',
         maxKeepers: 8,
         tradeDelta: 0,
+        banners: [],
       });
       setShowForm(false);
+      setEditingTeam(null);
 
       // Reload teams
       loadData();
     } catch (error: any) {
-      console.error('Error creating team:', error);
-      alert(`Failed to create team: ${error?.message || 'Unknown error'}`);
+      console.error('Error saving team:', error);
+      alert(`Failed to save team: ${error?.message || 'Unknown error'}`);
     }
+  };
+
+  const toggleBanner = (year: number) => {
+    setFormData({
+      ...formData,
+      banners: formData.banners.includes(year)
+        ? formData.banners.filter(y => y !== year)
+        : [...formData.banners, year].sort((a, b) => b - a),
+    });
   };
 
   const copyToClipboard = (text: string) => {
@@ -114,7 +161,7 @@ export function AdminTeams() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <button
@@ -131,7 +178,24 @@ export function AdminTeams() {
               </p>
             </div>
             <button
-              onClick={() => setShowForm(!showForm)}
+              onClick={() => {
+                if (showForm) {
+                  setShowForm(false);
+                  setEditingTeam(null);
+                  setFormData({
+                    name: '',
+                    abbrev: '',
+                    leagueId: '',
+                    owners: '',
+                    ownerNames: '',
+                    maxKeepers: 8,
+                    tradeDelta: 0,
+                    banners: [],
+                  });
+                } else {
+                  setShowForm(true);
+                }
+              }}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             >
               {showForm ? 'Cancel' : '+ Add Team'}
@@ -139,10 +203,12 @@ export function AdminTeams() {
           </div>
         </div>
 
-        {/* Create Team Form */}
+        {/* Create/Edit Team Form */}
         {showForm && (
           <div className="bg-white p-6 rounded-lg shadow mb-8">
-            <h2 className="text-xl font-semibold mb-4">Create New Team</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              {editingTeam ? 'Edit Team' : 'Create New Team'}
+            </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -252,13 +318,65 @@ export function AdminTeams() {
                     className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Owner Names (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.ownerNames}
+                    onChange={(e) =>
+                      setFormData({ ...formData, ownerNames: e.target.value })
+                    }
+                    placeholder="e.g., John Smith, Jane Doe"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Championship Banners
+                  </label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {championshipYears.map((year) => (
+                      <button
+                        key={year}
+                        type="button"
+                        onClick={() => toggleBanner(year)}
+                        className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                          formData.banners.includes(year)
+                            ? 'bg-yellow-500 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {formData.banners.includes(year) && '🏆 '}
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                  {formData.banners.length > 0 && (
+                    <div className="mt-3 p-3 bg-yellow-50 rounded">
+                      <div className="flex flex-wrap gap-2">
+                        {formData.banners.map((year) => (
+                          <span
+                            key={year}
+                            className="inline-flex items-center px-2 py-1 bg-yellow-300 text-gray-900 text-xs font-bold rounded shadow-sm"
+                          >
+                            🏆 {year} Champs
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <button
                 type="submit"
                 className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
               >
-                Create Team
+                {editingTeam ? 'Update Team' : 'Create Team'}
               </button>
             </form>
           </div>
@@ -292,7 +410,13 @@ export function AdminTeams() {
                       Settings
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Banners
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Team ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -314,9 +438,18 @@ export function AdminTeams() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-900">
-                            {team.owners.map((email) => (
-                              <div key={email}>{email}</div>
-                            ))}
+                            {team.ownerNames && team.ownerNames.length > 0 ? (
+                              team.ownerNames.map((name, idx) => (
+                                <div key={idx}>
+                                  <div className="font-medium">{name}</div>
+                                  <div className="text-xs text-gray-500">{team.owners[idx]}</div>
+                                </div>
+                              ))
+                            ) : (
+                              team.owners.map((email) => (
+                                <div key={email}>{email}</div>
+                              ))
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -329,6 +462,22 @@ export function AdminTeams() {
                             M
                           </div>
                         </td>
+                        <td className="px-6 py-4">
+                          {team.banners && team.banners.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {team.banners.map((year) => (
+                                <span
+                                  key={year}
+                                  className="inline-flex items-center px-2 py-1 bg-yellow-300 text-gray-900 text-xs font-bold rounded shadow-sm"
+                                >
+                                  🏆 {year}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-sm">None</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => copyToClipboard(team.id)}
@@ -336,6 +485,14 @@ export function AdminTeams() {
                             title="Click to copy"
                           >
                             {team.id.substring(0, 12)}...
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => handleEdit(team)}
+                            className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                          >
+                            Edit
                           </button>
                         </td>
                       </tr>

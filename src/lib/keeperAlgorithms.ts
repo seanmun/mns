@@ -130,7 +130,7 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
     }
   }
 
-  // Clear keeperRound for non-KEEP entries
+  // Clear keeperRound for non-KEEP entries (REDSHIRT and INT_STASH don't use keeper rounds)
   entries.forEach((entry) => {
     if (entry.decision !== "KEEP") {
       entry.keeperRound = undefined;
@@ -168,13 +168,17 @@ export function computeSummary(params: ComputeSummaryParams): RosterSummary {
     franchiseTags,
   } = params;
 
-  // Get kept and redshirted player IDs
+  // Get kept, redshirted, and int stash player IDs
   const keptIds = entries
     .filter((e) => e.decision === "KEEP")
     .map((e) => e.playerId);
 
   const redshirtIds = entries
     .filter((e) => e.decision === "REDSHIRT")
+    .map((e) => e.playerId);
+
+  const intStashIds = entries
+    .filter((e) => e.decision === "INT_STASH")
     .map((e) => e.playerId);
 
   // Calculate cap used (only KEEP decisions count)
@@ -200,12 +204,16 @@ export function computeSummary(params: ComputeSummaryParams): RosterSummary {
   // Calculate redshirt dues
   const redshirtDues = redshirtIds.length * redshirtFee;
 
+  // Calculate first apron fee ($50 if over 170M)
+  const firstApronFee = capUsed > 170_000_000 ? 50 : 0;
+
   // Total fees
-  const totalFees = penaltyDues + franchiseTagDues + redshirtDues;
+  const totalFees = penaltyDues + franchiseTagDues + redshirtDues + firstApronFee;
 
   return {
     keepersCount: keptIds.length,
     redshirtsCount: redshirtIds.length,
+    intStashCount: intStashIds.length,
     capUsed,
     capBase: baseCap,
     capTradeDelta: tradeDelta,
@@ -215,6 +223,7 @@ export function computeSummary(params: ComputeSummaryParams): RosterSummary {
     franchiseTags,
     franchiseTagDues,
     redshirtDues,
+    firstApronFee,
     activationDues: 0, // Not calculated in MVP (future use)
     totalFees,
   };
@@ -239,6 +248,7 @@ export function validateRoster(
 
   const keepers = entries.filter((e) => e.decision === "KEEP");
   const redshirts = entries.filter((e) => e.decision === "REDSHIRT");
+  const intStashes = entries.filter((e) => e.decision === "INT_STASH");
 
   // Check keeper count
   if (keepers.length > maxKeepers) {
@@ -266,6 +276,28 @@ export function validateRoster(
         type: 'error',
         field: 'redshirtEligibility',
         message: `${player.name} is not a rookie and cannot be redshirted.`,
+        playerId: player.id,
+      });
+    }
+  });
+
+  // Check int stash eligibility
+  intStashes.forEach((entry) => {
+    const player = allPlayers.get(entry.playerId);
+    if (player && player.roster.rookieDraftInfo) {
+      if (!player.roster.rookieDraftInfo.intEligible) {
+        errors.push({
+          type: 'error',
+          field: 'intStashEligibility',
+          message: `${player.name} is not eligible for international stash.`,
+          playerId: player.id,
+        });
+      }
+    } else if (player && !player.roster.isInternationalStash) {
+      errors.push({
+        type: 'error',
+        field: 'intStashEligibility',
+        message: `${player.name} is not an international stash player.`,
         playerId: player.id,
       });
     }

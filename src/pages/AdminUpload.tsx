@@ -4,9 +4,10 @@ import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { baseKeeperRound } from '../lib/keeperAlgorithms';
 import Papa from 'papaparse';
-import type { Player } from '../types';
+import type { Player, ProjectedStats, PreviousStats } from '../types';
 
 export function AdminUpload() {
+  const [uploadType, setUploadType] = useState<'players' | 'projectedStats' | 'previousStats'>('players');
   const [file, setFile] = useState<File | null>(null);
   const [leagueId, setLeagueId] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -39,7 +40,155 @@ export function AdminUpload() {
     });
   };
 
+  const handleUploadProjectedStats = async () => {
+    if (!file) {
+      alert('Please select a file');
+      return;
+    }
+
+    setUploading(true);
+    const errors: string[] = [];
+    let successCount = 0;
+
+    try {
+      const text = await file.text();
+      const rows = await parseCSV(text);
+
+      setProgress({ current: 0, total: rows.length });
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        try {
+          // Skip empty rows
+          if (!row.fantraxId || !row.name) {
+            continue;
+          }
+
+          const parseNumber = (value: any): number => {
+            const num = parseFloat(String(value || '0').replace(/,/g, ''));
+            return isNaN(num) ? 0 : num;
+          };
+
+          const salary = parseNumber(row.Salary || row.salary);
+          const score = parseNumber(row.Score || row.score);
+
+          // Calculate Salary Score (PPM - Points Per Million)
+          const salaryScore = salary > 0 ? (score / salary) * 1_000_000 : 0;
+
+          const projectedStats: ProjectedStats = {
+            fantraxId: row.fantraxId.trim(),
+            name: row.name.trim(),
+            nbaTeam: row.nbaTeam?.trim() || '',
+            position: (row.Position || row.position || '').trim(),
+            rkOv: parseNumber(row.RkOv || row.rkOv),
+            age: Math.floor(parseNumber(row.Age || row.age)),
+            salary,
+            score,
+            adp: parseNumber(row.ADP || row.adp),
+            fgPercent: parseNumber(row['FG%'] || row.fgPercent),
+            threePointMade: parseNumber(row['3PTM'] || row.threePointMade),
+            ftPercent: parseNumber(row['FT%'] || row.ftPercent),
+            points: parseNumber(row.PTS || row.points),
+            rebounds: parseNumber(row.REB || row.rebounds),
+            assists: parseNumber(row.AST || row.assists),
+            steals: parseNumber(row.ST || row.steals),
+            blocks: parseNumber(row.BLK || row.blocks),
+            assistToTurnover: parseNumber(row['A/TO'] || row.assistToTurnover),
+            salaryScore: isNaN(salaryScore) ? 0 : salaryScore,
+            seasonYear: '2025-26',
+          };
+
+          // Save to Firestore using fantraxId as document ID
+          await setDoc(doc(db, 'projectedStats', row.fantraxId.trim()), projectedStats);
+          successCount++;
+          setProgress({ current: i + 1, total: rows.length });
+        } catch (error: any) {
+          errors.push(`Row ${i + 2} (${row.name || 'unknown'}): ${error.message}`);
+          console.error(`Error processing row ${i + 2}:`, error, row);
+        }
+      }
+
+      setResults({ success: successCount, errors });
+    } catch (error: any) {
+      alert(`Upload failed: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUploadPreviousStats = async () => {
+    if (!file) {
+      alert('Please select a file');
+      return;
+    }
+
+    setUploading(true);
+    const errors: string[] = [];
+    let successCount = 0;
+
+    try {
+      const text = await file.text();
+      const rows = await parseCSV(text);
+
+      setProgress({ current: 0, total: rows.length });
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        try {
+          // Skip empty rows
+          if (!row.fantraxId || !row.name) {
+            continue;
+          }
+
+          const parseNumber = (value: any): number => {
+            const num = parseFloat(String(value || '0').replace(/,/g, ''));
+            return isNaN(num) ? 0 : num;
+          };
+
+          const previousStats: PreviousStats = {
+            fantraxId: row.fantraxId.trim(),
+            name: row.name.trim(),
+            nbaTeam: row.nbaTeam?.trim() || '',
+            position: (row.Position || row.position || '').trim(),
+            fgPercent: parseNumber(row['FG%'] || row.fgPercent),
+            threePointMade: parseNumber(row['3PTM'] || row.threePointMade),
+            ftPercent: parseNumber(row['FT%'] || row.ftPercent),
+            points: parseNumber(row.PTS || row.points),
+            rebounds: parseNumber(row.REB || row.rebounds),
+            assists: parseNumber(row.AST || row.assists),
+            steals: parseNumber(row.ST || row.steals),
+            blocks: parseNumber(row.BLK || row.blocks),
+            assistToTurnover: parseNumber(row['A/TO'] || row.assistToTurnover),
+            seasonYear: '2024-25',
+          };
+
+          // Save to Firestore using fantraxId as document ID
+          await setDoc(doc(db, 'previousStats', row.fantraxId.trim()), previousStats);
+          successCount++;
+          setProgress({ current: i + 1, total: rows.length });
+        } catch (error: any) {
+          errors.push(`Row ${i + 2} (${row.name || 'unknown'}): ${error.message}`);
+          console.error(`Error processing row ${i + 2}:`, error, row);
+        }
+      }
+
+      setResults({ success: successCount, errors });
+    } catch (error: any) {
+      alert(`Upload failed: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUpload = async () => {
+    if (uploadType === 'projectedStats') {
+      return handleUploadProjectedStats();
+    }
+
+    if (uploadType === 'previousStats') {
+      return handleUploadPreviousStats();
+    }
+
     if (!file || !leagueId) {
       alert('Please select a file and enter league ID');
       return;
@@ -83,6 +232,7 @@ export function AdminUpload() {
               round: parseInt(row.rookieRound) as 1 | 2 | 3,
               pick: parseInt(row.rookiePick),
               redshirtEligible: row.redshirtEligible === 'true' || row.redshirtEligible === '1',
+              intEligible: row.intEligible === 'true' || row.intEligible === '1',
             };
           }
 
@@ -123,7 +273,7 @@ export function AdminUpload() {
   const progressPercent = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <button
@@ -132,24 +282,47 @@ export function AdminUpload() {
           >
             ← Back to Teams
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Upload Players (CSV)</h1>
-          <p className="text-gray-500 mt-1">Bulk import players from a CSV file</p>
+          <h1 className="text-3xl font-bold text-gray-900">Manage Players</h1>
+          <p className="text-gray-500 mt-1">Bulk import players, projected stats, or previous season stats from a CSV file</p>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow">
-          {/* League ID input */}
+          {/* Upload Type Selector */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              League ID
+              Upload Type
             </label>
-            <input
-              type="text"
-              value={leagueId}
-              onChange={(e) => setLeagueId(e.target.value)}
-              placeholder="Enter your league ID from Firestore"
+            <select
+              value={uploadType}
+              onChange={(e) => {
+                setUploadType(e.target.value as 'players' | 'projectedStats' | 'previousStats');
+                setFile(null);
+                setResults(null);
+              }}
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            />
+            >
+              <option value="players">Player Data</option>
+              <option value="projectedStats">Projected Stats (2025-26)</option>
+              <option value="previousStats">Previous Season Stats (2024-25)</option>
+            </select>
           </div>
+
+          {/* League ID input (only for players) */}
+          {uploadType === 'players' && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                League ID
+              </label>
+              <select
+                value={leagueId}
+                onChange={(e) => setLeagueId(e.target.value)}
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              >
+                <option value="">Select a league</option>
+                <option value="XPL9dJv8BTFNAMlrNBpJ">Main League (XPL9dJv8BTFNAMlrNBpJ)</option>
+              </select>
+            </div>
+          )}
 
           {/* File upload */}
           <div className="mb-6">
@@ -193,10 +366,10 @@ export function AdminUpload() {
           {/* Upload button */}
           <button
             onClick={handleUpload}
-            disabled={!file || !leagueId || uploading}
+            disabled={!file || (uploadType === 'players' && !leagueId) || uploading}
             className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {uploading ? 'Uploading...' : 'Upload Players'}
+            {uploading ? 'Uploading...' : uploadType === 'players' ? 'Upload Players' : 'Upload Projected Stats'}
           </button>
 
           {/* Results */}
@@ -226,32 +399,66 @@ export function AdminUpload() {
           {/* CSV format guide */}
           <div className="mt-8 border-t pt-6">
             <h3 className="font-semibold text-gray-900 mb-3">CSV Format</h3>
-            <p className="text-sm text-gray-600 mb-2">
-              Your CSV should have these columns (first row = headers):
-            </p>
-            <div className="bg-gray-50 p-4 rounded text-xs font-mono overflow-x-auto">
-              name,fantraxId,position,salary,nbaTeam,teamId,priorYearRound,isRookie,rookieRound,rookiePick,redshirtEligible,onIR,isInternationalStash
-            </div>
 
-            <div className="mt-4 text-sm text-gray-600 space-y-2">
-              <p><strong>Required:</strong> name, position, salary, nbaTeam</p>
-              <p><strong>Optional:</strong> teamId (your team's Firestore document ID), priorYearRound (1-14 for returning players)</p>
-              <p><strong>For rookies:</strong> isRookie=true, rookieRound (1-3), rookiePick (1-12), redshirtEligible=true/false</p>
-              <p><strong>Boolean fields:</strong> Use "true" or "1" for true, anything else for false</p>
-              <p><strong>Column order:</strong> Doesn't matter! Columns can be in any order as long as headers match.</p>
-            </div>
+            {uploadType === 'players' ? (
+              <>
+                <p className="text-sm text-gray-600 mb-2">
+                  Your CSV should have these columns (first row = headers):
+                </p>
+                <div className="bg-gray-50 p-4 rounded text-xs font-mono overflow-x-auto">
+                  name,fantraxId,position,salary,nbaTeam,teamId,priorYearRound,isRookie,rookieRound,rookiePick,redshirtEligible,intEligible,onIR,isInternationalStash
+                </div>
 
-            <div className="mt-4">
-              <h4 className="font-semibold text-sm mb-2">Example CSV:</h4>
-              <div className="bg-gray-50 p-4 rounded text-xs font-mono overflow-x-auto">
-                name,fantraxId,position,salary,nbaTeam,teamId,priorYearRound,isRookie,rookieRound,rookiePick,redshirtEligible<br/>
-                LeBron James,lbj001,"SF,PF",45000000,LAL,abc123xyz,3,false,,,false<br/>
-                Victor Wembanyama,vw001,C,12000000,SAS,abc123xyz,,true,1,1,true
-              </div>
-              <p className="mt-2 text-xs text-gray-500">
-                ℹ️ Fields with commas (like "SF,PF") should be wrapped in quotes
-              </p>
-            </div>
+                <div className="mt-4 text-sm text-gray-600 space-y-2">
+                  <p><strong>Required:</strong> name, position, salary, nbaTeam</p>
+                  <p><strong>Optional:</strong> teamId (your team's Firestore document ID), priorYearRound (1-14 for returning players)</p>
+                  <p><strong>For rookies:</strong> isRookie=true, rookieRound (1-3), rookiePick (1-12), redshirtEligible=true/false, intEligible=true/false</p>
+                  <p><strong>Boolean fields:</strong> Use "true" or "1" for true, anything else for false</p>
+                  <p><strong>Column order:</strong> Doesn't matter! Columns can be in any order as long as headers match.</p>
+                </div>
+
+                <div className="mt-4">
+                  <h4 className="font-semibold text-sm mb-2">Example CSV:</h4>
+                  <div className="bg-gray-50 p-4 rounded text-xs font-mono overflow-x-auto">
+                    name,fantraxId,position,salary,nbaTeam,teamId,priorYearRound,isRookie,rookieRound,rookiePick,redshirtEligible<br/>
+                    LeBron James,lbj001,"SF,PF",45000000,LAL,abc123xyz,3,false,,,false<br/>
+                    Victor Wembanyama,vw001,C,12000000,SAS,abc123xyz,,true,1,1,true
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    ℹ️ Fields with commas (like "SF,PF") should be wrapped in quotes
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600 mb-2">
+                  Your CSV should have these columns (first row = headers):
+                </p>
+                <div className="bg-gray-50 p-4 rounded text-xs font-mono overflow-x-auto">
+                  fantraxId,name,nbaTeam,position,rkOv,age,salary,score,z3PtPts,fgPercent,threePointMade,rebounds,points,blocks,assists,turnoversPerGame,assistToTurnover
+                </div>
+
+                <div className="mt-4 text-sm text-gray-600 space-y-2">
+                  <p><strong>Required:</strong> fantraxId, name, salary, score</p>
+                  <p><strong>Stats:</strong> All numeric fields (use decimals for percentages)</p>
+                  <p><strong>Salary Score:</strong> Automatically calculated as (score / salary) × 1,000,000</p>
+                  <p><strong>Season:</strong> Automatically set to 2025-26 (preseason projection)</p>
+                  <p><strong>Column order:</strong> Doesn't matter! Columns can be in any order as long as headers match.</p>
+                </div>
+
+                <div className="mt-4">
+                  <h4 className="font-semibold text-sm mb-2">Example CSV:</h4>
+                  <div className="bg-gray-50 p-4 rounded text-xs font-mono overflow-x-auto">
+                    fantraxId,name,nbaTeam,position,salary,score,fgPercent,rebounds,points<br/>
+                    lbj001,LeBron James,LAL,"SF,PF","45,999,660",100,0.486,3.9,36.7<br/>
+                    vw001,Victor Wembanyama,SAS,C,"12,000,000",110,0.489,9.3,32.7
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    ℹ️ Salary can include commas - they will be automatically removed during upload
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

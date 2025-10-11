@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { Login } from './pages/Login';
 import { FinishSignIn } from './pages/FinishSignIn';
 import { TeamSelect } from './pages/TeamSelect';
+import { LeagueHome } from './pages/LeagueHome';
 import { OwnerDashboard } from './pages/OwnerDashboard';
 import { AdminUpload } from './pages/AdminUpload';
 import { AdminTeams } from './pages/AdminTeams';
@@ -44,6 +45,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <TeamSelect />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/league/:leagueId"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <LeagueHome />
                 </AppLayout>
               </PrivateRoute>
             }

@@ -5,87 +5,66 @@ interface CapThermometerProps {
 }
 
 export function CapThermometer({ summary }: CapThermometerProps) {
-  const { capUsed, capEffective, capBase, overSecondApronByM } = summary;
-
-  const floor = 170_000_000;
+  const { capUsed, capEffective, overSecondApronByM } = summary;
+  const firstApron = 170_000_000;
+  const secondApron = 210_000_000;
   const max = 250_000_000;
 
-  // Calculate percentage of effective cap used (main progress bar)
-  const usedPercent = Math.min((capUsed / capEffective) * 100, 100);
-
-  // Calculate marker positions on the full scale (floor to max)
-  const floorPercent = ((floor - floor) / (max - floor)) * 100;
-  const basePercent = ((capBase - floor) / (max - floor)) * 100;
-  const effectivePercent = ((capEffective - floor) / (max - floor)) * 100;
-  const usedAbsolutePercent = Math.min(
-    ((capUsed - floor) / (max - floor)) * 100,
-    100
-  );
+  // Calculate marker positions on the full scale (0 to 250M)
+  const firstApronPercent = (firstApron / max) * 100;
+  const secondApronPercent = (secondApron / max) * 100;
+  const capUsedPercent = Math.min((capUsed / max) * 100, 100);
 
   const formatCap = (value: number) => {
     return `$${(value / 1_000_000).toFixed(1)}M`;
   };
 
   const getBarColor = () => {
-    if (capUsed > capBase) return 'bg-red-500';
-    if (capUsed > capEffective * 0.9) return 'bg-yellow-500';
+    if (capUsed > secondApron) return 'bg-orange-500';
+    if (capUsed > firstApron) return 'bg-yellow-500';
     return 'bg-green-500';
   };
+
+  const isOverFirstApron = capUsed > firstApron;
+  const isOverSecondApron = capUsed > secondApron;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <h3 className="text-lg font-semibold mb-4">Salary Cap Status</h3>
 
-      {/* Main progress bar - percentage of effective cap used */}
-      <div className="mb-2">
-        <div className="flex justify-between text-xs text-gray-600 mb-1">
-          <span>Cap Used</span>
-          <span>{usedPercent.toFixed(1)}% of Effective Cap</span>
+      {/* Salary cap scale (0 to 250M) */}
+      <div className="mb-6">
+        <div className="flex justify-between text-xs text-gray-600 mb-2">
+          <span>Cap Used: {formatCap(capUsed)}</span>
+          <span>Max: {formatCap(max)}</span>
         </div>
+
         <div className="relative h-8 bg-gray-200 rounded-full overflow-hidden">
+          {/* Cap used bar */}
           <div
             className={`h-full ${getBarColor()} transition-all duration-300`}
-            style={{ width: `${usedPercent}%` }}
+            style={{ width: `${capUsedPercent}%` }}
+          />
+
+          {/* First apron marker (170M) */}
+          <div
+            className="absolute top-0 h-full w-0.5 bg-yellow-600"
+            style={{ left: `${firstApronPercent}%` }}
+            title="First Apron: $170M"
+          />
+
+          {/* Second apron marker (210M) */}
+          <div
+            className="absolute top-0 h-full w-0.5 bg-orange-600"
+            style={{ left: `${secondApronPercent}%` }}
+            title="Second Apron: $210M"
           />
         </div>
-      </div>
 
-      {/* Full scale reference bar */}
-      <div className="mb-4">
-        <div className="text-xs text-gray-500 mb-1">Full Scale ($170M - $250M)</div>
-        <div className="relative h-4 bg-gray-100 rounded">
-          {/* Used cap position on full scale */}
-          <div
-            className={`absolute h-full ${getBarColor()} opacity-50`}
-            style={{ width: `${usedAbsolutePercent}%` }}
-          />
-
-          {/* Floor marker */}
-          <div
-            className="absolute h-full w-0.5 bg-blue-600"
-            style={{ left: `${floorPercent}%` }}
-            title="Floor: $170M"
-          />
-
-          {/* Base cap marker */}
-          <div
-            className="absolute h-full w-0.5 bg-gray-600"
-            style={{ left: `${basePercent}%` }}
-            title="Base: $210M"
-          />
-
-          {/* Effective cap marker */}
-          {capEffective !== capBase && (
-            <div
-              className="absolute h-full w-0.5 bg-purple-600"
-              style={{ left: `${effectivePercent}%` }}
-              title={`Effective: ${formatCap(capEffective)}`}
-            />
-          )}
-        </div>
         <div className="flex justify-between text-xs text-gray-500 mt-1">
-          <span>$170M</span>
-          <span>$210M</span>
+          <span>$0M</span>
+          <span className="text-yellow-600">$170M (1st Apron)</span>
+          <span className="text-orange-600">$210M (2nd Apron)</span>
           <span>$250M</span>
         </div>
       </div>
@@ -124,15 +103,14 @@ export function CapThermometer({ summary }: CapThermometerProps) {
       </div>
 
       {/* Warning messages */}
-      {capUsed < floor && (
+      {isOverFirstApron && !isOverSecondApron && (
         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-          ⚠️ Warning: Below soft floor of {formatCap(floor)}. Ensure you have
-          traded away cap space.
+          ⚠️ First Apron: You are over $170M. A one-time $50 fee applies. After payment, you can stay over $170M for the rest of the season.
         </div>
       )}
 
-      {overSecondApronByM > 0 && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+      {isOverSecondApron && (
+        <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded text-sm text-orange-800">
           ⚠️ Second Apron Penalty: ${summary.penaltyDues} due (${overSecondApronByM}M over × $2/M)
         </div>
       )}

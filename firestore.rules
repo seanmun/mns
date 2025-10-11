@@ -62,6 +62,18 @@ service cloud.firestore {
       allow write: if isSignedIn(); // Temporarily allow all signed-in users to write
     }
 
+    // Projected Stats collection
+    match /projectedStats/{fantraxId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Previous Season Stats collection
+    match /previousStats/{fantraxId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // Rosters collection
     match /rosters/{rosterId} {
       // rosterId format: {leagueId}_{teamId}

@@ -51,10 +51,10 @@ export function TeamSelect() {
 
         setLoading(false);
 
-        // Auto-redirect if user has only one team
+        // Auto-redirect if user has only one team - go to league home
         if (teamData.length === 1) {
           const team = teamData[0];
-          navigate(`/league/${team.leagueId}/team/${team.id}`);
+          navigate(`/league/${team.leagueId}`);
         }
       } catch (error) {
         console.error('Error fetching teams:', error);
@@ -66,7 +66,7 @@ export function TeamSelect() {
   }, [user, navigate]);
 
   const handleSelectTeam = (team: Team) => {
-    navigate(`/league/${team.leagueId}/team/${team.id}`);
+    navigate(`/league/${team.leagueId}`);
   };
 
   const handleSignOut = async () => {
@@ -76,14 +76,14 @@ export function TeamSelect() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="text-gray-500">Loading your teams...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
