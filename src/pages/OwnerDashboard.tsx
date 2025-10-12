@@ -105,15 +105,18 @@ export function OwnerDashboard() {
   };
 
   const handleUpdatePriorities = (updates: { playerId: string; priority: number }[]) => {
-    setEntries((prev) =>
-      prev.map((entry) => {
+    setEntries((prev) => {
+      const newEntries = prev.map((entry) => {
         const update = updates.find((u) => u.playerId === entry.playerId);
         if (update) {
+          console.log(`Updating ${entry.playerId} priority to ${update.priority}`);
           return { ...entry, priority: update.priority };
         }
         return entry;
-      })
-    );
+      });
+      console.log('New entries after priority update:', newEntries.filter(e => e.priority !== undefined));
+      return newEntries;
+    });
   };
 
 
