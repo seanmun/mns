@@ -35,12 +35,12 @@ export function RecordBook() {
   const { leagueId } = useParams<{ leagueId: string }>();
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-[#0a0a0a]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">📖 Record Book</h1>
-          <p className="text-gray-500 mt-1">League history and championship records</p>
+          <h1 className="text-3xl font-bold text-white">📖 Record Book</h1>
+          <p className="text-gray-400 mt-1">League history and championship records</p>
         </div>
 
         {/* Reigning Champion Banner */}
@@ -55,16 +55,16 @@ export function RecordBook() {
         {/* Records Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* 1st Place Finishes */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-3xl">🥇</span>
-              <h2 className="text-xl font-bold text-yellow-600">1st Place</h2>
+              <h2 className="text-xl font-bold text-yellow-400">1st Place</h2>
             </div>
             <div className="space-y-3">
               {recordBookData.firstPlaces.map((record) => (
                 <div key={record.name} className="flex justify-between items-center">
-                  <span className="text-gray-700 font-medium">{record.name}</span>
-                  <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                  <span className="text-white font-medium">{record.name}</span>
+                  <span className="bg-yellow-400/10 text-yellow-400 border border-yellow-400/30 px-3 py-1 rounded-full text-sm font-semibold">
                     {record.count}
                   </span>
                 </div>
@@ -73,7 +73,7 @@ export function RecordBook() {
           </div>
 
           {/* 2nd Place Finishes */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-3xl">🥈</span>
               <h2 className="text-xl font-bold text-gray-400">2nd Place</h2>
@@ -81,8 +81,8 @@ export function RecordBook() {
             <div className="space-y-3">
               {recordBookData.secondPlaces.map((record) => (
                 <div key={record.name} className="flex justify-between items-center">
-                  <span className="text-gray-700 font-medium">{record.name}</span>
-                  <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-semibold">
+                  <span className="text-white font-medium">{record.name}</span>
+                  <span className="bg-gray-700 text-gray-300 px-3 py-1 rounded-full text-sm font-semibold">
                     {record.count}
                   </span>
                 </div>
@@ -91,16 +91,16 @@ export function RecordBook() {
           </div>
 
           {/* 3rd Place Finishes */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-3xl">🥉</span>
-              <h2 className="text-xl font-bold text-orange-600">3rd Place</h2>
+              <h2 className="text-xl font-bold text-orange-400">3rd Place</h2>
             </div>
             <div className="space-y-3">
               {recordBookData.thirdPlaces.map((record) => (
                 <div key={record.name} className="flex justify-between items-center">
-                  <span className="text-gray-700 font-medium">{record.name}</span>
-                  <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-semibold">
+                  <span className="text-white font-medium">{record.name}</span>
+                  <span className="bg-orange-400/10 text-orange-400 border border-orange-400/30 px-3 py-1 rounded-full text-sm font-semibold">
                     {record.count}
                   </span>
                 </div>
@@ -113,7 +113,7 @@ export function RecordBook() {
         <div className="mt-8">
           <a
             href={`/league/${leagueId}`}
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="inline-block border-2 border-green-400 text-green-400 px-6 py-3 rounded-lg font-medium hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all cursor-pointer"
           >
             Back to League Home
           </a>

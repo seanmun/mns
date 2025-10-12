@@ -42,7 +42,7 @@ export function Login() {
         <div className="text-center">
           <div className="mb-6">
             <div className="inline-flex items-center justify-center mb-4">
-              <img src="/icons/mns-icon.png" alt="MNS" className="w-20 h-20 rounded-full" />
+              <img src="/icons/moneyneversleeps-icon.png" alt="MNS" className="w-60 h-60 rounded-lg" />
             </div>
             <h1 className="text-4xl font-bold text-white mb-2">
               MNS Keeper Manager

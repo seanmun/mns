@@ -62,7 +62,7 @@ export function Rules() {
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <img src="/icons/basketball-icon.png" alt="Basketball" className="w-6 h-6 rounded-full" />
+                <img src="/icons/settings-icon.png" alt="Settings" className="w-6 h-6 rounded-full" />
                 League Settings
               </h2>
             </div>
@@ -150,7 +150,10 @@ export function Rules() {
           {/* Keeper Rules */}
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
-              <h2 className="text-xl font-bold text-white">🔒 Keeper Rules</h2>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <img src="/icons/lock-icon.png" alt="Lock" className="w-6 h-6 rounded-full" />
+                Keeper Rules
+              </h2>
             </div>
             <div className="p-6">
               <div className="space-y-4">
@@ -221,7 +224,10 @@ export function Rules() {
           {/* International Stash */}
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
-              <h2 className="text-xl font-bold text-white">🌍 International Stash</h2>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <img src="/icons/planet-icon.png" alt="International" className="w-6 h-6 rounded-full" />
+                International Stash
+              </h2>
             </div>
             <div className="p-6">
               <ul className="text-sm text-gray-300 space-y-2 list-disc list-inside">
