@@ -15,7 +15,6 @@ interface RookiePick {
 export function RookieDraft() {
   const { leagueId } = useParams<{ leagueId: string }>();
   const [picks, setPicks] = useState<RookiePick[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,7 +30,6 @@ export function RookieDraft() {
           id: doc.id,
           ...doc.data(),
         })) as Team[];
-        setTeams(teamsData);
 
         // Fetch rookie picks
         const playersRef = collection(db, 'players');
