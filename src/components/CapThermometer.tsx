@@ -2,10 +2,11 @@ import type { RosterSummary } from '../types';
 
 interface CapThermometerProps {
   summary: RosterSummary;
+  maxKeepers?: number;
 }
 
-export function CapThermometer({ summary }: CapThermometerProps) {
-  const { capUsed, capEffective, overSecondApronByM } = summary;
+export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps) {
+  const { capUsed, capEffective, overSecondApronByM, keepersCount } = summary;
   const firstApron = 195_000_000;
   const secondApron = 225_000_000;
   const max = 255_000_000;
@@ -70,7 +71,7 @@ export function CapThermometer({ summary }: CapThermometerProps) {
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
         <div>
           <div className="text-gray-400">Used</div>
           <div className="font-semibold text-lg text-white">{formatCap(capUsed)}</div>
@@ -97,6 +98,25 @@ export function CapThermometer({ summary }: CapThermometerProps) {
           >
             {overSecondApronByM > 0
               ? `+${formatCap(overSecondApronByM * 1_000_000)}`
+              : '-'}
+          </div>
+        </div>
+      </div>
+
+      {/* Average Salary Metrics */}
+      <div className="grid grid-cols-2 gap-4 text-sm pt-4 border-t border-gray-800">
+        <div>
+          <div className="text-gray-400">Avg Salary Per Keeper</div>
+          <div className="font-semibold text-lg text-green-400">
+            {keepersCount > 0 ? formatCap(capUsed / keepersCount) : '-'}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-gray-400">Avg Per Empty Spot</div>
+          <div className="font-semibold text-lg text-purple-400">
+            {keepersCount < maxKeepers
+              ? formatCap((capEffective - capUsed) / (maxKeepers - keepersCount))
               : '-'}
           </div>
         </div>

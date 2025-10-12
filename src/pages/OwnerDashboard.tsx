@@ -393,7 +393,7 @@ export function OwnerDashboard() {
         {/* Desktop: Side by side layout */}
         <div className="hidden lg:grid lg:grid-cols-3 gap-6 mb-6">
           <div className="lg:col-span-2">
-            <CapThermometer summary={currentSummary} />
+            <CapThermometer summary={currentSummary} maxKeepers={team?.settings.maxKeepers} />
           </div>
           <div>
             <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} />
@@ -443,7 +443,7 @@ export function OwnerDashboard() {
               >
                 {/* Slide 1: Salary Cap Status */}
                 <div className="w-full flex-shrink-0 px-2">
-                  <CapThermometer summary={currentSummary} />
+                  <CapThermometer summary={currentSummary} maxKeepers={team?.settings.maxKeepers} />
                 </div>
                 {/* Slide 2: Roster Summary and Fees */}
                 <div className="w-full flex-shrink-0 px-2">
