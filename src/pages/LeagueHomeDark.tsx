@@ -183,17 +183,17 @@ export function LeagueHomeDark() {
               </div>
               <div className="text-4xl font-bold mb-4">${teams.length * 50}</div>
               <div className="grid grid-cols-3 gap-4 text-sm">
-                <div className="bg-black/20 rounded p-3">
-                  <div className="font-semibold">1st Place</div>
-                  <div className="text-2xl font-bold">${teams.length * 50 * 0.5}</div>
+                <div className="bg-[#0a0a0a] rounded p-3 border border-green-400/30">
+                  <div className="font-semibold text-green-400">1st Place</div>
+                  <div className="text-2xl font-bold text-green-400">${teams.length * 50 * 0.5}</div>
                 </div>
-                <div className="bg-black/20 rounded p-3">
-                  <div className="font-semibold">2nd Place</div>
-                  <div className="text-2xl font-bold">${teams.length * 50 * 0.3}</div>
+                <div className="bg-[#0a0a0a] rounded p-3 border border-purple-400/30">
+                  <div className="font-semibold text-purple-400">2nd Place</div>
+                  <div className="text-2xl font-bold text-purple-400">${teams.length * 50 * 0.3}</div>
                 </div>
-                <div className="bg-black/20 rounded p-3">
-                  <div className="font-semibold">3rd Place</div>
-                  <div className="text-2xl font-bold">${teams.length * 50 * 0.2}</div>
+                <div className="bg-[#0a0a0a] rounded p-3 border border-pink-400/30">
+                  <div className="font-semibold text-pink-400">3rd Place</div>
+                  <div className="text-2xl font-bold text-pink-400">${teams.length * 50 * 0.2}</div>
                 </div>
               </div>
             </div>
