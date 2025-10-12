@@ -38,7 +38,7 @@ export function Rules() {
                     <li><strong className="text-green-400">First Apron:</strong> $195M (triggers $50 one-time fee)</li>
                     <li><strong className="text-green-400">Second Apron:</strong> $225M (base cap, triggers $2/M penalty)</li>
                     <li><strong className="text-green-400">Hard Cap:</strong> $255M (maximum with trades)</li>
-                    <li><strong className="text-green-400">Trade Limit:</strong> ±$40M from second apron</li>
+                    <li><strong className="text-green-400">Trade Limit:</strong> ±$30M from second apron</li>
                     <li>Fantrax will not let you execute roster moves that exceed $225M</li>
                   </ul>
                 </div>
