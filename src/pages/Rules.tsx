@@ -33,13 +33,14 @@ export function Rules() {
             <div className="p-6">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-base font-semibold text-white mb-2">Cap Structure (2024-25 Season)</h3>
+                  <h3 className="text-base font-semibold text-white mb-2">Cap Structure (2025-26 Season)</h3>
                   <ul className="text-sm text-gray-300 space-y-2 list-disc list-inside">
                     <li><strong className="text-green-400">Floor:</strong> $170M (minimum salary cap)</li>
-                    <li><strong className="text-green-400">Base Cap:</strong> $210M (Fantrax default)</li>
-                    <li><strong className="text-green-400">Hard Cap:</strong> $250M (maximum with trades)</li>
-                    <li><strong className="text-green-400">Trade Limit:</strong> ±$40M from base cap</li>
-                    <li>Fantrax will not let you execute roster moves that exceed $210M</li>
+                    <li><strong className="text-green-400">First Apron:</strong> $195M (triggers $50 one-time fee)</li>
+                    <li><strong className="text-green-400">Second Apron:</strong> $225M (base cap, triggers $2/M penalty)</li>
+                    <li><strong className="text-green-400">Hard Cap:</strong> $255M (maximum with trades)</li>
+                    <li><strong className="text-green-400">Trade Limit:</strong> ±$40M from second apron</li>
+                    <li>Fantrax will not let you execute roster moves that exceed $225M</li>
                     <li>All teams must stay above $170M minimum</li>
                   </ul>
                 </div>
@@ -47,10 +48,10 @@ export function Rules() {
                 <div className="border-t border-gray-800 pt-4">
                   <h3 className="text-base font-semibold text-white mb-2">Penalties</h3>
                   <ul className="text-sm text-gray-300 space-y-2 list-disc list-inside">
-                    <li><strong className="text-green-400">First Apron Fee:</strong> $50 if over $170M (one-time fee, then you can stay over)</li>
-                    <li><strong className="text-green-400">Second Apron Penalty:</strong> $2 per $1M over $210M (rounded up)</li>
-                    <li><strong className="text-green-400">Example:</strong> Trading for $4M at $214M cap = $8 penalty</li>
-                    <li><strong className="text-green-400">Maximum Penalty:</strong> Trading for $40M = $80 penalty</li>
+                    <li><strong className="text-green-400">First Apron Fee:</strong> $50 if over $195M (one-time fee, then you can stay over)</li>
+                    <li><strong className="text-green-400">Second Apron Penalty:</strong> $2 per $1M over $225M (rounded up)</li>
+                    <li><strong className="text-green-400">Example:</strong> Trading for $4M at $229M cap = $8 penalty</li>
+                    <li><strong className="text-green-400">Maximum Penalty:</strong> Trading for $30M at $225M = $60 penalty</li>
                     <li>All penalties go directly into the prize pool</li>
                   </ul>
                 </div>
@@ -257,8 +258,8 @@ export function Rules() {
                 <li><strong className="text-green-400">Franchise Tag Fee:</strong> $15 per additional 1st round keeper</li>
                 <li><strong className="text-green-400">Redshirt Rookie Fee:</strong> $10 per redshirted player</li>
                 <li><strong className="text-green-400">Redshirt Activation Fee:</strong> $25 per player</li>
-                <li><strong className="text-green-400">First Apron Penalty:</strong> $50 if over $170M</li>
-                <li><strong className="text-green-400">Second Apron Penalty:</strong> $2 per $1M over $210M</li>
+                <li><strong className="text-green-400">First Apron Penalty:</strong> $50 if over $195M</li>
+                <li><strong className="text-green-400">Second Apron Penalty:</strong> $2 per $1M over $225M</li>
                 <li><strong className="text-green-400">Commissioner Fines:</strong> $1-$10 per violation (e.g., drafting already-drafted player = $1)</li>
               </ul>
             </div>
