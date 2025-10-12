@@ -31,10 +31,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Handle redirect result when user returns from OAuth provider
-    getRedirectResult(auth).catch((error) => {
-      console.error('Error getting redirect result:', error);
-      // Even if redirect fails, continue with auth state listener
-    });
+    // This must complete before we set loading to false
+    const initAuth = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          console.log('Redirect result:', result.user.email);
+        }
+      } catch (error) {
+        console.error('Error getting redirect result:', error);
+      }
+    };
+
+    initAuth();
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
