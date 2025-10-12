@@ -83,7 +83,7 @@ export function LeagueHomeDark() {
               <p className="text-xs text-gray-400 mb-3">{myTeam.abbrev}</p>
               <button
                 onClick={() => navigate(`/league/${leagueId}/team/${myTeam.id}`)}
-                className="w-full border-2 border-green-400 text-green-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all"
+                className="w-full border-2 border-green-400 text-green-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all cursor-pointer"
               >
                 Manage Roster
               </button>
@@ -104,7 +104,7 @@ export function LeagueHomeDark() {
             <p className="text-xs text-gray-400 mb-3">Coming Soon</p>
             <button
               onClick={() => navigate(`/league/${leagueId}/draft`)}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-2 rounded-lg text-sm font-medium hover:from-purple-600 hover:to-pink-600 transition-all"
+              className="w-full border-2 border-purple-400 text-purple-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)] transition-all cursor-pointer"
             >
               View Draft
             </button>
@@ -119,7 +119,7 @@ export function LeagueHomeDark() {
             <p className="text-xs text-gray-400 mb-3">Browse available players</p>
             <button
               onClick={() => navigate(`/league/${leagueId}/free-agents`)}
-              className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
+              className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
             >
               View Pool
             </button>
@@ -134,7 +134,7 @@ export function LeagueHomeDark() {
             <p className="text-xs text-gray-400 mb-3">June 25, 2025</p>
             <button
               onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
-              className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
+              className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
             >
               View Results
             </button>
@@ -149,7 +149,7 @@ export function LeagueHomeDark() {
             <p className="text-xs text-gray-400 mb-3">League guidelines</p>
             <button
               onClick={() => navigate(`/league/${leagueId}/rules`)}
-              className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
+              className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
             >
               View Rules
             </button>
@@ -164,7 +164,7 @@ export function LeagueHomeDark() {
             <p className="text-base font-semibold text-yellow-400 mb-3">Kirbiak</p>
             <button
               onClick={() => navigate(`/league/${leagueId}/record-book`)}
-              className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
+              className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
             >
               Record Book
             </button>
@@ -242,7 +242,7 @@ export function LeagueHomeDark() {
                 <p className="text-sm text-gray-400 mb-4">{myTeam.abbrev}</p>
                 <button
                   onClick={() => navigate(`/league/${leagueId}/team/${myTeam.id}`)}
-                  className="w-full border-2 border-green-400 text-green-400 px-4 py-3 rounded-lg font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all"
+                  className="w-full border-2 border-green-400 text-green-400 px-4 py-3 rounded-lg font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all cursor-pointer"
                 >
                   Manage Roster
                 </button>
@@ -271,7 +271,7 @@ export function LeagueHomeDark() {
               </p>
               <button
                 onClick={() => navigate(`/league/${leagueId}/draft`)}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all"
+                className="w-full border-2 border-purple-400 text-purple-400 px-4 py-2 rounded-lg font-semibold hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)] transition-all cursor-pointer"
               >
                 View Draft
               </button>
@@ -288,7 +288,7 @@ export function LeagueHomeDark() {
               </p>
               <button
                 onClick={() => navigate(`/league/${leagueId}/free-agents`)}
-                className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors"
+                className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
               >
                 View Pool
               </button>
@@ -305,7 +305,7 @@ export function LeagueHomeDark() {
               </p>
               <button
                 onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
-                className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors"
+                className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
               >
                 View Results
               </button>
@@ -322,7 +322,7 @@ export function LeagueHomeDark() {
               </p>
               <button
                 onClick={() => navigate(`/league/${leagueId}/rules`)}
-                className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors"
+                className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
               >
                 View Rules
               </button>
@@ -337,7 +337,7 @@ export function LeagueHomeDark() {
               <p className="text-xl font-semibold text-yellow-400 mb-4">Kirbiak</p>
               <button
                 onClick={() => navigate(`/league/${leagueId}/record-book`)}
-                className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors"
+                className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
               >
                 Record Book
               </button>
