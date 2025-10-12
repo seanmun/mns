@@ -59,7 +59,7 @@ service cloud.firestore {
     // Players collection
     match /players/{playerId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn(); // Temporarily allow all signed-in users to write
+      allow write: if isAdmin(); // Only admins can modify player data
     }
 
     // Projected Stats collection
@@ -77,10 +77,8 @@ service cloud.firestore {
     // Rosters collection
     match /rosters/{rosterId} {
       // rosterId format: {leagueId}_{teamId}
-      allow read: if isSignedIn() && (
-        isTeamOwner(resource.data.teamId) ||
-        isAdmin()
-      );
+      // Allow all signed-in users to read rosters (they can view any team's roster)
+      allow read: if isSignedIn();
 
       allow create: if isSignedIn() && (
         isTeamOwner(request.resource.data.teamId) ||

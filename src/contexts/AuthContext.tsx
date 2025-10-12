@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import {
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   sendSignInLinkToEmail,
@@ -29,6 +30,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Handle redirect result when user returns from OAuth provider
+    getRedirectResult(auth).catch((error) => {
+      console.error('Error getting redirect result:', error);
+      // Even if redirect fails, continue with auth state listener
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
 
@@ -55,7 +62,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      // Use redirect instead of popup for better cross-browser compatibility
+      await signInWithRedirect(auth, googleProvider);
     } catch (error) {
       console.error('Error signing in with Google:', error);
       throw error;
