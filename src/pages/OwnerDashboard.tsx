@@ -245,15 +245,17 @@ export function OwnerDashboard() {
     }
   };
 
-  // Calculate current summary for display
-  const currentSummary = useMemo(() => {
-    const { franchiseTags } = stackKeeperRounds([...entries]);
-    return computeSummary({
-      entries,
+  // Calculate current summary for display and apply stacking to entries
+  const { stackedEntries, currentSummary } = useMemo(() => {
+    const entriesCopy = [...entries];
+    const { franchiseTags } = stackKeeperRounds(entriesCopy);
+    const summary = computeSummary({
+      entries: entriesCopy,
       allPlayers: playersMap,
       tradeDelta: team?.capAdjustments.tradeDelta || 0,
       franchiseTags,
     });
+    return { stackedEntries: entriesCopy, currentSummary: summary };
   }, [entries, playersMap, team]);
 
 
@@ -433,7 +435,7 @@ export function OwnerDashboard() {
         <div className="mb-6">
           <RosterTable
             players={sortedPlayers}
-            entries={entries}
+            entries={stackedEntries}
             onDecisionChange={handleDecisionChange}
             isLocked={isLocked}
             projectedStats={projectedStats}
