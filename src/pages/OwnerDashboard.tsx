@@ -69,7 +69,16 @@ export function OwnerDashboard() {
       // Load most recent scenario if available, otherwise show clean slate
       if (roster.savedScenarios && roster.savedScenarios.length > 0) {
         const mostRecent = [...roster.savedScenarios].sort((a, b) => b.timestamp - a.timestamp)[0];
-        setEntries(mostRecent.entries);
+        // Recalculate baseRound for all entries to ensure they're up to date
+        const updatedEntries = mostRecent.entries.map((entry) => {
+          const player = playersMap.get(entry.playerId);
+          // Default to round 13 if no baseRound can be calculated
+          return {
+            ...entry,
+            baseRound: player ? (baseKeeperRound(player) || 13) : (entry.baseRound || 13),
+          };
+        });
+        setEntries(updatedEntries);
         setActiveScenarioId(mostRecent.scenarioId);
       } else {
         // No scenarios - show clean slate (all players as DROP)
@@ -77,7 +86,7 @@ export function OwnerDashboard() {
           const cleanSlate: RosterEntry[] = players.map((player) => ({
             playerId: player.id,
             decision: 'DROP',
-            baseRound: baseKeeperRound(player) || undefined,
+            baseRound: baseKeeperRound(player) || 13,
           }));
           setEntries(cleanSlate);
           setActiveScenarioId(null);
@@ -88,18 +97,28 @@ export function OwnerDashboard() {
       const initialEntries: RosterEntry[] = players.map((player) => ({
         playerId: player.id,
         decision: 'DROP',
-        baseRound: baseKeeperRound(player) || undefined,
+        baseRound: baseKeeperRound(player) || 13,
       }));
       setEntries(initialEntries);
       setActiveScenarioId(null);
     }
-  }, [roster, players]);
+  }, [roster, players, playersMap]);
 
   const handleDecisionChange = (playerId: string, decision: Decision) => {
     setEntries((prev) =>
-      prev.map((entry) =>
-        entry.playerId === playerId ? { ...entry, decision } : entry
-      )
+      prev.map((entry) => {
+        if (entry.playerId === playerId) {
+          const player = playersMap.get(playerId);
+          // Default to round 13 if no baseRound can be calculated
+          const calculatedBaseRound = player ? (baseKeeperRound(player) || 13) : (entry.baseRound || 13);
+          return {
+            ...entry,
+            decision,
+            baseRound: calculatedBaseRound,
+          };
+        }
+        return entry;
+      })
     );
   };
 
