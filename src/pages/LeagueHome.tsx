@@ -139,6 +139,18 @@ export function LeagueHome() {
             </button>
           </div>
 
+          {/* Free Agent Pool Card */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="text-sm font-bold text-gray-900 mb-1">🏀 Free Agent Pool</h3>
+            <p className="text-xs text-gray-600 mb-3">Browse available players</p>
+            <button
+              onClick={() => navigate(`/league/${leagueId}/free-agents`)}
+              className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              View Pool
+            </button>
+          </div>
+
           {/* Reigning Champion Card */}
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="text-sm font-bold text-gray-900 mb-1">🏆 Champion</h3>
@@ -249,6 +261,20 @@ export function LeagueHome() {
                 className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors"
               >
                 View Draft
+              </button>
+            </div>
+
+            {/* Free Agent Pool Card */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">🏀 Free Agent Pool</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Browse available players and plan your draft strategy.
+              </p>
+              <button
+                onClick={() => navigate(`/league/${leagueId}/free-agents`)}
+                className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                View Pool
               </button>
             </div>
 
