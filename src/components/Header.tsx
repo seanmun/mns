@@ -33,7 +33,7 @@ export function Header() {
               to="/teams"
               className="text-gray-300 hover:text-green-400 font-medium transition-colors"
             >
-              My Teams
+              League
             </Link>
 
             {/* Admin-only Nav */}
