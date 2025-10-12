@@ -96,7 +96,7 @@ export function LeagueHomeDark() {
           )}
 
           {/* Draft Card */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+          <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 p-4">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-sm">📋</span>
               <h3 className="text-sm font-bold text-white">Draft</h3>
@@ -111,9 +111,9 @@ export function LeagueHomeDark() {
           </div>
 
           {/* Free Agent Pool Card */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+          <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 p-4">
             <div className="flex items-center gap-2 mb-1">
-              <img src="/icons/baseketball-icon.png" alt="Basketball" className="w-5 h-5" />
+              <img src="/icons/baseketball-icon.png" alt="Basketball" className="w-5 h-5 rounded-full" />
               <h3 className="text-sm font-bold text-white">Free Agent Pool</h3>
             </div>
             <p className="text-xs text-gray-400 mb-3">Browse available players</p>
@@ -126,7 +126,7 @@ export function LeagueHomeDark() {
           </div>
 
           {/* Rookie Draft Card */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+          <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 p-4">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-sm">🎯</span>
               <h3 className="text-sm font-bold text-white">Rookie Draft</h3>
@@ -141,7 +141,7 @@ export function LeagueHomeDark() {
           </div>
 
           {/* Rules Card */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+          <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 p-4">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-sm">📜</span>
               <h3 className="text-sm font-bold text-white">Rules</h3>
@@ -156,9 +156,9 @@ export function LeagueHomeDark() {
           </div>
 
           {/* Reigning Champion Card */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+          <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 p-4">
             <div className="flex items-center gap-2 mb-1">
-              <img src="/icons/trophy-icon.png" alt="Trophy" className="w-5 h-5" />
+              <img src="/icons/trophy-icon.png" alt="Trophy" className="w-5 h-5 rounded-full" />
               <h3 className="text-sm font-bold text-white">Champion</h3>
             </div>
             <p className="text-base font-semibold text-yellow-400 mb-3">Kirbiak</p>
@@ -178,7 +178,7 @@ export function LeagueHomeDark() {
             {/* Prize Pool Section */}
             <div className="bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 rounded-lg shadow-lg p-6 text-black border border-green-300">
               <div className="flex items-center gap-3 mb-2">
-                <img src="/icons/money-icon.png" alt="Money" className="w-8 h-8" />
+                <img src="/icons/money-icon.png" alt="Money" className="w-8 h-8 rounded-full" />
                 <h2 className="text-xl font-bold">Prize Pool</h2>
               </div>
               <div className="text-4xl font-bold mb-4">${teams.length * 50}</div>
@@ -237,7 +237,7 @@ export function LeagueHomeDark() {
           <div className="hidden lg:block space-y-6">
             {/* My Team Card */}
             {myTeam ? (
-              <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+              <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 p-6">
                 <h3 className="text-lg font-bold text-white mb-2">{myTeam.name}</h3>
                 <p className="text-sm text-gray-400 mb-4">{myTeam.abbrev}</p>
                 <button
@@ -254,14 +254,14 @@ export function LeagueHomeDark() {
                 </div>
               </div>
             ) : (
-              <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+              <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 p-6">
                 <h3 className="text-lg font-bold text-white mb-4">My Team</h3>
                 <p className="text-sm text-gray-400">You are not assigned to a team in this league.</p>
               </div>
             )}
 
             {/* Draft Card */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-lg">📋</span>
                 <h3 className="text-lg font-bold text-white">Draft</h3>
@@ -278,9 +278,9 @@ export function LeagueHomeDark() {
             </div>
 
             {/* Free Agent Pool Card */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/baseketball-icon.png" alt="Basketball" className="w-6 h-6" />
+                <img src="/icons/baseketball-icon.png" alt="Basketball" className="w-6 h-6 rounded-full" />
                 <h3 className="text-lg font-bold text-white">Free Agent Pool</h3>
               </div>
               <p className="text-sm text-gray-400 mb-4">
@@ -295,7 +295,7 @@ export function LeagueHomeDark() {
             </div>
 
             {/* Rookie Draft Card */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-lg">🎯</span>
                 <h3 className="text-lg font-bold text-white">Rookie Draft</h3>
@@ -312,7 +312,7 @@ export function LeagueHomeDark() {
             </div>
 
             {/* Rules Card */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-lg">📜</span>
                 <h3 className="text-lg font-bold text-white">Rules</h3>
@@ -329,9 +329,9 @@ export function LeagueHomeDark() {
             </div>
 
             {/* Reigning Champion Card */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/trophy-icon.png" alt="Trophy" className="w-6 h-6" />
+                <img src="/icons/trophy-icon.png" alt="Trophy" className="w-6 h-6 rounded-full" />
                 <h3 className="text-lg font-bold text-white">Reigning Champion</h3>
               </div>
               <p className="text-xl font-semibold text-yellow-400 mb-4">Kirbiak</p>
