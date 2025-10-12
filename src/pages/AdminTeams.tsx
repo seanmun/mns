@@ -279,7 +279,7 @@ export function AdminTeams() {
                       })
                     }
                     min="0"
-                    max="14"
+                    max="13"
                     className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>

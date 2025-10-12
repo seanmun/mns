@@ -154,7 +154,7 @@ export function PlayerModal({
                         Redshirt Eligible
                       </span>
                     )}
-                    {player.roster.rookieDraftInfo.intEligible && (
+                    {player.roster.intEligible && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 w-fit">
                         Int Stash Eligible
                       </span>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { baseKeeperRound } from '../lib/keeperAlgorithms';
@@ -210,8 +210,10 @@ export function AdminUpload() {
           const isRookie = row.isRookie === 'true' || row.isRookie === '1';
           const onIR = row.onIR === 'true' || row.onIR === '1';
           const isInternationalStash = row.isInternationalStash === 'true' || row.isInternationalStash === '1';
+          const intEligible = row.intEligible === 'true' || row.intEligible === '1';
 
           const player: Partial<Player> = {
+            id: row.fantraxId,
             fantraxId: row.fantraxId || `player_${Date.now()}_${Math.random()}`,
             name: row.name,
             position: row.position,
@@ -223,6 +225,7 @@ export function AdminUpload() {
               onIR,
               isRookie,
               isInternationalStash,
+              intEligible,
             },
           };
 
@@ -232,7 +235,6 @@ export function AdminUpload() {
               round: parseInt(row.rookieRound) as 1 | 2 | 3,
               pick: parseInt(row.rookiePick),
               redshirtEligible: row.redshirtEligible === 'true' || row.redshirtEligible === '1',
-              intEligible: row.intEligible === 'true' || row.intEligible === '1',
             };
           }
 
@@ -252,9 +254,8 @@ export function AdminUpload() {
             }
           }
 
-          // Save to Firestore
-          const playerId = row.id || doc(collection(db, 'players')).id;
-          await setDoc(doc(db, 'players', playerId), player);
+          // Save to Firestore using fantraxId as document ID
+          await setDoc(doc(db, 'players', row.fantraxId), player);
           successCount++;
           setProgress({ current: i + 1, total: rows.length });
         } catch (error: any) {
@@ -271,6 +272,59 @@ export function AdminUpload() {
   };
 
   const progressPercent = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
+
+  const handleDeleteCollection = async (collectionName: 'players' | 'projectedStats' | 'previousStats') => {
+    const confirmed = window.confirm(
+      `⚠️ WARNING: This will permanently delete ALL documents in the "${collectionName}" collection. This cannot be undone. Are you absolutely sure?`
+    );
+
+    if (!confirmed) return;
+
+    const doubleCheck = window.confirm(
+      `This is your last chance. Type "DELETE" in the next prompt to confirm deletion of ${collectionName} collection.`
+    );
+
+    if (!doubleCheck) return;
+
+    const finalConfirm = window.prompt('Type DELETE to confirm:');
+    if (finalConfirm !== 'DELETE') {
+      alert('Deletion cancelled - text did not match.');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const collectionRef = collection(db, collectionName);
+      const snapshot = await getDocs(collectionRef);
+
+      setProgress({ current: 0, total: snapshot.size });
+
+      // Delete in batches of 500 (Firestore limit)
+      const batchSize = 500;
+      let deletedCount = 0;
+
+      for (let i = 0; i < snapshot.docs.length; i += batchSize) {
+        const batch = writeBatch(db);
+        const batchDocs = snapshot.docs.slice(i, i + batchSize);
+
+        batchDocs.forEach((docSnapshot) => {
+          batch.delete(docSnapshot.ref);
+        });
+
+        await batch.commit();
+        deletedCount += batchDocs.length;
+        setProgress({ current: deletedCount, total: snapshot.size });
+      }
+
+      alert(`Successfully deleted ${deletedCount} documents from ${collectionName} collection.`);
+      setResults({ success: deletedCount, errors: [] });
+    } catch (error: any) {
+      alert(`Failed to delete collection: ${error.message}`);
+      console.error('Delete error:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
@@ -364,13 +418,23 @@ export function AdminUpload() {
           )}
 
           {/* Upload button */}
-          <button
-            onClick={handleUpload}
-            disabled={!file || (uploadType === 'players' && !leagueId) || uploading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {uploading ? 'Uploading...' : uploadType === 'players' ? 'Upload Players' : 'Upload Projected Stats'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleUpload}
+              disabled={!file || (uploadType === 'players' && !leagueId) || uploading}
+              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {uploading ? 'Uploading...' : uploadType === 'players' ? 'Upload Players' : uploadType === 'projectedStats' ? 'Upload Projected Stats' : 'Upload Previous Stats'}
+            </button>
+
+            <button
+              onClick={() => handleDeleteCollection(uploadType)}
+              disabled={uploading}
+              className="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Delete All
+            </button>
+          </div>
 
           {/* Results */}
           {results && (
@@ -411,7 +475,7 @@ export function AdminUpload() {
 
                 <div className="mt-4 text-sm text-gray-600 space-y-2">
                   <p><strong>Required:</strong> name, position, salary, nbaTeam</p>
-                  <p><strong>Optional:</strong> teamId (your team's Firestore document ID), priorYearRound (1-14 for returning players)</p>
+                  <p><strong>Optional:</strong> teamId (your team's Firestore document ID), priorYearRound (1-13 for returning players)</p>
                   <p><strong>For rookies:</strong> isRookie=true, rookieRound (1-3), rookiePick (1-12), redshirtEligible=true/false, intEligible=true/false</p>
                   <p><strong>Boolean fields:</strong> Use "true" or "1" for true, anything else for false</p>
                   <p><strong>Column order:</strong> Doesn't matter! Columns can be in any order as long as headers match.</p>

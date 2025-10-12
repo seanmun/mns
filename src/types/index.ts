@@ -51,7 +51,6 @@ export interface RookieDraftInfo {
   pick: number;  // 1-12
   redshirtEligible: boolean;
   redshirtedLastYear?: boolean;
-  intEligible: boolean;
 }
 
 export interface PlayerRoster {
@@ -60,12 +59,13 @@ export interface PlayerRoster {
   onIR: boolean;
   isRookie: boolean;
   isInternationalStash: boolean;
+  intEligible: boolean;
   rookieDraftInfo?: RookieDraftInfo;
 }
 
 export interface PlayerKeeper {
-  priorYearRound?: number;     // 1-14
-  derivedBaseRound?: number;   // 1-14, computed from rules
+  priorYearRound?: number;     // 1-13
+  derivedBaseRound?: number;   // 1-13, computed from rules
 }
 
 export interface Player {
@@ -84,8 +84,8 @@ export interface RosterEntry {
   playerId: string;
   decision: Decision;
   locked?: boolean;
-  keeperRound?: number;  // final after stacking (1-14)
-  baseRound?: number;    // pre-stacking (1-14)
+  keeperRound?: number;  // final after stacking (1-13)
+  baseRound?: number;    // pre-stacking (1-13)
   priority?: number;     // user-defined priority for same base round (lower = earlier)
   notes?: string;
 }

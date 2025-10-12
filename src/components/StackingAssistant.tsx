@@ -54,9 +54,9 @@ export function StackingAssistant({
 
       {/* Round occupancy grid */}
       <div className="mb-6">
-        <div className="text-sm text-gray-600 mb-2">Round Occupancy (1-14)</div>
-        <div className="grid grid-cols-14 gap-1">
-          {Array.from({ length: 14 }, (_, i) => i + 1).map((round) => {
+        <div className="text-sm text-gray-600 mb-2">Round Occupancy (1-13)</div>
+        <div className="grid grid-cols-13 gap-1">
+          {Array.from({ length: 13 }, (_, i) => i + 1).map((round) => {
             const occupants = roundOccupancy.get(round) || [];
             const hasConflict = occupants.length > 1;
 

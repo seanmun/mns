@@ -5,37 +5,6 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Team, League } from '../types';
 
-// Record Book Data
-const recordBookData = {
-  firstPlaces: [
-    { name: 'Kirbiak', count: 3 },
-    { name: 'Sean', count: 2 },
-    { name: 'Rick', count: 2 },
-    { name: 'Tea Mike', count: 1 },
-    { name: 'Ian', count: 1 },
-    { name: 'Woods', count: 1 },
-    { name: 'Bad', count: 1 },
-    { name: 'Stine', count: 1 },
-  ],
-  secondPlaces: [
-    { name: 'Sean', count: 3 },
-    { name: 'Bad', count: 3 },
-    { name: 'Woods', count: 2 },
-    { name: 'Kirbiak', count: 1 },
-    { name: 'Tea Mike', count: 1 },
-    { name: 'Pudd', count: 1 },
-    { name: 'Rick', count: 1 },
-  ],
-  thirdPlaces: [
-    { name: 'Sean', count: 3 },
-    { name: 'Stine', count: 3 },
-    { name: 'Rick', count: 2 },
-    { name: 'Kirbiak', count: 2 },
-    { name: 'Ian', count: 1 },
-    { name: 'PJ', count: 1 },
-  ],
-};
-
 export function LeagueHome() {
   const { leagueId } = useParams<{ leagueId: string }>();
   const { user } = useAuth();
@@ -44,7 +13,6 @@ export function LeagueHome() {
   const [league, setLeague] = useState<League | null>(null);
   const [myTeam, setMyTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showRecordBook, setShowRecordBook] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -156,7 +124,7 @@ export function LeagueHome() {
             <h3 className="text-sm font-bold text-gray-900 mb-1">🏆 Champion</h3>
             <p className="text-base font-semibold text-yellow-600 mb-3">Kirbiak</p>
             <button
-              onClick={() => setShowRecordBook(!showRecordBook)}
+              onClick={() => navigate(`/league/${leagueId}/record-book`)}
               className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
             >
               Record Book
@@ -283,62 +251,11 @@ export function LeagueHome() {
               <h3 className="text-lg font-bold text-gray-900 mb-2">🏆 Reigning Champion</h3>
               <p className="text-xl font-semibold text-yellow-600 mb-4">Kirbiak</p>
               <button
-                onClick={() => setShowRecordBook(!showRecordBook)}
-                className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-between"
+                onClick={() => navigate(`/league/${leagueId}/record-book`)}
+                className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
-                <span>Record Book</span>
-                <svg
-                  className={`w-5 h-5 transition-transform ${showRecordBook ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                Record Book
               </button>
-
-              {showRecordBook && (
-                <div className="mt-4 space-y-4">
-                  {/* 1st Places */}
-                  <div>
-                    <h4 className="text-sm font-semibold text-yellow-600 mb-2">🥇 1st Place Finishes</h4>
-                    <div className="space-y-1">
-                      {recordBookData.firstPlaces.map((record) => (
-                        <div key={record.name} className="flex justify-between text-sm">
-                          <span className="text-gray-700">{record.name}</span>
-                          <span className="font-medium text-gray-900">{record.count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 2nd Places */}
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-400 mb-2">🥈 2nd Place Finishes</h4>
-                    <div className="space-y-1">
-                      {recordBookData.secondPlaces.map((record) => (
-                        <div key={record.name} className="flex justify-between text-sm">
-                          <span className="text-gray-700">{record.name}</span>
-                          <span className="font-medium text-gray-900">{record.count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 3rd Places */}
-                  <div>
-                    <h4 className="text-sm font-semibold text-orange-600 mb-2">🥉 3rd Place Finishes</h4>
-                    <div className="space-y-1">
-                      {recordBookData.thirdPlaces.map((record) => (
-                        <div key={record.name} className="flex justify-between text-sm">
-                          <span className="text-gray-700">{record.name}</span>
-                          <span className="font-medium text-gray-900">{record.count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

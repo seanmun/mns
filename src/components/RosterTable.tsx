@@ -117,8 +117,8 @@ export function RosterTable({
     // Status-based border color
     if (player?.roster.onIR) {
       baseClass += 'border-l-4 border-l-red-500 ';
-    } else if (player?.roster.isInternationalStash) {
-      baseClass += 'border-l-4 border-l-purple-500 ';
+    } else if (player?.roster.intEligible || player?.roster.isInternationalStash) {
+      baseClass += 'border-l-4 border-l-blue-500 ';
     } else if (player?.roster.isRookie) {
       baseClass += 'border-l-4 border-l-green-500 ';
     }
@@ -287,13 +287,11 @@ export function RosterTable({
                           <option
                             value="INT_STASH"
                             disabled={
-                              !player.roster.isInternationalStash ||
-                              !player.roster.rookieDraftInfo?.intEligible
+                              !player.roster.intEligible
                             }
                           >
                             Int Stash
-                            {!player.roster.isInternationalStash ||
-                            !player.roster.rookieDraftInfo?.intEligible
+                            {!player.roster.intEligible
                               ? ' (N/A)'
                               : ''}
                           </option>

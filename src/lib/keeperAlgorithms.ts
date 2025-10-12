@@ -15,7 +15,7 @@ export function baseKeeperRound(player: Player): number | null {
       if (pick >= 10 && pick <= 12) return 8;
     }
 
-    if (round === 2 || round === 3) return 14;
+    if (round === 2 || round === 3) return 13;
   }
 
   // Handle returning players with prior year keeper info
@@ -94,19 +94,39 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
     });
 
     for (const keeper of otherKeepers) {
-      let targetRound = keeper.baseRound!;
+      const baseRound = keeper.baseRound!;
 
-      // Find next available round starting from their base round
-      while (occupiedRounds.has(targetRound) && targetRound <= 14) {
-        targetRound++;
-      }
-
-      if (targetRound <= 14) {
-        keeper.keeperRound = targetRound;
-        occupiedRounds.add(targetRound);
+      // If base round is available, take it
+      if (!occupiedRounds.has(baseRound)) {
+        keeper.keeperRound = baseRound;
+        occupiedRounds.add(baseRound);
       } else {
-        // Should not happen with max 8 keepers
-        keeper.keeperRound = 14;
+        // Base round occupied - try backward first, then forward
+        let backwardRound = baseRound - 1;
+        let forwardRound = baseRound + 1;
+        let foundRound: number | null = null;
+
+        // Try backward first (but not into Round 1 or below)
+        if (backwardRound >= 2 && !occupiedRounds.has(backwardRound)) {
+          foundRound = backwardRound;
+        }
+        // If backward doesn't work, go forward
+        else {
+          while (forwardRound <= 13 && occupiedRounds.has(forwardRound)) {
+            forwardRound++;
+          }
+          if (forwardRound <= 13) {
+            foundRound = forwardRound;
+          }
+        }
+
+        if (foundRound) {
+          keeper.keeperRound = foundRound;
+          occupiedRounds.add(foundRound);
+        } else {
+          // Fallback - should not happen with max 8 keepers
+          keeper.keeperRound = 13;
+        }
       }
     }
   } else {
@@ -123,17 +143,39 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
     });
 
     for (const keeper of otherKeepers) {
-      let targetRound = keeper.baseRound!;
+      const baseRound = keeper.baseRound!;
 
-      while (occupiedRounds.has(targetRound) && targetRound <= 14) {
-        targetRound++;
-      }
-
-      if (targetRound <= 14) {
-        keeper.keeperRound = targetRound;
-        occupiedRounds.add(targetRound);
+      // If base round is available, take it
+      if (!occupiedRounds.has(baseRound)) {
+        keeper.keeperRound = baseRound;
+        occupiedRounds.add(baseRound);
       } else {
-        keeper.keeperRound = 14;
+        // Base round occupied - try backward first, then forward
+        let backwardRound = baseRound - 1;
+        let forwardRound = baseRound + 1;
+        let foundRound: number | null = null;
+
+        // Try backward first (but not into Round 0 or below)
+        if (backwardRound >= 1 && !occupiedRounds.has(backwardRound)) {
+          foundRound = backwardRound;
+        }
+        // If backward doesn't work, go forward
+        else {
+          while (forwardRound <= 13 && occupiedRounds.has(forwardRound)) {
+            forwardRound++;
+          }
+          if (forwardRound <= 13) {
+            foundRound = forwardRound;
+          }
+        }
+
+        if (foundRound) {
+          keeper.keeperRound = foundRound;
+          occupiedRounds.add(foundRound);
+        } else {
+          // Fallback - should not happen with max 8 keepers
+          keeper.keeperRound = 13;
+        }
       }
     }
   }
@@ -292,20 +334,11 @@ export function validateRoster(
   // Check int stash eligibility
   intStashes.forEach((entry) => {
     const player = allPlayers.get(entry.playerId);
-    if (player && player.roster.rookieDraftInfo) {
-      if (!player.roster.rookieDraftInfo.intEligible) {
-        errors.push({
-          type: 'error',
-          field: 'intStashEligibility',
-          message: `${player.name} is not eligible for international stash.`,
-          playerId: player.id,
-        });
-      }
-    } else if (player && !player.roster.isInternationalStash) {
+    if (player && !player.roster.intEligible) {
       errors.push({
         type: 'error',
         field: 'intStashEligibility',
-        message: `${player.name} is not an international stash player.`,
+        message: `${player.name} is not eligible for international stash.`,
         playerId: player.id,
       });
     }

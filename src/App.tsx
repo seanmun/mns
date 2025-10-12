@@ -8,6 +8,7 @@ import { LeagueHome } from './pages/LeagueHome';
 import { OwnerDashboard } from './pages/OwnerDashboard';
 import { Draft } from './pages/Draft';
 import { FreeAgents } from './pages/FreeAgents';
+import { RecordBook } from './pages/RecordBook';
 import { AdminUpload } from './pages/AdminUpload';
 import { AdminTeams } from './pages/AdminTeams';
 
@@ -87,6 +88,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <FreeAgents />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/league/:leagueId/record-book"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <RecordBook />
                 </AppLayout>
               </PrivateRoute>
             }
