@@ -8,6 +8,7 @@ import { RosterTable } from '../components/RosterTable';
 import { CapThermometer } from '../components/CapThermometer';
 import { SummaryCard } from '../components/SummaryCard';
 import { SavedScenarios } from '../components/SavedScenarios';
+import { PriorityManager } from '../components/PriorityManager';
 import { baseKeeperRound, stackKeeperRounds, computeSummary, validateRoster } from '../lib/keeperAlgorithms';
 import type { RosterEntry, Decision, SavedScenario } from '../types';
 
@@ -100,6 +101,18 @@ export function OwnerDashboard() {
       prev.map((entry) =>
         entry.playerId === playerId ? { ...entry, decision } : entry
       )
+    );
+  };
+
+  const handleUpdatePriorities = (updates: { playerId: string; priority: number }[]) => {
+    setEntries((prev) =>
+      prev.map((entry) => {
+        const update = updates.find((u) => u.playerId === entry.playerId);
+        if (update) {
+          return { ...entry, priority: update.priority };
+        }
+        return entry;
+      })
     );
   };
 
@@ -405,6 +418,15 @@ export function OwnerDashboard() {
               </p>
             )}
           </div>
+        )}
+
+        {/* Priority Manager - Only visible to team owner when not locked */}
+        {!isLocked && isOwner && (
+          <PriorityManager
+            entries={entries}
+            players={playersMap}
+            onUpdatePriorities={handleUpdatePriorities}
+          />
         )}
 
         {/* Roster table */}

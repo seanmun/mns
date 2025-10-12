@@ -64,8 +64,17 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
     franchiseTags = extraR1Keepers.length;
 
     // STEP 2: Assign rounds to base round 2-14 keepers first (they have priority over franchise-tagged R1)
-    // Sort by base round, then by order in original array (for same base round players)
-    otherKeepers.sort((a, b) => a.baseRound! - b.baseRound!);
+    // Sort by base round, then by priority (for same base round players)
+    otherKeepers.sort((a, b) => {
+      if (a.baseRound !== b.baseRound) {
+        return a.baseRound! - b.baseRound!;
+      }
+      // Same base round - use priority if both have it, otherwise maintain order
+      if (a.priority !== undefined && b.priority !== undefined) {
+        return a.priority - b.priority;
+      }
+      return 0; // Keep original order if no priorities set
+    });
 
     for (const keeper of otherKeepers) {
       let targetRound = keeper.baseRound!;
@@ -103,7 +112,16 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
     }
   } else {
     // No Round 1 keepers - just assign other keepers normally
-    otherKeepers.sort((a, b) => a.baseRound! - b.baseRound!);
+    otherKeepers.sort((a, b) => {
+      if (a.baseRound !== b.baseRound) {
+        return a.baseRound! - b.baseRound!;
+      }
+      // Same base round - use priority if both have it
+      if (a.priority !== undefined && b.priority !== undefined) {
+        return a.priority - b.priority;
+      }
+      return 0;
+    });
 
     for (const keeper of otherKeepers) {
       let targetRound = keeper.baseRound!;

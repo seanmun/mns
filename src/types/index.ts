@@ -86,6 +86,7 @@ export interface RosterEntry {
   locked?: boolean;
   keeperRound?: number;  // final after stacking (1-14)
   baseRound?: number;    // pre-stacking (1-14)
+  priority?: number;     // user-defined priority for same base round (lower = earlier)
   notes?: string;
 }
 
