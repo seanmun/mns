@@ -10,6 +10,7 @@ export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps
   const firstApron = 195_000_000;
   const secondApron = 225_000_000;
   const max = 255_000_000;
+  const totalRosterSize = 13;  // Total roster spots (keepers + draft picks)
 
   // Calculate marker positions on the full scale (0 to 255M)
   const firstApronPercent = (firstApron / max) * 100;
@@ -118,10 +119,10 @@ export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps
           <div className="text-gray-400">Avg/Spot (Before 1st Apron)</div>
           <div className="font-semibold text-lg text-yellow-400">
             {(() => {
-              const emptySpots = maxKeepers - keepersCount;
-              if (emptySpots <= 0) return '-';
+              const draftSpots = totalRosterSize - keepersCount;
+              if (draftSpots <= 0) return '-';
               const roomToFirstApron = Math.max(0, firstApron - capUsed);
-              return formatCap(roomToFirstApron / emptySpots);
+              return formatCap(roomToFirstApron / draftSpots);
             })()}
           </div>
         </div>
@@ -130,10 +131,10 @@ export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps
           <div className="text-gray-400">Avg/Spot (Before 2nd Apron)</div>
           <div className="font-semibold text-lg text-orange-400">
             {(() => {
-              const emptySpots = maxKeepers - keepersCount;
-              if (emptySpots <= 0) return '-';
+              const draftSpots = totalRosterSize - keepersCount;
+              if (draftSpots <= 0) return '-';
               const roomToSecondApron = Math.max(0, secondApron - capUsed);
-              return formatCap(roomToSecondApron / emptySpots);
+              return formatCap(roomToSecondApron / draftSpots);
             })()}
           </div>
         </div>
