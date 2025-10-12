@@ -33,7 +33,7 @@ export function Rules() {
             <div className="p-6">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-base font-semibold text-white mb-2">Cap Structure (2025-26 Season)</h3>
+                  <h3 className="text-base font-semibold text-white mb-2">Cap Structure (2025-2026 Season)</h3>
                   <ul className="text-sm text-gray-300 space-y-2 list-disc list-inside">
                     <li><strong className="text-green-400">Floor:</strong> $170M (minimum salary cap)</li>
                     <li><strong className="text-green-400">First Apron:</strong> $195M (triggers $50 one-time fee)</li>
