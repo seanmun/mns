@@ -252,6 +252,7 @@ export function OwnerDashboard() {
   const { stackedEntries, currentSummary } = useMemo(() => {
     // Deep copy entries so stacking doesn't mutate original state
     const entriesCopy = entries.map(e => ({ ...e }));
+    console.log('Entries with priorities before stacking:', entriesCopy.filter(e => e.priority !== undefined).map(e => ({ id: e.playerId, priority: e.priority })));
     const { franchiseTags } = stackKeeperRounds(entriesCopy);
     const summary = computeSummary({
       entries: entriesCopy,
