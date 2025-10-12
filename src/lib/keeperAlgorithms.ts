@@ -71,6 +71,7 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
       }
       // Same base round - use priority if both have it, otherwise maintain order
       if (a.priority !== undefined && b.priority !== undefined) {
+        console.log(`Sorting by priority: ${a.playerId}(${a.priority}) vs ${b.playerId}(${b.priority})`);
         return a.priority - b.priority;
       }
       return 0; // Keep original order if no priorities set

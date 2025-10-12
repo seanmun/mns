@@ -44,11 +44,15 @@ export function PriorityManager({ entries, players, onUpdatePriorities }: Priori
   const movePriority = (round: number, playerId: string, direction: 'up' | 'down') => {
     const group = roundGroups.get(round)!;
 
-    // Sort by current priority
+    // Sort by current priority (if undefined, use array order)
     const sorted = [...group].sort((a, b) => {
-      const aPrio = a.priority ?? 999;
-      const bPrio = b.priority ?? 999;
-      return aPrio - bPrio;
+      // If neither has priority, maintain original order
+      if (a.priority === undefined && b.priority === undefined) return 0;
+      // If only one has priority, prioritize the one with defined priority
+      if (a.priority === undefined) return 1;
+      if (b.priority === undefined) return -1;
+      // Both have priority, compare them
+      return a.priority - b.priority;
     });
 
     const currentIndex = sorted.findIndex((e) => e.playerId === playerId);
@@ -66,6 +70,7 @@ export function PriorityManager({ entries, players, onUpdatePriorities }: Priori
       priority: idx,
     }));
 
+    console.log('Priority updates:', updates);
     onUpdatePriorities(updates);
   };
 
