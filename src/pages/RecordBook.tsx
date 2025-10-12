@@ -39,7 +39,10 @@ export function RecordBook() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">📖 Record Book</h1>
+          <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+            <img src="/icons/book-icon.png" alt="Record Book" className="w-8 h-8 rounded-full" />
+            Record Book
+          </h1>
           <p className="text-gray-400 mt-1">League history and championship records</p>
         </div>
 

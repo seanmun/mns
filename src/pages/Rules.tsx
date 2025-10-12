@@ -320,7 +320,10 @@ export function Rules() {
           {/* Additional Notes */}
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
-              <h2 className="text-xl font-bold text-white">📝 Additional Notes</h2>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <img src="/icons/note-icon.png" alt="Notes" className="w-6 h-6 rounded-full" />
+                Additional Notes
+              </h2>
             </div>
             <div className="p-6">
               <ul className="text-sm text-gray-300 space-y-2 list-disc list-inside">
