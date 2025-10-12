@@ -7,14 +7,29 @@ import { usePreviousStats } from '../hooks/usePreviousStats';
 import { PlayerModal } from '../components/PlayerModal';
 import type { Player } from '../types';
 
+type SortColumn = 'score' | 'salary' | 'points' | 'rebounds' | 'assists' | 'steals' | 'blocks' | 'fgPercent' | 'ftPercent' | 'threePointMade';
+
 export function FreeAgents() {
   const { leagueId } = useParams<{ leagueId: string }>();
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [selectedPlayerIndex, setSelectedPlayerIndex] = useState<number>(-1);
+  const [sortColumn, setSortColumn] = useState<SortColumn>('score');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const { projectedStats } = useProjectedStats();
   const { previousStats } = usePreviousStats();
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      // Toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to descending (highest first)
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -45,22 +60,66 @@ export function FreeAgents() {
 
   // Filter out players that are on teams (have a teamId)
   const freeAgents = useMemo(() => {
-    console.log('Filtering free agents from', allPlayers.length, 'players');
-    const agents = allPlayers.filter(player => {
-      const isFreeAgent = !player.roster.teamId;
-      console.log(player.name, 'teamId:', player.roster.teamId, 'isFreeAgent:', isFreeAgent);
-      return isFreeAgent;
-    });
+    const agents = allPlayers.filter(player => !player.roster.teamId);
 
-    console.log('Free agents found:', agents.length);
-
-    // Sort by projected score (highest first)
+    // Sort by selected column
     return agents.sort((a, b) => {
-      const scoreA = projectedStats.get(a.fantraxId)?.score ?? 0;
-      const scoreB = projectedStats.get(b.fantraxId)?.score ?? 0;
-      return scoreB - scoreA;
+      let valueA: number;
+      let valueB: number;
+
+      if (sortColumn === 'salary') {
+        valueA = a.salary;
+        valueB = b.salary;
+      } else {
+        const statsA = projectedStats.get(a.fantraxId);
+        const statsB = projectedStats.get(b.fantraxId);
+
+        switch (sortColumn) {
+          case 'score':
+            valueA = statsA?.score ?? 0;
+            valueB = statsB?.score ?? 0;
+            break;
+          case 'points':
+            valueA = statsA?.points ?? 0;
+            valueB = statsB?.points ?? 0;
+            break;
+          case 'rebounds':
+            valueA = statsA?.rebounds ?? 0;
+            valueB = statsB?.rebounds ?? 0;
+            break;
+          case 'assists':
+            valueA = statsA?.assists ?? 0;
+            valueB = statsB?.assists ?? 0;
+            break;
+          case 'steals':
+            valueA = statsA?.steals ?? 0;
+            valueB = statsB?.steals ?? 0;
+            break;
+          case 'blocks':
+            valueA = statsA?.blocks ?? 0;
+            valueB = statsB?.blocks ?? 0;
+            break;
+          case 'fgPercent':
+            valueA = statsA?.fgPercent ?? 0;
+            valueB = statsB?.fgPercent ?? 0;
+            break;
+          case 'ftPercent':
+            valueA = statsA?.ftPercent ?? 0;
+            valueB = statsB?.ftPercent ?? 0;
+            break;
+          case 'threePointMade':
+            valueA = statsA?.threePointMade ?? 0;
+            valueB = statsB?.threePointMade ?? 0;
+            break;
+          default:
+            valueA = 0;
+            valueB = 0;
+        }
+      }
+
+      return sortDirection === 'desc' ? valueB - valueA : valueA - valueB;
     });
-  }, [allPlayers, projectedStats]);
+  }, [allPlayers, projectedStats, sortColumn, sortDirection]);
 
   const formatSalary = (salary: number) => {
     return `$${(salary / 1_000_000).toFixed(2)}M`;
@@ -74,6 +133,31 @@ export function FreeAgents() {
   const formatPercent = (percent: number | undefined) => {
     if (percent === undefined) return '-';
     return `${(percent * 100).toFixed(1)}%`;
+  };
+
+  const renderSortHeader = (label: string, column: SortColumn, align: 'left' | 'center' | 'right' = 'center') => {
+    const isActive = sortColumn === column;
+    const alignClass = align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center';
+
+    return (
+      <th
+        className={`px-4 py-3 text-${align} text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors`}
+        onClick={() => handleSort(column)}
+      >
+        <div className={`flex items-center gap-1 ${alignClass}`}>
+          {label}
+          {isActive && (
+            <svg
+              className={`w-3 h-3 transform ${sortDirection === 'asc' ? 'rotate-180' : ''}`}
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          )}
+        </div>
+      </th>
+    );
   };
 
   if (loading) {
@@ -107,41 +191,16 @@ export function FreeAgents() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Pos
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Salary
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center justify-center gap-1">
-                      Score
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    PTS
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    REB
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    AST
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ST
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    BLK
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    FG%
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    FT%
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    3PM
-                  </th>
+                  {renderSortHeader('Salary', 'salary', 'right')}
+                  {renderSortHeader('Score', 'score')}
+                  {renderSortHeader('PTS', 'points')}
+                  {renderSortHeader('REB', 'rebounds')}
+                  {renderSortHeader('AST', 'assists')}
+                  {renderSortHeader('ST', 'steals')}
+                  {renderSortHeader('BLK', 'blocks')}
+                  {renderSortHeader('FG%', 'fgPercent')}
+                  {renderSortHeader('FT%', 'ftPercent')}
+                  {renderSortHeader('3PM', 'threePointMade')}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
