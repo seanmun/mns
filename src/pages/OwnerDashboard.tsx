@@ -191,9 +191,9 @@ export function OwnerDashboard() {
 
       setScenarioName('');
       alert('Scenario saved successfully!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving scenario:', error);
-      alert('Failed to save scenario. Please try again.');
+      alert(`Failed to save scenario: ${error.message || 'Please try again.'}`);
     } finally {
       setIsSaving(false);
     }
