@@ -25,7 +25,6 @@ export function OwnerDashboard() {
   const isOwner = team?.owners.includes(user?.email || '') || false;
 
   const [entries, setEntries] = useState<RosterEntry[]>([]);
-  const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
   const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
@@ -102,30 +101,8 @@ export function OwnerDashboard() {
         entry.playerId === playerId ? { ...entry, decision } : entry
       )
     );
-    setIsDirty(true);
   };
 
-
-  const handleSave = async () => {
-    try {
-      setIsSaving(true);
-
-      await updateRoster({
-        leagueId: leagueId!,
-        teamId: teamId!,
-        entries,
-        allPlayers: playersMap,
-        tradeDelta: team?.capAdjustments.tradeDelta || 0,
-      });
-
-      setIsDirty(false);
-    } catch (error) {
-      console.error('Error saving roster:', error);
-      alert('Failed to save roster. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const handleSaveScenario = async () => {
     if (!scenarioName.trim()) {
@@ -162,7 +139,6 @@ export function OwnerDashboard() {
       });
 
       setScenarioName('');
-      setIsDirty(false);
       alert('Scenario saved successfully!');
     } catch (error) {
       console.error('Error saving scenario:', error);
@@ -181,7 +157,6 @@ export function OwnerDashboard() {
 
     setEntries(scenario.entries);
     setActiveScenarioId(scenario.scenarioId);
-    setIsDirty(true);
   };
 
   const handleScenarioChange = (scenarioId: string) => {
@@ -194,14 +169,12 @@ export function OwnerDashboard() {
       }));
       setEntries(cleanSlate);
       setActiveScenarioId(null);
-      setIsDirty(true);
     } else {
       // Load selected scenario
       const scenario = roster?.savedScenarios?.find(s => s.scenarioId === scenarioId);
       if (scenario) {
         setEntries(scenario.entries);
         setActiveScenarioId(scenario.scenarioId);
-        setIsDirty(true);
       }
     }
   };
@@ -459,34 +432,30 @@ export function OwnerDashboard() {
                     type="text"
                     value={scenarioName}
                     onChange={(e) => setScenarioName(e.target.value)}
-                    placeholder="Scenario name..."
+                    placeholder="e.g., Final v1, Conservative, Aggressive"
                     className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                   <button
                     onClick={handleSaveScenario}
                     disabled={isSaving || !scenarioName.trim()}
-                    className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50"
+                    className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 font-medium"
                   >
-                    Save
+                    {isSaving ? 'Saving...' : 'Save'}
                   </button>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Save your current keeper selections with a descriptive name
+                </p>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-end gap-2">
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving || !isDirty}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {isSaving ? 'Saving...' : 'Save Draft'}
-                </button>
+              {/* Submit Final */}
+              <div className="flex items-end">
                 <button
                   onClick={handleSubmit}
                   disabled={isSaving}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                  className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 font-medium"
                 >
-                  Submit Final
+                  Submit Final Keepers
                 </button>
               </div>
             </div>
