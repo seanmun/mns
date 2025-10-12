@@ -6,6 +6,7 @@ import { FinishSignIn } from './pages/FinishSignIn';
 import { TeamSelect } from './pages/TeamSelect';
 import { LeagueHome } from './pages/LeagueHome';
 import { OwnerDashboard } from './pages/OwnerDashboard';
+import { Draft } from './pages/Draft';
 import { AdminUpload } from './pages/AdminUpload';
 import { AdminTeams } from './pages/AdminTeams';
 
@@ -65,6 +66,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <OwnerDashboard />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/league/:leagueId/draft"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <Draft />
                 </AppLayout>
               </PrivateRoute>
             }

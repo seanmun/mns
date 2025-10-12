@@ -130,24 +130,12 @@ export function LeagueHome() {
           {/* Draft Card */}
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="text-sm font-bold text-gray-900 mb-1">📋 Draft</h3>
-            <p className="text-xs text-gray-600 mb-3">View draft order</p>
+            <p className="text-xs text-gray-600 mb-3">Coming Soon</p>
             <button
               onClick={() => navigate(`/league/${leagueId}/draft`)}
-              className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+              className="w-full bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
             >
-              View Board
-            </button>
-          </div>
-
-          {/* Draft Tools Card */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-sm font-bold text-gray-900 mb-1">🔧 Draft Tools</h3>
-            <p className="text-xs text-gray-600 mb-3">Browse free agents</p>
-            <button
-              onClick={() => navigate(`/league/${leagueId}/free-agents`)}
-              className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-            >
-              View Agents
+              View Draft
             </button>
           </div>
 
@@ -254,27 +242,13 @@ export function LeagueHome() {
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-2">📋 Draft</h3>
               <p className="text-sm text-gray-600 mb-4">
-                View draft order and results. Submitted keepers will appear here.
+                Coming Soon
               </p>
               <button
                 onClick={() => navigate(`/league/${leagueId}/draft`)}
-                className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors"
               >
-                View Draft Board
-              </button>
-            </div>
-
-            {/* Draft Tools Card */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-2">🔧 Draft Tools</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Browse the free agent pool and plan your draft strategy.
-              </p>
-              <button
-                onClick={() => navigate(`/league/${leagueId}/free-agents`)}
-                className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-              >
-                View Free Agents
+                View Draft
               </button>
             </div>
 
