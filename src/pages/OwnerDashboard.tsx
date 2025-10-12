@@ -247,7 +247,8 @@ export function OwnerDashboard() {
 
   // Calculate current summary for display and apply stacking to entries
   const { stackedEntries, currentSummary } = useMemo(() => {
-    const entriesCopy = [...entries];
+    // Deep copy entries so stacking doesn't mutate original state
+    const entriesCopy = entries.map(e => ({ ...e }));
     const { franchiseTags } = stackKeeperRounds(entriesCopy);
     const summary = computeSummary({
       entries: entriesCopy,
