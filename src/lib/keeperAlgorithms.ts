@@ -211,7 +211,7 @@ export function computeSummary(params: ComputeSummaryParams): RosterSummary {
     allPlayers,
     baseCap = 210_000_000,
     tradeDelta,
-    penaltyStart = 210_000_000,
+    penaltyStart = 225_000_000,  // Second apron
     penaltyRatePerM = 2,
     redshirtFee = 10,
     franchiseTagFee = 15,
@@ -237,13 +237,13 @@ export function computeSummary(params: ComputeSummaryParams): RosterSummary {
     return sum + (player?.salary || 0);
   }, 0);
 
-  // Calculate effective cap (base + trade delta, clamped to 170M-250M)
+  // Calculate effective cap (base + trade delta, clamped to 170M-255M)
   const capEffective = Math.max(
     170_000_000,
-    Math.min(250_000_000, baseCap + tradeDelta)
+    Math.min(255_000_000, baseCap + tradeDelta)
   );
 
-  // Calculate second apron penalty
+  // Calculate second apron penalty (225M is the new second apron)
   const overBy = Math.max(0, capUsed - penaltyStart);
   const overByM = Math.ceil(overBy / 1_000_000);
   const penaltyDues = overByM * penaltyRatePerM;
@@ -254,8 +254,8 @@ export function computeSummary(params: ComputeSummaryParams): RosterSummary {
   // Calculate redshirt dues
   const redshirtDues = redshirtIds.length * redshirtFee;
 
-  // Calculate first apron fee ($50 if over 170M)
-  const firstApronFee = capUsed > 170_000_000 ? 50 : 0;
+  // Calculate first apron fee ($50 if over 195M)
+  const firstApronFee = capUsed > 195_000_000 ? 50 : 0;
 
   // Total fees
   const totalFees = penaltyDues + franchiseTagDues + redshirtDues + firstApronFee;

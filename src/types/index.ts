@@ -7,8 +7,10 @@ export interface LeagueCapSettings {
   floor: number;           // 170M
   base: number;            // 210M
   tradeLimit: number;      // ±40M
-  max: number;             // 250M
-  penaltyStart: number;    // 210M
+  max: number;             // 255M
+  firstApron: number;      // 195M
+  secondApron: number;     // 225M
+  penaltyStart: number;    // 225M (second apron)
   penaltyRatePerM: number; // $2 per $1M
 }
 
@@ -134,11 +136,11 @@ export const CAP_CONSTANTS = {
   FLOOR: 170_000_000,
   BASE: 210_000_000,
   TRADE_LIMIT: 40_000_000,
-  MAX: 250_000_000,
-  FIRST_APRON: 170_000_000,
-  SECOND_APRON: 210_000_000,
+  MAX: 255_000_000,
+  FIRST_APRON: 195_000_000,
+  SECOND_APRON: 225_000_000,
   FIRST_APRON_FEE: 50,
-  PENALTY_START: 210_000_000,
+  PENALTY_START: 225_000_000,
   PENALTY_RATE_PER_M: 2,
   REDSHIRT_FEE: 10,
   FRANCHISE_TAG_FEE: 15,

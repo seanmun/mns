@@ -6,11 +6,11 @@ interface CapThermometerProps {
 
 export function CapThermometer({ summary }: CapThermometerProps) {
   const { capUsed, capEffective, overSecondApronByM } = summary;
-  const firstApron = 170_000_000;
-  const secondApron = 210_000_000;
-  const max = 250_000_000;
+  const firstApron = 195_000_000;
+  const secondApron = 225_000_000;
+  const max = 255_000_000;
 
-  // Calculate marker positions on the full scale (0 to 250M)
+  // Calculate marker positions on the full scale (0 to 255M)
   const firstApronPercent = (firstApron / max) * 100;
   const secondApronPercent = (secondApron / max) * 100;
   const capUsedPercent = Math.min((capUsed / max) * 100, 100);
@@ -46,26 +46,26 @@ export function CapThermometer({ summary }: CapThermometerProps) {
             style={{ width: `${capUsedPercent}%` }}
           />
 
-          {/* First apron marker (170M) */}
+          {/* First apron marker (195M) */}
           <div
             className="absolute top-0 h-full w-0.5 bg-yellow-400"
             style={{ left: `${firstApronPercent}%` }}
-            title="First Apron: $170M"
+            title="First Apron: $195M"
           />
 
-          {/* Second apron marker (210M) */}
+          {/* Second apron marker (225M) */}
           <div
             className="absolute top-0 h-full w-0.5 bg-orange-400"
             style={{ left: `${secondApronPercent}%` }}
-            title="Second Apron: $210M"
+            title="Second Apron: $225M"
           />
         </div>
 
         <div className="flex justify-between text-xs text-gray-400 mt-1">
           <span>$0M</span>
-          <span className="text-yellow-400">$170M (1st Apron)</span>
-          <span className="text-orange-400">$210M (2nd Apron)</span>
-          <span>$250M</span>
+          <span className="text-yellow-400">$195M (1st Apron)</span>
+          <span className="text-orange-400">$225M (2nd Apron)</span>
+          <span>$255M</span>
         </div>
       </div>
 
@@ -105,7 +105,7 @@ export function CapThermometer({ summary }: CapThermometerProps) {
       {/* Warning messages */}
       {isOverFirstApron && !isOverSecondApron && (
         <div className="mt-4 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded text-sm text-yellow-400">
-          ⚠️ First Apron: You are over $170M. A one-time $50 fee applies. After payment, you can stay over $170M for the rest of the season.
+          ⚠️ First Apron: You are over $195M. A one-time $50 fee applies. After payment, you can stay over $195M for the rest of the season.
         </div>
       )}
 
