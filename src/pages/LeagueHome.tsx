@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import type { Team, League } from '../types';
+import type { Team, League, RosterDoc } from '../types';
 
 export function LeagueHome() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -13,6 +13,7 @@ export function LeagueHome() {
   const [league, setLeague] = useState<League | null>(null);
   const [myTeam, setMyTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submittedTeamIds, setSubmittedTeamIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,6 +39,22 @@ export function LeagueHome() {
         })) as Team[];
 
         setTeams(teamData);
+
+        // Fetch roster status for each team
+        const submittedIds = new Set<string>();
+        await Promise.all(
+          teamData.map(async (team) => {
+            const rosterDocId = `${leagueId}_${team.id}`;
+            const rosterDoc = await getDoc(doc(db, 'rosters', rosterDocId));
+            if (rosterDoc.exists()) {
+              const rosterData = rosterDoc.data() as RosterDoc;
+              if (rosterData.status === 'submitted') {
+                submittedIds.add(team.id);
+              }
+            }
+          })
+        );
+        setSubmittedTeamIds(submittedIds);
 
         // Find user's team
         const userTeam = teamData.find((team) => team.owners.includes(user.email || ''));
@@ -220,6 +237,11 @@ export function LeagueHome() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
+                      {submittedTeamIds.has(team.id) && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-400/10 text-green-400 border border-green-400/30">
+                          Submitted
+                        </span>
+                      )}
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300">
                         View Roster
                       </span>

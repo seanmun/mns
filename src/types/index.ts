@@ -24,6 +24,7 @@ export interface League {
   seasonYear: number;
   deadlines: LeagueDeadlines;
   cap: LeagueCapSettings;
+  keepersLocked?: boolean;  // When true, rosters are locked and visible to all
 }
 
 // Team

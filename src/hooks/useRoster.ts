@@ -11,7 +11,7 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { RosterDoc, RosterEntry, Player, Team } from '../types';
+import type { RosterDoc, RosterEntry, Player, Team, League } from '../types';
 import { stackKeeperRounds, computeSummary } from '../lib/keeperAlgorithms';
 
 export function useRoster(leagueId: string, teamId: string) {
@@ -112,6 +112,37 @@ export function useTeam(teamId: string) {
   }, [teamId]);
 
   return { team, loading, error };
+}
+
+export function useLeague(leagueId: string) {
+  const [league, setLeague] = useState<League | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const leagueRef = doc(db, 'leagues', leagueId);
+
+    const unsubscribe = onSnapshot(
+      leagueRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setLeague({ id: snapshot.id, ...snapshot.data() } as League);
+        } else {
+          setLeague(null);
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Error fetching league:', err);
+        setError(err as Error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [leagueId]);
+
+  return { league, loading, error };
 }
 
 interface UpdateRosterParams {

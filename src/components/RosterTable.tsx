@@ -9,6 +9,7 @@ interface RosterTableProps {
   onUpdatePriority?: (playerId: string, direction: 'up' | 'down') => void;
   isLocked?: boolean;
   isOwner?: boolean;
+  canViewDecisions?: boolean;
   projectedStats: Map<string, ProjectedStats>;
   previousStats: Map<string, PreviousStats>;
 }
@@ -20,6 +21,7 @@ export function RosterTable({
   onUpdatePriority,
   isLocked = false,
   isOwner = false,
+  canViewDecisions = true,
   projectedStats,
   previousStats,
 }: RosterTableProps) {
@@ -149,9 +151,11 @@ export function RosterTable({
                   <th className="sticky left-0 z-10 bg-[#0a0a0a] px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800">
                     Player
                   </th>
-                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider w-28">
-                    Decision
-                  </th>
+                  {canViewDecisions && (
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider w-28">
+                      Decision
+                    </th>
+                  )}
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Pos
                   </th>
@@ -192,65 +196,66 @@ export function RosterTable({
                         </div>
                       </td>
 
-                    <td
-                      className="px-2 py-3 whitespace-nowrap text-sm text-center w-28"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {isLocked ? (
-                        <span
-                          className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
-                            decision === 'KEEP'
-                              ? 'bg-green-400/20 text-green-400 border border-green-400/30'
-                              : decision === 'REDSHIRT'
-                              ? 'bg-purple-400/20 text-purple-400 border border-purple-400/30'
-                              : decision === 'INT_STASH'
-                              ? 'bg-blue-400/20 text-blue-400 border border-blue-400/30'
-                              : 'bg-gray-800 text-gray-400 border border-gray-700'
-                          }`}
-                        >
-                          {decision}
-                        </span>
-                      ) : (
-                        <select
-                          value={decision}
-                          onChange={(e) =>
-                            onDecisionChange(
-                              player.id,
-                              e.target.value as Decision
-                            )
-                          }
-                          className="block w-full rounded-md bg-[#0a0a0a] border-gray-700 text-white shadow-sm focus:border-green-400 focus:ring-green-400 text-sm"
-                          disabled={isLocked}
-                        >
-                          <option value="DROP">Drop</option>
-                          <option value="KEEP">Keep</option>
-                          <option
-                            value="REDSHIRT"
-                            disabled={
-                              !player.roster.isRookie ||
+                    {canViewDecisions && (
+                      <td
+                        className="px-2 py-3 whitespace-nowrap text-sm text-center w-28"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {isLocked || !isOwner ? (
+                          <span
+                            className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                              decision === 'KEEP'
+                                ? 'bg-green-400/20 text-green-400 border border-green-400/30'
+                                : decision === 'REDSHIRT'
+                                ? 'bg-purple-400/20 text-purple-400 border border-purple-400/30'
+                                : decision === 'INT_STASH'
+                                ? 'bg-blue-400/20 text-blue-400 border border-blue-400/30'
+                                : 'bg-gray-800 text-gray-400 border border-gray-700'
+                            }`}
+                          >
+                            {decision}
+                          </span>
+                        ) : (
+                          <select
+                            value={decision}
+                            onChange={(e) =>
+                              onDecisionChange(
+                                player.id,
+                                e.target.value as Decision
+                              )
+                            }
+                            className="block w-full rounded-md bg-[#0a0a0a] border-gray-700 text-white shadow-sm focus:border-green-400 focus:ring-green-400 text-sm"
+                          >
+                            <option value="DROP">Drop</option>
+                            <option value="KEEP">Keep</option>
+                            <option
+                              value="REDSHIRT"
+                              disabled={
+                                !player.roster.isRookie ||
+                                !player.roster.rookieDraftInfo?.redshirtEligible
+                              }
+                            >
+                              Redshirt
+                              {!player.roster.isRookie ||
                               !player.roster.rookieDraftInfo?.redshirtEligible
-                            }
-                          >
-                            Redshirt
-                            {!player.roster.isRookie ||
-                            !player.roster.rookieDraftInfo?.redshirtEligible
-                              ? ' (N/A)'
-                              : ''}
-                          </option>
-                          <option
-                            value="INT_STASH"
-                            disabled={
-                              !player.roster.intEligible
-                            }
-                          >
-                            Int Stash
-                            {!player.roster.intEligible
-                              ? ' (N/A)'
-                              : ''}
-                          </option>
-                        </select>
-                      )}
-                    </td>
+                                ? ' (N/A)'
+                                : ''}
+                            </option>
+                            <option
+                              value="INT_STASH"
+                              disabled={
+                                !player.roster.intEligible
+                              }
+                            >
+                              Int Stash
+                              {!player.roster.intEligible
+                                ? ' (N/A)'
+                                : ''}
+                            </option>
+                          </select>
+                        )}
+                      </td>
+                    )}
 
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
                       {player.position}

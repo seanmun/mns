@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { useRoster, useTeamPlayers, useTeam, updateRoster, submitRoster, saveScenario, deleteScenario } from '../hooks/useRoster';
+import { useRoster, useTeamPlayers, useTeam, useLeague, updateRoster, submitRoster, saveScenario, deleteScenario } from '../hooks/useRoster';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { usePreviousStats } from '../hooks/usePreviousStats';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,6 +16,7 @@ export function OwnerDashboard() {
   const { user } = useAuth();
 
   const { team, loading: teamLoading } = useTeam(teamId!);
+  const { league } = useLeague(leagueId!);
   const { players, loading: playersLoading } = useTeamPlayers(leagueId!, teamId!);
   const { roster, loading: rosterLoading } = useRoster(leagueId!, teamId!);
   const { projectedStats, loading: statsLoading } = useProjectedStats();
@@ -23,6 +24,9 @@ export function OwnerDashboard() {
 
   // Check if current user is the owner of this team
   const isOwner = team?.owners.includes(user?.email || '') || false;
+
+  // Check if user can see keeper decisions (own team or keepers are locked)
+  const canViewDecisions = isOwner || league?.keepersLocked;
 
   const [entries, setEntries] = useState<RosterEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -303,6 +307,18 @@ export function OwnerDashboard() {
 
   // Calculate stacked entries and current summary for display
   const { stackedEntries, currentSummary } = useMemo(() => {
+    // If user can't view decisions, show all as DROP
+    if (!canViewDecisions) {
+      const dropEntries = entries.map(e => ({ ...e, decision: 'DROP' as Decision }));
+      const summary = computeSummary({
+        entries: dropEntries,
+        allPlayers: playersMap,
+        tradeDelta: team?.capAdjustments.tradeDelta || 0,
+        franchiseTags: 0,
+      });
+      return { stackedEntries: dropEntries, currentSummary: summary };
+    }
+
     // Deep copy entries so stacking doesn't mutate original state
     const entriesCopy = entries.map(e => ({ ...e }));
     const { franchiseTags } = stackKeeperRounds(entriesCopy);
@@ -313,7 +329,7 @@ export function OwnerDashboard() {
       franchiseTags,
     });
     return { stackedEntries: entriesCopy, currentSummary: summary };
-  }, [entries, playersMap, team]);
+  }, [entries, playersMap, team, canViewDecisions]);
 
 
   const sortedPlayers = useMemo(() => {
@@ -367,6 +383,11 @@ export function OwnerDashboard() {
               🔒 Roster Locked
             </div>
           )}
+          {!canViewDecisions && (
+            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-800 text-gray-400 border border-gray-700">
+              👁️ Keeper decisions are private until the league admin locks keepers
+            </div>
+          )}
         </div>
 
         {/* Desktop: Side by side layout */}
@@ -381,73 +402,73 @@ export function OwnerDashboard() {
 
         {/* Mobile: Quick stats cards and swipeable carousel */}
         <div className="lg:hidden mb-6">
-          {/* Quick Stats Cards - clickable toggles */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <button
-              onClick={() => setCarouselIndex(0)}
-              className={`p-4 rounded-lg shadow-sm text-left transition-all ${
-                carouselIndex === 0
-                  ? 'bg-green-400 text-black ring-2 ring-green-400'
-                  : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
-              }`}
-            >
-              <div className="text-xs font-medium opacity-80">Total Salary</div>
-              <div className="text-2xl font-bold mt-1">
-                ${(currentSummary.capUsed / 1_000_000).toFixed(1)}M
-              </div>
-            </button>
-            <button
-              onClick={() => setCarouselIndex(1)}
-              className={`p-4 rounded-lg shadow-sm text-left transition-all ${
-                carouselIndex === 1
-                  ? 'bg-green-400 text-black ring-2 ring-green-400'
-                  : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
-              }`}
-            >
-              <div className="text-xs font-medium opacity-80">Total Fees</div>
-              <div className="text-2xl font-bold mt-1">
-                ${(currentSummary.totalFees + 50).toFixed(0)}
-              </div>
-            </button>
-          </div>
-
-          <div className="relative overflow-hidden">
-            {/* Carousel container */}
-            <div
-              className="flex transition-transform duration-300 ease-out"
-              style={{ transform: `translateX(-${carouselIndex * 100}%)` }}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-            >
-              {/* Slide 1: Salary Cap Status */}
-              <div className="w-full flex-shrink-0 px-2">
-                <CapThermometer summary={currentSummary} />
-              </div>
-              {/* Slide 2: Roster Summary and Fees */}
-              <div className="w-full flex-shrink-0 px-2">
-                <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} />
-              </div>
-            </div>
-
-            {/* Dots indicator */}
-            <div className="flex justify-center gap-2 mt-4">
+            {/* Quick Stats Cards - clickable toggles */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
               <button
                 onClick={() => setCarouselIndex(0)}
-                className={`h-2 w-2 rounded-full transition-colors ${
-                  carouselIndex === 0 ? 'bg-green-400' : 'bg-gray-700'
+                className={`p-4 rounded-lg shadow-sm text-left transition-all ${
+                  carouselIndex === 0
+                    ? 'bg-green-400 text-black ring-2 ring-green-400'
+                    : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
                 }`}
-                aria-label="View Salary Cap Status"
-              />
+              >
+                <div className="text-xs font-medium opacity-80">Total Salary</div>
+                <div className="text-2xl font-bold mt-1">
+                  ${(currentSummary.capUsed / 1_000_000).toFixed(1)}M
+                </div>
+              </button>
               <button
                 onClick={() => setCarouselIndex(1)}
-                className={`h-2 w-2 rounded-full transition-colors ${
-                  carouselIndex === 1 ? 'bg-green-400' : 'bg-gray-700'
+                className={`p-4 rounded-lg shadow-sm text-left transition-all ${
+                  carouselIndex === 1
+                    ? 'bg-green-400 text-black ring-2 ring-green-400'
+                    : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
                 }`}
-                aria-label="View Roster Summary"
-              />
+              >
+                <div className="text-xs font-medium opacity-80">Total Fees</div>
+                <div className="text-2xl font-bold mt-1">
+                  ${(currentSummary.totalFees + 50).toFixed(0)}
+                </div>
+              </button>
             </div>
-          </div>
+
+            <div className="relative overflow-hidden">
+              {/* Carousel container */}
+              <div
+                className="flex transition-transform duration-300 ease-out"
+                style={{ transform: `translateX(-${carouselIndex * 100}%)` }}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
+                {/* Slide 1: Salary Cap Status */}
+                <div className="w-full flex-shrink-0 px-2">
+                  <CapThermometer summary={currentSummary} />
+                </div>
+                {/* Slide 2: Roster Summary and Fees */}
+                <div className="w-full flex-shrink-0 px-2">
+                  <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} />
+                </div>
+              </div>
+
+              {/* Dots indicator */}
+              <div className="flex justify-center gap-2 mt-4">
+                <button
+                  onClick={() => setCarouselIndex(0)}
+                  className={`h-2 w-2 rounded-full transition-colors ${
+                    carouselIndex === 0 ? 'bg-green-400' : 'bg-gray-700'
+                  }`}
+                  aria-label="View Salary Cap Status"
+                />
+                <button
+                  onClick={() => setCarouselIndex(1)}
+                  className={`h-2 w-2 rounded-full transition-colors ${
+                    carouselIndex === 1 ? 'bg-green-400' : 'bg-gray-700'
+                  }`}
+                  aria-label="View Roster Summary"
+                />
+              </div>
+            </div>
         </div>
 
 
@@ -488,6 +509,7 @@ export function OwnerDashboard() {
             onUpdatePriority={handleUpdatePriority}
             isLocked={isLocked}
             isOwner={isOwner}
+            canViewDecisions={canViewDecisions}
             projectedStats={projectedStats}
             previousStats={previousStats}
           />

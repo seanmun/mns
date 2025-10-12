@@ -203,6 +203,95 @@ export function AdminTeams() {
           </div>
         </div>
 
+        {/* League Settings */}
+        <div className="bg-[#121212] border border-gray-800 rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-bold text-white mb-4">League Settings</h2>
+          {leagues.map((league) => (
+            <div key={league.id} className="flex items-center justify-between py-3 border-b border-gray-800 last:border-b-0">
+              <div>
+                <div className="font-semibold text-white">{league.name} ({league.seasonYear})</div>
+                <div className="text-sm text-gray-400">
+                  Keepers are {league.keepersLocked ? 'locked and visible to all' : 'private until locked'}
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  const newValue = !league.keepersLocked;
+                  const confirmed = window.confirm(
+                    newValue
+                      ? 'Lock keepers? This will:\n\n1. Make all submitted keeper decisions visible to everyone\n2. Drop all non-kept players to free agency (removes teamId)\n\nThis action cannot be easily undone. Continue?'
+                      : 'Unlock keepers? This will hide keeper decisions again (for testing purposes).\n\nNote: This will NOT reassign dropped players back to teams.'
+                  );
+
+                  if (!confirmed) return;
+
+                  try {
+                    // Update league keepersLocked flag
+                    await updateDoc(doc(db, 'leagues', league.id), {
+                      keepersLocked: newValue,
+                    });
+
+                    // If locking, drop non-kept players to free agency
+                    if (newValue) {
+                      // Get all rosters for this league
+                      const rostersSnap = await getDocs(collection(db, 'rosters'));
+                      const leagueRosters = rostersSnap.docs.filter(doc =>
+                        doc.id.startsWith(`${league.id}_`)
+                      );
+
+                      // Collect all player IDs that should be kept
+                      const keptPlayerIds = new Set<string>();
+                      leagueRosters.forEach(rosterDoc => {
+                        const roster = rosterDoc.data();
+                        roster.entries?.forEach((entry: any) => {
+                          if (entry.decision === 'KEEP' || entry.decision === 'REDSHIRT' || entry.decision === 'INT_STASH') {
+                            keptPlayerIds.add(entry.playerId);
+                          }
+                        });
+                      });
+
+                      // Get all players in this league
+                      const playersSnap = await getDocs(collection(db, 'players'));
+                      const leaguePlayers = playersSnap.docs.filter(doc => {
+                        const data = doc.data();
+                        return data.roster?.leagueId === league.id && data.roster?.teamId;
+                      });
+
+                      // Drop players not in the kept list
+                      let droppedCount = 0;
+                      for (const playerDoc of leaguePlayers) {
+                        if (!keptPlayerIds.has(playerDoc.id)) {
+                          await updateDoc(doc(db, 'players', playerDoc.id), {
+                            'roster.teamId': null,
+                          });
+                          droppedCount++;
+                        }
+                      }
+
+                      alert(`Keepers locked successfully!\n\n${droppedCount} players dropped to free agency.`);
+                    } else {
+                      alert('Keepers unlocked successfully!');
+                    }
+
+                    // Reload data
+                    await loadData();
+                  } catch (error) {
+                    console.error('Error updating league:', error);
+                    alert('Failed to update league settings');
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  league.keepersLocked
+                    ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                    : 'border-2 border-green-400 text-green-400 hover:bg-green-400/10'
+                }`}
+              >
+                {league.keepersLocked ? '🔓 Unlock Keepers' : '🔒 Lock Keepers'}
+              </button>
+            </div>
+          ))}
+        </div>
+
         {/* Create/Edit Team Form */}
         {showForm && (
           <div className="bg-white p-6 rounded-lg shadow mb-8">
