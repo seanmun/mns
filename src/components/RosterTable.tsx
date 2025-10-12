@@ -6,7 +6,9 @@ interface RosterTableProps {
   players: Player[];
   entries: RosterEntry[];
   onDecisionChange: (playerId: string, decision: Decision) => void;
+  onUpdatePriority?: (playerId: string, direction: 'up' | 'down') => void;
   isLocked?: boolean;
+  isOwner?: boolean;
   projectedStats: Map<string, ProjectedStats>;
   previousStats: Map<string, PreviousStats>;
 }
@@ -15,7 +17,9 @@ export function RosterTable({
   players,
   entries,
   onDecisionChange,
+  onUpdatePriority,
   isLocked = false,
+  isOwner = false,
   projectedStats,
   previousStats,
 }: RosterTableProps) {
@@ -59,6 +63,41 @@ export function RosterTable({
 
   const getEntryForPlayer = (playerId: string): RosterEntry | undefined => {
     return entries.find((e) => e.playerId === playerId);
+  };
+
+  // Helper to check if player has conflicts (same keeperRound as others)
+  const hasConflict = (playerId: string): boolean => {
+    const entry = getEntryForPlayer(playerId);
+    if (!entry?.keeperRound) return false;
+
+    const sameRoundCount = entries.filter(
+      e => e.keeperRound === entry.keeperRound && e.decision !== 'DROP'
+    ).length;
+
+    return sameRoundCount > 1;
+  };
+
+  // Helper to check if player can move up/down
+  const canMoveUp = (playerId: string): boolean => {
+    const entry = getEntryForPlayer(playerId);
+    if (!entry?.keeperRound) return false;
+
+    const sameRoundEntries = entries
+      .filter(e => e.keeperRound === entry.keeperRound && e.decision !== 'DROP')
+      .sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
+
+    return sameRoundEntries[0]?.playerId !== playerId;
+  };
+
+  const canMoveDown = (playerId: string): boolean => {
+    const entry = getEntryForPlayer(playerId);
+    if (!entry?.keeperRound) return false;
+
+    const sameRoundEntries = entries
+      .filter(e => e.keeperRound === entry.keeperRound && e.decision !== 'DROP')
+      .sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
+
+    return sameRoundEntries[sameRoundEntries.length - 1]?.playerId !== playerId;
   };
 
   const getRowClassName = (decision?: Decision, player?: Player) => {
@@ -162,8 +201,42 @@ export function RosterTable({
                       {entry?.baseRound || player.keeper?.derivedBaseRound || '-'}
                     </td>
 
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center font-semibold">
-                      {entry?.keeperRound || '-'}
+                    <td
+                      className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center font-semibold"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        {/* Show reorder controls only if: not locked, is owner, has callback, and has conflict */}
+                        {!isLocked && isOwner && onUpdatePriority && hasConflict(player.id) && (
+                          <div className="flex flex-col gap-0">
+                            <button
+                              onClick={() => onUpdatePriority(player.id, 'up')}
+                              disabled={!canMoveUp(player.id)}
+                              className={`text-xs ${
+                                canMoveUp(player.id)
+                                  ? 'text-blue-600 hover:text-blue-800'
+                                  : 'text-gray-300 cursor-not-allowed'
+                              }`}
+                              title="Move up (earlier next year)"
+                            >
+                              ▲
+                            </button>
+                            <button
+                              onClick={() => onUpdatePriority(player.id, 'down')}
+                              disabled={!canMoveDown(player.id)}
+                              className={`text-xs ${
+                                canMoveDown(player.id)
+                                  ? 'text-blue-600 hover:text-blue-800'
+                                  : 'text-gray-300 cursor-not-allowed'
+                              }`}
+                              title="Move down (later next year)"
+                            >
+                              ▼
+                            </button>
+                          </div>
+                        )}
+                        <span>{entry?.keeperRound || '-'}</span>
+                      </div>
                     </td>
 
                     <td

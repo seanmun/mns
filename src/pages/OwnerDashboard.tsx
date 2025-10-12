@@ -8,7 +8,6 @@ import { RosterTable } from '../components/RosterTable';
 import { CapThermometer } from '../components/CapThermometer';
 import { SummaryCard } from '../components/SummaryCard';
 import { SavedScenarios } from '../components/SavedScenarios';
-import { PriorityManager } from '../components/PriorityManager';
 import { baseKeeperRound, stackKeeperRounds, computeSummary, validateRoster } from '../lib/keeperAlgorithms';
 import type { RosterEntry, Decision, SavedScenario } from '../types';
 
@@ -104,30 +103,40 @@ export function OwnerDashboard() {
     );
   };
 
-  const handleUpdatePriorities = (updates: { playerId: string; priority: number }[]) => {
+  const handleUpdatePriority = (playerId: string, direction: 'up' | 'down') => {
     setEntries((prev) => {
-      // Update priorities
-      const newEntries = prev.map((entry) => {
-        const update = updates.find((u) => u.playerId === entry.playerId);
-        if (update) {
-          return { ...entry, priority: update.priority };
-        }
-        return entry;
+      const entry = prev.find(e => e.playerId === playerId);
+      if (!entry) return prev;
+
+      // Find all entries with the same keeperRound
+      const sameRoundEntries = prev.filter(e => e.keeperRound === entry.keeperRound);
+      if (sameRoundEntries.length <= 1) return prev; // Nothing to reorder
+
+      // Sort by current priority
+      const sorted = [...sameRoundEntries].sort((a, b) => {
+        const prioA = a.priority ?? 999;
+        const prioB = b.priority ?? 999;
+        return prioA - prioB;
       });
 
-      // Immediately apply stacking with the new priorities
-      const entriesForStacking = newEntries.map(e => ({ ...e }));
-      stackKeeperRounds(entriesForStacking);
+      const currentIndex = sorted.findIndex(e => e.playerId === playerId);
+      const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
 
-      // Copy the keeperRound values back to newEntries
-      entriesForStacking.forEach((stacked) => {
-        const original = newEntries.find(e => e.playerId === stacked.playerId);
-        if (original) {
-          original.keeperRound = stacked.keeperRound;
+      if (newIndex < 0 || newIndex >= sorted.length) return prev; // Can't move further
+
+      // Swap
+      [sorted[currentIndex], sorted[newIndex]] = [sorted[newIndex], sorted[currentIndex]];
+
+      // Reassign priorities
+      const priorityMap = new Map(sorted.map((e, idx) => [e.playerId, idx]));
+
+      return prev.map(e => {
+        const newPriority = priorityMap.get(e.playerId);
+        if (newPriority !== undefined) {
+          return { ...e, priority: newPriority };
         }
+        return e;
       });
-
-      return newEntries;
     });
   };
 
@@ -260,8 +269,8 @@ export function OwnerDashboard() {
     }
   };
 
-  // Calculate current summary for display
-  const currentSummary = useMemo(() => {
+  // Calculate stacked entries and current summary for display
+  const { stackedEntries, currentSummary } = useMemo(() => {
     // Deep copy entries so stacking doesn't mutate original state
     const entriesCopy = entries.map(e => ({ ...e }));
     const { franchiseTags } = stackKeeperRounds(entriesCopy);
@@ -271,7 +280,7 @@ export function OwnerDashboard() {
       tradeDelta: team?.capAdjustments.tradeDelta || 0,
       franchiseTags,
     });
-    return summary;
+    return { stackedEntries: entriesCopy, currentSummary: summary };
   }, [entries, playersMap, team]);
 
 
@@ -438,22 +447,15 @@ export function OwnerDashboard() {
           </div>
         )}
 
-        {/* Priority Manager - Only visible to team owner when not locked */}
-        {!isLocked && isOwner && (
-          <PriorityManager
-            entries={entries}
-            players={playersMap}
-            onUpdatePriorities={handleUpdatePriorities}
-          />
-        )}
-
         {/* Roster table */}
         <div className="mb-6">
           <RosterTable
             players={sortedPlayers}
-            entries={entries}
+            entries={stackedEntries}
             onDecisionChange={handleDecisionChange}
+            onUpdatePriority={handleUpdatePriority}
             isLocked={isLocked}
+            isOwner={isOwner}
             projectedStats={projectedStats}
             previousStats={previousStats}
           />
