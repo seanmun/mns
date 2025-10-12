@@ -5,7 +5,6 @@ import { Login } from './pages/Login';
 import { FinishSignIn } from './pages/FinishSignIn';
 import { TeamSelect } from './pages/TeamSelect';
 import { LeagueHome } from './pages/LeagueHome';
-import { LeagueHomeDark } from './pages/LeagueHomeDark';
 import { OwnerDashboard } from './pages/OwnerDashboard';
 import { Draft } from './pages/Draft';
 import { FreeAgents } from './pages/FreeAgents';
@@ -61,16 +60,6 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <LeagueHome />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/league/:leagueId/dark"
-            element={
-              <PrivateRoute>
-                <AppLayout>
-                  <LeagueHomeDark />
                 </AppLayout>
               </PrivateRoute>
             }

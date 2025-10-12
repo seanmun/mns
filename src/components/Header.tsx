@@ -15,14 +15,14 @@ export function Header() {
   const isAdmin = role === 'admin';
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <header className="bg-[#0a0a0a] shadow-sm border-b border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo / Brand */}
           <div className="flex items-center">
             <Link to="/teams" className="flex items-center gap-2">
-              <img src="/icons/mns-icon.png" alt="MNS" className="h-10 w-10" />
-              <span className="text-xl font-bold text-gray-900">MNS</span>
+              <img src="/icons/mns-icon.png" alt="MNS" className="h-10 w-10 rounded-full" />
+              <span className="text-xl font-bold text-white">MNS</span>
             </Link>
           </div>
 
@@ -31,7 +31,7 @@ export function Header() {
             {/* Common Nav */}
             <Link
               to="/teams"
-              className="text-gray-700 hover:text-gray-900 font-medium"
+              className="text-gray-300 hover:text-green-400 font-medium transition-colors"
             >
               My Teams
             </Link>
@@ -41,13 +41,13 @@ export function Header() {
               <>
                 <Link
                   to="/admin/teams"
-                  className="text-blue-700 hover:text-blue-900 font-medium"
+                  className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
                 >
                   Manage Teams
                 </Link>
                 <Link
                   to="/admin/upload"
-                  className="text-blue-700 hover:text-blue-900 font-medium"
+                  className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
                 >
                   Upload Players
                 </Link>
@@ -55,21 +55,21 @@ export function Header() {
             )}
 
             {/* User Menu */}
-            <div className="flex items-center space-x-4 border-l border-gray-200 pl-6">
+            <div className="flex items-center space-x-4 border-l border-gray-800 pl-6">
               <div className="flex items-center space-x-2">
                 {user.photoURL && (
                   <img
                     src={user.photoURL}
                     alt={user.displayName || 'User'}
-                    className="w-8 h-8 rounded-full"
+                    className="w-8 h-8 rounded-full border-2 border-gray-700"
                   />
                 )}
                 <div className="text-sm">
-                  <div className="font-medium text-gray-900">
+                  <div className="font-medium text-white">
                     {user.displayName}
                   </div>
                   {isAdmin && (
-                    <div className="text-xs text-blue-600 font-semibold">
+                    <div className="text-xs text-purple-400 font-semibold">
                       Admin
                     </div>
                   )}
@@ -77,7 +77,7 @@ export function Header() {
               </div>
               <button
                 onClick={handleSignOut}
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="text-sm text-gray-400 hover:text-white transition-colors"
               >
                 Sign Out
               </button>
