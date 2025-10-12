@@ -7,6 +7,7 @@ import { TeamSelect } from './pages/TeamSelect';
 import { LeagueHome } from './pages/LeagueHome';
 import { OwnerDashboard } from './pages/OwnerDashboard';
 import { Draft } from './pages/Draft';
+import { FreeAgents } from './pages/FreeAgents';
 import { AdminUpload } from './pages/AdminUpload';
 import { AdminTeams } from './pages/AdminTeams';
 
@@ -76,6 +77,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <Draft />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/league/:leagueId/free-agents"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <FreeAgents />
                 </AppLayout>
               </PrivateRoute>
             }
