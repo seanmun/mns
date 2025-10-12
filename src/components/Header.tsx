@@ -20,8 +20,9 @@ export function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo / Brand */}
           <div className="flex items-center">
-            <Link to="/teams" className="text-xl font-bold text-gray-900">
-              MNS
+            <Link to="/teams" className="flex items-center gap-2">
+              <img src="/icons/mns-icon.png" alt="MNS" className="h-10 w-10" />
+              <span className="text-xl font-bold text-gray-900">MNS</span>
             </Link>
           </div>
 
