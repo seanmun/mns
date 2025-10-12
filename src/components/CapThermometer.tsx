@@ -78,8 +78,10 @@ export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps
         </div>
 
         <div>
-          <div className="text-gray-400">Effective Cap</div>
-          <div className="font-semibold text-lg text-white">{formatCap(capEffective)}</div>
+          <div className="text-gray-400">Keepers</div>
+          <div className="font-semibold text-lg text-white">
+            {keepersCount} / {maxKeepers}
+          </div>
         </div>
 
         <div>
