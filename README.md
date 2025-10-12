@@ -1,212 +1,282 @@
-# MNS Keeper Management App
+# Money Never Sleeps - Fantasy Basketball Dynasty Manager
 
-A web application for managing fantasy basketball keeper rosters with advanced salary cap rules, keeper round stacking algorithms, and deadline enforcement.
+> A sophisticated web application that brings real NBA salary cap management to fantasy basketball, where strategic keeper decisions and financial acumen determine dynasty success.
 
-## Overview
+## 🏀 What is Money Never Sleeps?
 
-This application helps fantasy basketball league managers handle keeper decisions with complex rules including:
-- **Salary cap management** with soft floor ($170M), base cap ($210M), and max cap ($250M)
-- **Keeper round stacking** - automatic resolution when multiple players have the same keeper round
-- **Franchise tag system** - only one Round 1 keeper is free; additional ones cost $15 each
-- **Redshirt functionality** - eligible rookies can be redshirted ($10 fee) and activated mid-season ($25 fee)
-- **Scenario planning** - save and compare different keeper configurations before submitting
-- **Deadline enforcement** - automated roster locking at configurable deadlines
+Money Never Sleeps (MNS) is a premium fantasy basketball dynasty league management platform that mirrors the complexity and excitement of real NBA front office operations. Unlike traditional fantasy leagues, MNS challenges team owners to navigate actual NBA salary cap rules, manage keeper contracts, and make strategic financial decisions that have real monetary consequences.
 
-## Key Features
+**The stakes are real:** Exceed the salary cap aprons? Pay actual penalties into the prize pool. Want to keep multiple first-round players? Pay franchise tag fees. Every decision matters, every dollar counts, and every season builds your dynasty's legacy.
+
+## ✨ What Makes MNS Special
+
+### 🎯 Real NBA Salary Cap Rules
+- **Apron System**: Navigate first apron ($195M) and second apron ($225M) thresholds with real financial penalties
+- **Trade Cap Management**: Adjust your cap via trades (±$30M) to build your perfect roster
+- **Penalty Enforcement**: $50 one-time fee for crossing first apron, $2 per $1M over second apron
+- **Hard Cap**: $255M maximum ensures no team can infinitely spend their way to victory
+
+### 🔒 Dynasty Keeper System
+- **Keep Your Stars**: Maintain up to 8 players season-over-season, building a true dynasty
+- **Advancing Rounds**: Keepers move up one round each year, rewarding early scouting
+- **Smart Stacking**: Automatic algorithm resolves keeper round conflicts
+- **Franchise Tags**: Keep multiple superstars with strategic franchise tag system ($15 per additional 1st rounder)
+
+### 🆕 Rookie Development Pipeline
+- **Redshirt System**: Stash rookies for $10, activate mid-season for $25
+- **Rookie Draft**: Annual draft mirrors NBA draft with lottery system for non-playoff teams
+- **International Stash**: Hold rights to international prospects until they sign NBA contracts
+- **Round Valuation**: Early picks become Round 5-8 keepers, later picks become Round 13 keepers
+
+### 📊 Advanced Analytics Dashboard
+- **Real-time Cap Tracking**: Visual thermometer shows exactly where you stand
+- **Smart Metrics**: See average salary per keeper and per remaining draft spot
+- **Apron Warnings**: Know exactly how much you can spend before hitting penalty thresholds
+- **Scenario Planning**: Save and compare multiple keeper configurations before committing
+
+### 🎲 Prize Pool Investment System
+The league fee ($50 per team) plus all penalties and fines create a prize pool that gets invested in a voted-upon asset (stocks, futures, Bitcoin). By playoffs, the pool could be $600, $2,000, or $150,000 - nobody knows!
+
+**Payout Rules:**
+- 📉 **Boiler Room Rule**: Pool declines → 80/20 split or 100% to first if under $300
+- 💹 **Gordon Gekko Rule**: Pool grows → 70/20/10 split for top 3
+- 🚀 **Bernie Sanders Rule**: Pool hits $10K+ → 40/15/9 for top 3, 4% to remaining 9 teams
+
+## 🚀 Key Features
 
 ### For Team Owners
-- **Google Authentication** - Secure sign-in with team-specific access
-- **Interactive Roster Management** - Keep, drop, or redshirt players with real-time cap calculations
-- **Automatic Keeper Round Assignment** - Based on draft history and rookie draft position
-- **Stacking Assistant** - Visual tool to resolve keeper round conflicts with drag-and-drop
-- **Cap Thermometer** - Visual indicator of cap usage with second apron penalty warnings
-- **Scenario Saving** - Create and compare multiple keeper configurations
-- **Summary Dashboard** - Real-time display of keepers count, cap usage, and all fees
+- **🔐 Secure Authentication**: Google OAuth with team-specific access
+- **📱 Responsive Dashboard**: Manage your roster on any device with sleek dark theme
+- **🎮 Interactive Decisions**: Keep, drop, or redshirt players with instant cap calculations
+- **🔍 Round Conflict Resolver**: Visual stacking assistant makes keeper selection painless
+- **💾 Scenario Management**: Test multiple keeper combinations before submitting
+- **📈 Live Metrics**:
+  - Cap usage with color-coded warnings
+  - Average salary per keeper
+  - Average spend per draft pick to stay under aprons
+  - Keeper count (e.g., "8 / 8")
+  - Total fees breakdown
 
-### For Administrators
-- **League & Team Setup** - Create leagues, configure teams, assign owners
-- **CSV Import** - Bulk import player data with validation (via [AdminUpload.tsx](src/pages/AdminUpload.tsx))
-- **Deadline Management** - Set keeper and redshirt deadlines
-- **Roster Locking** - Lock/unlock team rosters manually or automatically
-- **Reports & Exports** - Generate keeper lists, fees reports, and audit logs
+### For Commissioners
+- **⚙️ League Setup**: Configure leagues, teams, and cap settings
+- **📤 CSV Import**: Bulk upload player salaries from any source
+- **⏰ Deadline Management**: Set and enforce keeper submission deadlines
+- **🔒 Roster Locking**: Lock all rosters when keeper period ends
+- **📋 Reports**: Generate keeper lists, audit logs, and fee summaries
+- **🎯 Team Privacy**: Keeper selections hidden until admin locks all rosters
 
-## Business Rules
+### League Pages
+- **📖 Record Book**: Championship history and owner accomplishments
+- **📜 Rules**: Complete league rules with current cap structure
+- **🎯 Draft Board**: Live draft interface (coming soon)
+- **🆓 Free Agent Pool**: Sortable list of available players
 
-### Salary Cap
-- **Soft floor**: $170M
-- **Base cap**: $210M
-- **Max cap** (with trades): $250M
-- **Tradeable cap range**: ±$40M
-- **Second apron penalty**: $2 per $1M over $210M (e.g., $220M cap = $20 penalty)
+## 💻 Tech Stack
 
-### Keeper Rounds
-- **Max keepers**: 8 per team
-- **Keeper round calculation**: Prior year round - 1 (minimum Round 1)
-- **Rookie keeper mappings**:
-  - Round 1, picks 1-3 → Round 5
-  - Round 1, picks 4-6 → Round 6
-  - Round 1, picks 7-9 → Round 7
-  - Round 1, picks 10-12 → Round 8
-  - Round 2-3 picks → Round 14
-
-### Stacking Rules (see [keeperAlgorithms.ts](src/lib/keeperAlgorithms.ts))
-- **Bottom-of-Draft stacking**: Multiple keepers in same round → stack downward (14 → 1)
-- **Top-of-Draft rule**: Only one Round 1 keeper is free
-- **Franchise tags**: To keep more than one 1st round keeper, you must pay $15 for each additional first-round keeper. Additional Round 1 keepers get reassigned to next available round.
-
-### Redshirts
-- **Eligibility**: Only rookies in their first contract year
-- **Cost**: $10 per redshirt (doesn't count toward cap or keeper limit)
-- **In-season activation**: $25 fee to activate mid-season
-- **Round retention**: Keeps same round value for next year
-
-## Tech Stack
+Built with modern, production-ready technologies:
 
 - **Frontend**: React 19 + TypeScript + Vite
-- **Styling**: Tailwind CSS 4
+- **Styling**: Tailwind CSS 4 with custom dark theme (#0a0a0a)
 - **State Management**: TanStack Query (React Query)
-- **Authentication**: Firebase Auth (Google provider)
-- **Database**: Cloud Firestore
+- **Backend**: Firebase (Auth, Firestore, Storage)
 - **Routing**: React Router v7
-- **Deployment**: Firebase Hosting
+- **Deployment**: Vercel with automatic GitHub deployments
+- **CSV Parsing**: Papaparse for robust data imports
 
-## Project Structure
+## 🎮 How It Works
 
-```
-src/
-├── components/          # Reusable UI components
-│   ├── CapThermometer.tsx      # Visual cap usage indicator
-│   ├── RosterTable.tsx         # Main roster management table
-│   ├── StackingAssistant.tsx   # Keeper round conflict resolver
-│   └── SummaryCard.tsx         # Summary stats display
-├── contexts/
-│   └── AuthContext.tsx         # Firebase auth state management
-├── hooks/
-│   └── useRoster.ts           # Custom hook for roster data/mutations
-├── lib/
-│   ├── firebase.ts            # Firebase configuration
-│   └── keeperAlgorithms.ts    # Core business logic for stacking & cap calculations
-├── pages/
-│   ├── AdminUpload.tsx        # CSV import interface
-│   ├── Login.tsx              # Google sign-in page
-│   ├── OwnerDashboard.tsx     # Main roster management UI
-│   └── TeamSelect.tsx         # Team selection page
-├── types/
-│   └── index.ts               # TypeScript type definitions
-└── App.tsx                    # Main router & app structure
-```
+### 1. Pre-Season Keeper Selection
+- Review your roster from last season
+- Select up to 8 keepers (or fewer for more draft picks)
+- Redshirt eligible rookies for future seasons
+- Navigate cap constraints and apron thresholds
+- Pay franchise tags for multiple first-round keepers
+- Save scenarios to compare options
 
-## Getting Started
+### 2. Draft
+- 13 rounds, snake format
+- Keepers occupy their assigned rounds
+- Fill remaining roster spots with new talent
+- Draft order randomized after keepers locked
+
+### 3. Regular Season
+- Weekly head-to-head matchups
+- 9 statistical categories
+- Manage 15-player roster (10 active, 3 bench, 2 IR)
+- Unlimited redshirt spots
+- Make trades within cap constraints
+
+### 4. Playoffs & Prize Pool
+- Top 6 teams make playoffs
+- Prize pool valued and paid out
+- Championship immortalized in Record Book
+- Start planning next year's keepers!
+
+## 🔧 Salary Cap Details (2025-2026 Season)
+
+| Threshold | Amount | Consequence |
+|-----------|--------|-------------|
+| **First Apron** | $195M | $50 one-time fee (then stay over) |
+| **Second Apron** | $225M | $2 per $1M over (base cap) |
+| **Hard Cap** | $255M | Cannot exceed via any means |
+| **Trade Range** | ±$30M | Adjustable from second apron |
+
+### Fee Structure
+- **Entry Fee**: $50 per team per season
+- **First Apron Fee**: $50 (one-time)
+- **Second Apron Penalty**: $2 per $1M over $225M
+- **Franchise Tag**: $15 per additional 1st round keeper
+- **Redshirt Fee**: $10 per player
+- **Mid-Season Activation**: $25 per player
+- **Commissioner Fines**: $1-$10 per violation
+
+*All fees go directly into the prize pool investment!*
+
+## 📱 Live Demo
+
+**Production URL**: [https://mns-dusky.vercel.app](https://mns-dusky.vercel.app)
+
+Experience the app yourself:
+1. Sign in with Google
+2. View league standings and records
+3. Browse the rules and cap structure
+4. Explore team rosters (keeper selections hidden until locked)
+
+## 🏗️ Installation & Setup
 
 ### Prerequisites
 - Node.js 20.18+
-- npm or yarn
-- Firebase project with Firestore, Auth, and Hosting enabled
+- Firebase project (Firestore + Auth)
+- Vercel account (optional, for deployment)
 
-### Installation
+### Quick Start
 
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd mns
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/seanmun/mns.git
+cd mns
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+# Install dependencies
+npm install
 
-3. **Set up Firebase**
-   - Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-   - Enable Authentication → Google provider
-   - Enable Firestore Database
-   - Copy your Firebase config from Project Settings
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your Firebase credentials
 
-4. **Configure environment**
-   ```bash
-   cp .env.example .env
-   ```
+# Start development server
+npm run dev
 
-   Add your Firebase credentials to `.env`:
-   ```
-   VITE_FIREBASE_API_KEY=your_api_key
-   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=your_project_id
-   VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   VITE_FIREBASE_APP_ID=your_app_id
-   ```
+# Open http://localhost:5173
+```
 
-5. **Deploy Firestore rules**
+### Firebase Setup
+
+1. Create Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
+2. Enable **Authentication** → Google provider
+3. Enable **Firestore Database**
+4. Copy config from Project Settings → General
+5. Update `.env` with your Firebase credentials
+6. Deploy security rules:
    ```bash
    firebase deploy --only firestore:rules
    ```
 
-6. **Start development server**
-   ```bash
-   npm run dev
-   ```
+### Environment Variables
 
-7. **Open browser**
-   Navigate to [http://localhost:5173](http://localhost:5173)
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+```
 
-## Development
+## 📂 Project Structure
 
-### Available Scripts
+```
+mns/
+├── src/
+│   ├── components/          # Reusable UI components
+│   │   ├── CapThermometer.tsx      # Visual cap tracker with metrics
+│   │   ├── Header.tsx              # Navigation with role-based menu
+│   │   ├── RosterTable.tsx         # Main player management table
+│   │   ├── StackingAssistant.tsx   # Keeper round conflict resolver
+│   │   └── SummaryCard.tsx         # Cap/fees summary display
+│   ├── pages/               # Route components
+│   │   ├── Login.tsx               # Google OAuth sign-in
+│   │   ├── TeamSelect.tsx          # All teams with status badges
+│   │   ├── OwnerDashboard.tsx      # Main keeper management UI
+│   │   ├── RecordBook.tsx          # Championship history
+│   │   ├── Rules.tsx               # League rules documentation
+│   │   ├── Draft.tsx               # Draft board interface
+│   │   ├── FreeAgentPool.tsx       # Available players
+│   │   └── Admin*.tsx              # Admin management pages
+│   ├── lib/
+│   │   ├── firebase.ts             # Firebase configuration
+│   │   └── keeperAlgorithms.ts     # Core business logic
+│   ├── hooks/
+│   │   └── useRoster.ts            # Firestore data hooks
+│   ├── contexts/
+│   │   └── AuthContext.tsx         # Auth state management
+│   └── types/
+│       └── index.ts                # TypeScript definitions
+├── public/icons/            # Custom app icons
+├── firestore.rules          # Database security rules
+└── vercel.json             # SPA routing configuration
+```
 
-- `npm run dev` - Start development server with HMR
-- `npm run build` - Type-check and build for production
-- `npm run preview` - Preview production build locally
-- `npm run lint` - Run ESLint
+## 🧮 Core Algorithms
 
-### Data Setup
+### Keeper Round Stacking
+When multiple players have the same keeper round:
+1. Start from Round 13 and work up (bottom-up stacking)
+2. First keeper gets their base round
+3. Additional keepers stack to next available round
+4. Franchise tag rule: Only one Round 1 keeper is free
+5. Extra Round 1 keepers cost $15 each and reassign to Rounds 2+
 
-For initial development, manually create sample data in Firestore:
+See [`src/lib/keeperAlgorithms.ts`](src/lib/keeperAlgorithms.ts) for implementation.
 
-**Collections needed:**
-- `leagues` - League configuration (cap settings, deadlines)
-- `teams` - Team info (name, owners, cap adjustments)
-- `players` - Player data (salary, position, roster info)
-- `rosters` - Team keeper decisions (one per team per season)
+### Cap Calculation
+```typescript
+effectiveCap = secondApron ($225M) + tradeDelta (±$30M)
+capUsed = sum of all keeper salaries
+remaining = effectiveCap - capUsed
+firstApronFee = capUsed > $195M ? $50 : $0
+secondApronPenalty = max(0, capUsed - $225M) * $2
+```
 
-See [types/index.ts](src/types/index.ts) for full data schema.
+## 🤝 Contributing
 
-## Deployment
+Contributions welcome! This is a private league app, but the code can be forked for your own dynasty league.
 
-### Firebase Hosting
+### Development
+```bash
+npm run dev          # Start dev server
+npm run build        # Build for production
+npm run lint         # Run ESLint
+npm run preview      # Preview production build
+```
 
-1. **Install Firebase CLI**
-   ```bash
-   npm i -g firebase-tools
-   firebase login
-   ```
+## 📄 Documentation
 
-2. **Build and deploy**
-   ```bash
-   npm run build
-   firebase deploy --only hosting
-   ```
+- **[CONTEXT.md](CONTEXT.md)** - Comprehensive technical documentation
+- **[Rules Page](src/pages/Rules.tsx)** - Complete league rules
+- **[Firebase Setup](https://firebase.google.com/docs)** - Firebase documentation
 
-### Alternative: Vercel
+## 📜 License
 
-1. **Install Vercel CLI**
-   ```bash
-   npm i -g vercel
-   ```
+MIT License - Feel free to fork and adapt for your own league!
 
-2. **Deploy**
-   ```bash
-   vercel
-   ```
+## 👥 Credits
 
-3. Set environment variables in Vercel dashboard
+Built for the Money Never Sleeps fantasy basketball dynasty league.
 
-## Documentation
+**Admin**: smunley13@gmail.com
+**Firebase Project**: mns-app-1bacc
+**Live App**: [mns-dusky.vercel.app](https://mns-dusky.vercel.app)
 
-- [QUICKSTART.md](QUICKSTART.md) - Quick start guide
-- [README_APP.md](README_APP.md) - Detailed application documentation
-- [Firebase Documentation](https://firebase.google.com/docs)
+---
 
-## License
-
-MIT
+*Money Never Sleeps - Where fantasy basketball meets Wall Street*
