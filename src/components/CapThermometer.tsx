@@ -117,8 +117,8 @@ export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps
         <div>
           <div className="text-gray-400">Avg/Spot (Before 1st Apron)</div>
           <div className="font-semibold text-lg text-yellow-400">
-            {keepersCount < maxKeepers && capUsed < firstApron
-              ? formatCap((firstApron - capUsed) / (maxKeepers - keepersCount))
+            {keepersCount < maxKeepers
+              ? formatCap(Math.max(0, firstApron - capUsed) / (maxKeepers - keepersCount))
               : '-'}
           </div>
         </div>
@@ -126,8 +126,8 @@ export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps
         <div>
           <div className="text-gray-400">Avg/Spot (Before 2nd Apron)</div>
           <div className="font-semibold text-lg text-orange-400">
-            {keepersCount < maxKeepers && capUsed < secondApron
-              ? formatCap((secondApron - capUsed) / (maxKeepers - keepersCount))
+            {keepersCount < maxKeepers
+              ? formatCap(Math.max(0, secondApron - capUsed) / (maxKeepers - keepersCount))
               : '-'}
           </div>
         </div>
