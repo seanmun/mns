@@ -104,39 +104,52 @@ export function OwnerDashboard() {
   };
 
   const handleUpdatePriority = (playerId: string, direction: 'up' | 'down') => {
+    console.log('handleUpdatePriority called:', playerId, direction);
     setEntries((prev) => {
       const entry = prev.find(e => e.playerId === playerId);
-      if (!entry) return prev;
+      if (!entry?.baseRound) {
+        console.log('No entry or baseRound found');
+        return prev;
+      }
 
-      // Find all entries with the same keeperRound
-      const sameRoundEntries = prev.filter(e => e.keeperRound === entry.keeperRound);
-      if (sameRoundEntries.length <= 1) return prev; // Nothing to reorder
+      // Find all entries with the same BASE round
+      const sameBaseRoundEntries = prev.filter(e => e.baseRound === entry.baseRound && e.decision !== 'DROP');
+      console.log('Same base round entries:', sameBaseRoundEntries.length);
+      if (sameBaseRoundEntries.length <= 1) return prev; // Nothing to reorder
 
       // Sort by current priority
-      const sorted = [...sameRoundEntries].sort((a, b) => {
+      const sorted = [...sameBaseRoundEntries].sort((a, b) => {
         const prioA = a.priority ?? 999;
         const prioB = b.priority ?? 999;
         return prioA - prioB;
       });
+      console.log('Sorted before swap:', sorted.map(e => ({ id: e.playerId, priority: e.priority })));
 
       const currentIndex = sorted.findIndex(e => e.playerId === playerId);
       const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      console.log('Current index:', currentIndex, 'New index:', newIndex);
 
       if (newIndex < 0 || newIndex >= sorted.length) return prev; // Can't move further
 
       // Swap
       [sorted[currentIndex], sorted[newIndex]] = [sorted[newIndex], sorted[currentIndex]];
+      console.log('Sorted after swap:', sorted.map(e => ({ id: e.playerId, priority: e.priority })));
 
       // Reassign priorities
       const priorityMap = new Map(sorted.map((e, idx) => [e.playerId, idx]));
+      console.log('Priority map:', Array.from(priorityMap.entries()));
 
-      return prev.map(e => {
+      const newEntries = prev.map(e => {
         const newPriority = priorityMap.get(e.playerId);
         if (newPriority !== undefined) {
           return { ...e, priority: newPriority };
         }
         return e;
       });
+
+      console.log('Updated entries with priorities:', newEntries.filter(e => e.baseRound === entry.baseRound).map(e => ({ id: e.playerId, priority: e.priority })));
+
+      return newEntries;
     });
   };
 

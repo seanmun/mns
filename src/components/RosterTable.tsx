@@ -65,39 +65,39 @@ export function RosterTable({
     return entries.find((e) => e.playerId === playerId);
   };
 
-  // Helper to check if player has conflicts (same keeperRound as others)
+  // Helper to check if player has conflicts (same BASE round as others being KEPT)
   const hasConflict = (playerId: string): boolean => {
     const entry = getEntryForPlayer(playerId);
-    if (!entry?.keeperRound) return false;
+    if (!entry?.baseRound || entry.decision !== 'KEEP') return false;
 
-    const sameRoundCount = entries.filter(
-      e => e.keeperRound === entry.keeperRound && e.decision !== 'DROP'
-    ).length;
+    const sameBaseRoundKeepers = entries.filter(
+      e => e.baseRound === entry.baseRound && e.decision === 'KEEP'
+    );
 
-    return sameRoundCount > 1;
+    return sameBaseRoundKeepers.length > 1;
   };
 
-  // Helper to check if player can move up/down
+  // Helper to check if player can move up/down (within same BASE round group of KEEPERS)
   const canMoveUp = (playerId: string): boolean => {
     const entry = getEntryForPlayer(playerId);
-    if (!entry?.keeperRound) return false;
+    if (!entry?.baseRound) return false;
 
-    const sameRoundEntries = entries
-      .filter(e => e.keeperRound === entry.keeperRound && e.decision !== 'DROP')
+    const sameBaseRoundKeepers = entries
+      .filter(e => e.baseRound === entry.baseRound && e.decision === 'KEEP')
       .sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
 
-    return sameRoundEntries[0]?.playerId !== playerId;
+    return sameBaseRoundKeepers[0]?.playerId !== playerId;
   };
 
   const canMoveDown = (playerId: string): boolean => {
     const entry = getEntryForPlayer(playerId);
-    if (!entry?.keeperRound) return false;
+    if (!entry?.baseRound) return false;
 
-    const sameRoundEntries = entries
-      .filter(e => e.keeperRound === entry.keeperRound && e.decision !== 'DROP')
+    const sameBaseRoundKeepers = entries
+      .filter(e => e.baseRound === entry.baseRound && e.decision === 'KEEP')
       .sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
 
-    return sameRoundEntries[sameRoundEntries.length - 1]?.playerId !== playerId;
+    return sameBaseRoundKeepers[sameBaseRoundKeepers.length - 1]?.playerId !== playerId;
   };
 
   const getRowClassName = (decision?: Decision, player?: Player) => {
@@ -206,7 +206,7 @@ export function RosterTable({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-center gap-2">
-                        {/* Show reorder controls only if: not locked, is owner, has callback, and has conflict */}
+                        {/* Show reorder controls for players with same base round */}
                         {!isLocked && isOwner && onUpdatePriority && hasConflict(player.id) && (
                           <div className="flex flex-col gap-0">
                             <button

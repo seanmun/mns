@@ -55,15 +55,32 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
 
   // STEP 1: Handle Round 1 keepers (franchise tag logic)
   if (round1Keepers.length > 0) {
-    // First Round 1 keeper is free and gets Round 1
+    // Sort Round 1 keepers by priority first
+    round1Keepers.sort((a, b) => {
+      if (a.priority !== undefined && b.priority !== undefined) {
+        return a.priority - b.priority;
+      }
+      // If no priorities set, keep original order
+      return 0;
+    });
+
+    // First Round 1 keeper (by priority) is free and gets Round 1
     const [firstR1Keeper, ...extraR1Keepers] = round1Keepers;
     firstR1Keeper.keeperRound = 1;
     occupiedRounds.add(1);
 
-    // Extra Round 1 keepers need franchise tags and will be placed AFTER all base round 2-14 players
+    // Extra Round 1 keepers need franchise tags
     franchiseTags = extraR1Keepers.length;
 
-    // STEP 2: Assign rounds to base round 2-14 keepers first (they have priority over franchise-tagged R1)
+    // STEP 2: Place franchise-tagged R1 keepers in rounds 2, 3, 4, etc. (they must come before higher base rounds)
+    let nextRound = 2;
+    for (const extraKeeper of extraR1Keepers) {
+      extraKeeper.keeperRound = nextRound;
+      occupiedRounds.add(nextRound);
+      nextRound++;
+    }
+
+    // STEP 3: Now assign rounds to base round 2-14 keepers (they fill in after all R1 keepers)
     // Sort by base round, then by priority (for same base round players)
     otherKeepers.sort((a, b) => {
       if (a.baseRound !== b.baseRound) {
@@ -71,7 +88,6 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
       }
       // Same base round - use priority if both have it, otherwise maintain order
       if (a.priority !== undefined && b.priority !== undefined) {
-        console.log(`Sorting by priority: ${a.playerId}(${a.priority}) vs ${b.playerId}(${b.priority})`);
         return a.priority - b.priority;
       }
       return 0; // Keep original order if no priorities set
@@ -91,24 +107,6 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
       } else {
         // Should not happen with max 8 keepers
         keeper.keeperRound = 14;
-      }
-    }
-
-    // STEP 3: Now place franchise-tagged Round 1 keepers AFTER all other keepers
-    for (const extraKeeper of extraR1Keepers) {
-      let targetRound = 2; // Start from round 2
-
-      // Find next available round after all base round 2+ keepers
-      while (occupiedRounds.has(targetRound) && targetRound <= 14) {
-        targetRound++;
-      }
-
-      if (targetRound <= 14) {
-        extraKeeper.keeperRound = targetRound;
-        occupiedRounds.add(targetRound);
-      } else {
-        // Edge case: all rounds are full
-        extraKeeper.keeperRound = 14;
       }
     }
   } else {
