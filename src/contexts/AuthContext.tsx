@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import {
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   sendSignInLinkToEmail,
@@ -30,21 +29,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Handle redirect result when user returns from OAuth provider
-    // This must complete before we set loading to false
-    const initAuth = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          console.log('Redirect result:', result.user.email);
-        }
-      } catch (error) {
-        console.error('Error getting redirect result:', error);
-      }
-    };
-
-    initAuth();
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
 
@@ -53,7 +37,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const idTokenResult = await firebaseUser.getIdTokenResult();
 
         // Temporary: Hardcode admin for specific email
-        // TODO: Set this via Firebase custom claims instead
         if (firebaseUser.email === 'smunley13@gmail.com') {
           setRole('admin');
         } else {
@@ -71,10 +54,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      // Use redirect instead of popup for better cross-browser compatibility
-      await signInWithRedirect(auth, googleProvider);
-    } catch (error) {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error: any) {
       console.error('Error signing in with Google:', error);
+      // Provide helpful error message
+      if (error.code === 'auth/popup-blocked') {
+        throw new Error('Popup was blocked by browser. Please allow popups for this site.');
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        throw new Error('Sign-in cancelled.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        throw new Error('This domain is not authorized. Please contact support.');
+      }
       throw error;
     }
   };
