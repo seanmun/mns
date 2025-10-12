@@ -9,6 +9,8 @@ import { OwnerDashboard } from './pages/OwnerDashboard';
 import { Draft } from './pages/Draft';
 import { FreeAgents } from './pages/FreeAgents';
 import { RecordBook } from './pages/RecordBook';
+import { RookieDraft } from './pages/RookieDraft';
+import { Rules } from './pages/Rules';
 import { AdminUpload } from './pages/AdminUpload';
 import { AdminTeams } from './pages/AdminTeams';
 
@@ -98,6 +100,26 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <RecordBook />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/league/:leagueId/rookie-draft"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <RookieDraft />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/league/:leagueId/rules"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <Rules />
                 </AppLayout>
               </PrivateRoute>
             }

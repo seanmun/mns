@@ -119,6 +119,30 @@ export function LeagueHome() {
             </button>
           </div>
 
+          {/* Rookie Draft Card */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="text-sm font-bold text-gray-900 mb-1">🎯 Rookie Draft</h3>
+            <p className="text-xs text-gray-600 mb-3">June 25, 2025</p>
+            <button
+              onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
+              className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              View Results
+            </button>
+          </div>
+
+          {/* Rules Card */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="text-sm font-bold text-gray-900 mb-1">📜 Rules</h3>
+            <p className="text-xs text-gray-600 mb-3">League guidelines</p>
+            <button
+              onClick={() => navigate(`/league/${leagueId}/rules`)}
+              className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              View Rules
+            </button>
+          </div>
+
           {/* Reigning Champion Card */}
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="text-sm font-bold text-gray-900 mb-1">🏆 Champion</h3>
@@ -243,6 +267,34 @@ export function LeagueHome() {
                 className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
                 View Pool
+              </button>
+            </div>
+
+            {/* Rookie Draft Card */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">🎯 Rookie Draft</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                June 25, 2025 results
+              </p>
+              <button
+                onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
+                className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                View Results
+              </button>
+            </div>
+
+            {/* Rules Card */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">📜 Rules</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                League guidelines and policies
+              </p>
+              <button
+                onClick={() => navigate(`/league/${leagueId}/rules`)}
+                className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                View Rules
               </button>
             </div>
 
