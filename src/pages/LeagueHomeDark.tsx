@@ -119,7 +119,7 @@ export function LeagueHomeDark() {
             <p className="text-xs text-gray-400 mb-3">Browse available players</p>
             <button
               onClick={() => navigate(`/league/${leagueId}/free-agents`)}
-              className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
+              className="w-full border-2 border-pink-400 text-pink-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-pink-400/10 hover:shadow-[0_0_15px_rgba(244,114,182,0.5)] transition-all cursor-pointer"
             >
               View Pool
             </button>
@@ -288,7 +288,7 @@ export function LeagueHomeDark() {
               </p>
               <button
                 onClick={() => navigate(`/league/${leagueId}/free-agents`)}
-                className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
+                className="w-full border-2 border-pink-400 text-pink-400 px-4 py-2 rounded-lg font-semibold hover:bg-pink-400/10 hover:shadow-[0_0_15px_rgba(244,114,182,0.5)] transition-all cursor-pointer"
               >
                 View Pool
               </button>
