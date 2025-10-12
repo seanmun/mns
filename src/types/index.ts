@@ -5,11 +5,11 @@ export type RosterStatus = "draft" | "submitted" | "adminLocked";
 // League configuration
 export interface LeagueCapSettings {
   floor: number;           // 170M
-  base: number;            // 210M
+  base: number;            // 225M (second apron is the base cap)
   tradeLimit: number;      // ±40M
   max: number;             // 255M
-  firstApron: number;      // 195M
-  secondApron: number;     // 225M
+  firstApron: number;      // 195M (triggers $50 fee)
+  secondApron: number;     // 225M (base cap, triggers $2/M penalty if exceeded)
   penaltyStart: number;    // 225M (second apron)
   penaltyRatePerM: number; // $2 per $1M
 }
@@ -134,7 +134,7 @@ export interface RosterDoc {
 // Constants
 export const CAP_CONSTANTS = {
   FLOOR: 170_000_000,
-  BASE: 210_000_000,
+  BASE: 225_000_000,  // Second apron is the base cap
   TRADE_LIMIT: 40_000_000,
   MAX: 255_000_000,
   FIRST_APRON: 195_000_000,

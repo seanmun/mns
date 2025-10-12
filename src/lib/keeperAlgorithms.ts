@@ -209,7 +209,7 @@ export function computeSummary(params: ComputeSummaryParams): RosterSummary {
   const {
     entries,
     allPlayers,
-    baseCap = 210_000_000,
+    baseCap = 225_000_000,  // Second apron is the new base cap
     tradeDelta,
     penaltyStart = 225_000_000,  // Second apron
     penaltyRatePerM = 2,
