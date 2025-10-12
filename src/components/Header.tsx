@@ -22,7 +22,7 @@ export function Header() {
           <div className="flex items-center">
             <Link to="/teams" className="flex items-center gap-2">
               <img src="/icons/mns-icon.png" alt="MNS" className="h-10 w-10 rounded-full" />
-              <span className="text-xl font-bold text-white">MNS</span>
+              <span className="text-sm font-bold text-white">Money Never Sleeps</span>
             </Link>
           </div>
 

@@ -333,25 +333,25 @@ export function OwnerDashboard() {
 
   if (teamLoading || playersLoading || rosterLoading || statsLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+        <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
+    <div className="min-h-screen bg-[#0a0a0a] py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-bold text-gray-900">{team?.name}</h1>
+            <h1 className="text-3xl font-bold text-white">{team?.name}</h1>
             {team?.banners && team.banners.length > 0 && (
               <div className="flex gap-1">
                 {team.banners.map((year) => (
                   <span
                     key={year}
-                    className="inline-flex items-center px-2 py-1 bg-yellow-300 text-gray-900 text-xs font-bold rounded shadow-sm"
+                    className="inline-flex items-center px-2 py-1 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 text-xs font-bold rounded shadow-sm"
                   >
                     🏆 {year}
                   </span>
@@ -359,11 +359,11 @@ export function OwnerDashboard() {
               </div>
             )}
           </div>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-400 mt-1">
             {team?.ownerNames && team.ownerNames.length > 0 ? team.ownerNames.join(', ') : team?.owners.join(', ')}
           </p>
           {isLocked && (
-            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-400/20 text-yellow-400 border border-yellow-400/30">
               🔒 Roster Locked
             </div>
           )}
@@ -387,8 +387,8 @@ export function OwnerDashboard() {
               onClick={() => setCarouselIndex(0)}
               className={`p-4 rounded-lg shadow-sm text-left transition-all ${
                 carouselIndex === 0
-                  ? 'bg-blue-600 text-white ring-2 ring-blue-400'
-                  : 'bg-white text-gray-900 hover:bg-gray-50'
+                  ? 'bg-green-400 text-black ring-2 ring-green-400'
+                  : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
               }`}
             >
               <div className="text-xs font-medium opacity-80">Total Salary</div>
@@ -400,8 +400,8 @@ export function OwnerDashboard() {
               onClick={() => setCarouselIndex(1)}
               className={`p-4 rounded-lg shadow-sm text-left transition-all ${
                 carouselIndex === 1
-                  ? 'bg-blue-600 text-white ring-2 ring-blue-400'
-                  : 'bg-white text-gray-900 hover:bg-gray-50'
+                  ? 'bg-green-400 text-black ring-2 ring-green-400'
+                  : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
               }`}
             >
               <div className="text-xs font-medium opacity-80">Total Fees</div>
@@ -435,14 +435,14 @@ export function OwnerDashboard() {
               <button
                 onClick={() => setCarouselIndex(0)}
                 className={`h-2 w-2 rounded-full transition-colors ${
-                  carouselIndex === 0 ? 'bg-blue-600' : 'bg-gray-300'
+                  carouselIndex === 0 ? 'bg-green-400' : 'bg-gray-700'
                 }`}
                 aria-label="View Salary Cap Status"
               />
               <button
                 onClick={() => setCarouselIndex(1)}
                 className={`h-2 w-2 rounded-full transition-colors ${
-                  carouselIndex === 1 ? 'bg-blue-600' : 'bg-gray-300'
+                  carouselIndex === 1 ? 'bg-green-400' : 'bg-gray-700'
                 }`}
                 aria-label="View Roster Summary"
               />
@@ -453,14 +453,14 @@ export function OwnerDashboard() {
 
         {/* Scenario Selector - Only visible to team owner */}
         {!isLocked && isOwner && (
-          <div className="mb-4 bg-white p-4 rounded-lg shadow">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mb-4 bg-[#121212] p-4 rounded-lg border border-gray-800">
+            <label className="block text-sm font-medium text-white mb-2">
               Active Scenario
             </label>
             <select
               value={activeScenarioId || 'clean'}
               onChange={(e) => handleScenarioChange(e.target.value)}
-              className="block w-full md:w-96 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="block w-full md:w-96 rounded-md bg-[#0a0a0a] border-gray-700 text-white shadow-sm focus:border-green-400 focus:ring-green-400"
             >
               <option value="clean">Clean Slate (No Scenario)</option>
               {roster?.savedScenarios
@@ -472,7 +472,7 @@ export function OwnerDashboard() {
                 ))}
             </select>
             {activeScenarioId && (
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-gray-400">
                 Viewing saved scenario. Make changes and save as a new scenario or overwrite by saving with the same name.
               </p>
             )}
@@ -495,11 +495,11 @@ export function OwnerDashboard() {
 
         {/* Actions - Only visible to team owner */}
         {!isLocked && isOwner && (
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-[#121212] p-6 rounded-lg border border-gray-800">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Save Scenario */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Save Scenario
                 </label>
                 <div className="flex gap-2">
@@ -508,34 +508,34 @@ export function OwnerDashboard() {
                     value={scenarioName}
                     onChange={(e) => setScenarioName(e.target.value)}
                     placeholder="e.g., Final v1, Conservative, Aggressive"
-                    className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="flex-1 rounded-md bg-[#0a0a0a] border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-green-400 focus:ring-green-400"
                   />
                   <button
                     onClick={handleSaveScenario}
                     disabled={isSaving || !scenarioName.trim()}
-                    className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 font-medium"
+                    className="px-6 py-2 border-2 border-green-400 text-green-400 rounded hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] disabled:opacity-50 font-medium transition-all cursor-pointer"
                   >
                     {isSaving ? 'Saving...' : 'Save'}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   Save your current keeper selections with a descriptive name
                 </p>
               </div>
 
               {/* Submit Final */}
               <div className="flex flex-col">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                   Submit Keepers
                 </label>
                 <button
                   onClick={handleSubmit}
                   disabled={isSaving}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 font-medium"
+                  className="px-4 py-2 border-2 border-purple-400 text-purple-400 rounded hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)] disabled:opacity-50 font-medium transition-all cursor-pointer"
                 >
                   Submit Final Keepers
                 </button>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   Lock your roster and submit to the league
                 </p>
               </div>

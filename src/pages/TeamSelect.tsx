@@ -76,26 +76,26 @@ export function TeamSelect() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-gray-500">Loading your teams...</div>
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+        <div className="text-gray-400">Loading your teams...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
+    <div className="min-h-screen bg-[#0a0a0a] py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Your Teams</h1>
-            <p className="text-gray-500 mt-1">
+            <h1 className="text-3xl font-bold text-white">Your Teams</h1>
+            <p className="text-gray-400 mt-1">
               Signed in as {user?.email}
             </p>
           </div>
           <button
             onClick={handleSignOut}
-            className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+            className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
           >
             Sign Out
           </button>
@@ -103,8 +103,8 @@ export function TeamSelect() {
 
         {/* Teams list */}
         {teams.length === 0 ? (
-          <div className="bg-white p-8 rounded-lg shadow text-center">
-            <p className="text-gray-500">
+          <div className="bg-[#121212] p-8 rounded-lg border border-gray-800 text-center">
+            <p className="text-gray-400">
               No teams found. Contact your league administrator to be added to a team.
             </p>
           </div>
@@ -116,14 +116,14 @@ export function TeamSelect() {
                 <button
                   key={team.id}
                   onClick={() => handleSelectTeam(team)}
-                  className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow text-left"
+                  className="bg-[#121212] p-6 rounded-lg border border-gray-800 hover:border-green-400 transition-all text-left cursor-pointer"
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900">
+                      <h3 className="text-xl font-semibold text-white">
                         {team.name}
                       </h3>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-gray-400 mt-1">
                         {team.abbrev}
                       </p>
                       {league && (
@@ -133,7 +133,7 @@ export function TeamSelect() {
                       )}
                     </div>
                     <svg
-                      className="w-6 h-6 text-gray-400"
+                      className="w-6 h-6 text-gray-500"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"

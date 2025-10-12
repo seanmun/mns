@@ -101,26 +101,37 @@ export function RosterTable({
   };
 
   const getRowClassName = (decision?: Decision, player?: Player) => {
-    let baseClass = 'transition-colors cursor-pointer hover:bg-gray-50 ';
+    let baseClass = 'transition-all cursor-pointer hover:bg-gray-800/30 ';
 
-    // Decision-based background color
+    // Decision-based neon border
     if (decision === 'KEEP') {
-      baseClass += 'bg-green-50 ';
+      baseClass += 'border-l-4 border-l-green-400 shadow-[0_0_10px_rgba(74,222,128,0.3)] ';
     } else if (decision === 'REDSHIRT') {
-      baseClass += 'bg-red-50 ';
+      baseClass += 'border-l-4 border-l-purple-400 shadow-[0_0_10px_rgba(192,132,252,0.3)] ';
     } else if (decision === 'INT_STASH') {
-      baseClass += 'bg-blue-50 ';
+      baseClass += 'border-l-4 border-l-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.3)] ';
     } else if (decision === 'DROP') {
-      baseClass += 'opacity-60 ';
+      baseClass += 'opacity-50 ';
     }
 
-    // Status-based border color
-    if (player?.roster.onIR) {
-      baseClass += 'border-l-4 border-l-red-500 ';
-    } else if (player?.roster.intEligible || player?.roster.isInternationalStash) {
-      baseClass += 'border-l-4 border-l-blue-500 ';
-    } else if (player?.roster.isRookie) {
-      baseClass += 'border-l-4 border-l-green-500 ';
+    // Additional status indicator (small right border if keeper already has left border)
+    if (decision !== 'DROP') {
+      if (player?.roster.onIR) {
+        baseClass += 'border-r-2 border-r-red-400 ';
+      } else if (player?.roster.intEligible || player?.roster.isInternationalStash) {
+        baseClass += 'border-r-2 border-r-blue-300 ';
+      } else if (player?.roster.isRookie) {
+        baseClass += 'border-r-2 border-r-yellow-400 ';
+      }
+    } else {
+      // For DROP, use left border for status
+      if (player?.roster.onIR) {
+        baseClass += 'border-l-2 border-l-red-400 ';
+      } else if (player?.roster.intEligible || player?.roster.isInternationalStash) {
+        baseClass += 'border-l-2 border-l-blue-300 ';
+      } else if (player?.roster.isRookie) {
+        baseClass += 'border-l-2 border-l-yellow-400 ';
+      }
     }
 
     return baseClass;
@@ -128,40 +139,40 @@ export function RosterTable({
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
         {/* Mobile: Sticky first column with horizontal scroll */}
         <div className="overflow-x-auto">
           <div className="inline-block min-w-full align-middle">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-800">
+              <thead className="bg-[#0a0a0a]">
                 <tr>
-                  <th className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                  <th className="sticky left-0 z-10 bg-[#0a0a0a] px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800">
                     Player
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider w-28">
+                    Decision
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Pos
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Salary
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Score
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Sal Score
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Base Rd
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Final Rd
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Decision
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-[#121212] divide-y divide-gray-800">
                 {players.map((player, index) => {
                   const entry = getEntryForPlayer(player.id);
                   const decision = entry?.decision || 'DROP';
@@ -173,86 +184,28 @@ export function RosterTable({
                       className={getRowClassName(decision, player)}
                       onClick={() => handlePlayerClick(player, index)}
                     >
-                      <td className="sticky left-0 z-10 bg-white px-4 py-3 whitespace-nowrap border-r border-gray-200">
+                      <td className="sticky left-0 z-10 bg-[#121212] px-4 py-3 whitespace-nowrap border-r border-gray-800">
                         <div className="flex items-center gap-2">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-white">
                             {player.name}
                           </div>
                         </div>
                       </td>
 
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      {player.position}
-                    </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                      {formatSalary(player.salary)}
-                    </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
-                      {formatNumber(stats?.score)}
-                    </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
-                      {formatNumber(stats?.salaryScore)}
-                    </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
-                      {entry?.baseRound || player.keeper?.derivedBaseRound || '-'}
-                    </td>
-
                     <td
-                      className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center font-semibold"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-center gap-2">
-                        {/* Show reorder controls for players with same base round */}
-                        {!isLocked && isOwner && onUpdatePriority && hasConflict(player.id) && (
-                          <div className="flex flex-col gap-0">
-                            <button
-                              onClick={() => onUpdatePriority(player.id, 'up')}
-                              disabled={!canMoveUp(player.id)}
-                              className={`text-xs ${
-                                canMoveUp(player.id)
-                                  ? 'text-blue-600 hover:text-blue-800'
-                                  : 'text-gray-300 cursor-not-allowed'
-                              }`}
-                              title="Move up (earlier next year)"
-                            >
-                              ▲
-                            </button>
-                            <button
-                              onClick={() => onUpdatePriority(player.id, 'down')}
-                              disabled={!canMoveDown(player.id)}
-                              className={`text-xs ${
-                                canMoveDown(player.id)
-                                  ? 'text-blue-600 hover:text-blue-800'
-                                  : 'text-gray-300 cursor-not-allowed'
-                              }`}
-                              title="Move down (later next year)"
-                            >
-                              ▼
-                            </button>
-                          </div>
-                        )}
-                        <span>{entry?.keeperRound || '-'}</span>
-                      </div>
-                    </td>
-
-                    <td
-                      className="px-4 py-3 whitespace-nowrap text-sm text-center"
+                      className="px-2 py-3 whitespace-nowrap text-sm text-center w-28"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {isLocked ? (
                         <span
                           className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
                             decision === 'KEEP'
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-400/20 text-green-400 border border-green-400/30'
                               : decision === 'REDSHIRT'
-                              ? 'bg-blue-100 text-blue-800'
+                              ? 'bg-purple-400/20 text-purple-400 border border-purple-400/30'
                               : decision === 'INT_STASH'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-gray-100 text-gray-800'
+                              ? 'bg-blue-400/20 text-blue-400 border border-blue-400/30'
+                              : 'bg-gray-800 text-gray-400 border border-gray-700'
                           }`}
                         >
                           {decision}
@@ -266,7 +219,7 @@ export function RosterTable({
                               e.target.value as Decision
                             )
                           }
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          className="block w-full rounded-md bg-[#0a0a0a] border-gray-700 text-white shadow-sm focus:border-green-400 focus:ring-green-400 text-sm"
                           disabled={isLocked}
                         >
                           <option value="DROP">Drop</option>
@@ -298,6 +251,64 @@ export function RosterTable({
                         </select>
                       )}
                     </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
+                      {player.position}
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-white text-right font-medium">
+                      {formatSalary(player.salary)}
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 text-center">
+                      {formatNumber(stats?.score)}
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 text-center">
+                      {formatNumber(stats?.salaryScore)}
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 text-center">
+                      {entry?.baseRound || player.keeper?.derivedBaseRound || '-'}
+                    </td>
+
+                    <td
+                      className="px-4 py-3 whitespace-nowrap text-sm text-white text-center font-semibold"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        {/* Show reorder controls for players with same base round */}
+                        {!isLocked && isOwner && onUpdatePriority && hasConflict(player.id) && (
+                          <div className="flex flex-col gap-0">
+                            <button
+                              onClick={() => onUpdatePriority(player.id, 'up')}
+                              disabled={!canMoveUp(player.id)}
+                              className={`text-xs ${
+                                canMoveUp(player.id)
+                                  ? 'text-green-400 hover:text-green-300'
+                                  : 'text-gray-600 cursor-not-allowed'
+                              }`}
+                              title="Move up (earlier next year)"
+                            >
+                              ▲
+                            </button>
+                            <button
+                              onClick={() => onUpdatePriority(player.id, 'down')}
+                              disabled={!canMoveDown(player.id)}
+                              className={`text-xs ${
+                                canMoveDown(player.id)
+                                  ? 'text-green-400 hover:text-green-300'
+                                  : 'text-gray-600 cursor-not-allowed'
+                              }`}
+                              title="Move down (later next year)"
+                            >
+                              ▼
+                            </button>
+                          </div>
+                        )}
+                        <span>{entry?.keeperRound || '-'}</span>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -307,7 +318,7 @@ export function RosterTable({
         </div>
 
         {players.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-400">
             No players on roster
           </div>
         )}

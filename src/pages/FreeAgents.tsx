@@ -141,14 +141,14 @@ export function FreeAgents() {
 
     return (
       <th
-        className={`px-4 py-3 text-${align} text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors`}
+        className={`px-4 py-3 text-${align} text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-800/50 transition-colors`}
         onClick={() => handleSort(column)}
       >
         <div className={`flex items-center gap-1 ${alignClass}`}>
           {label}
           {isActive && (
             <svg
-              className={`w-3 h-3 transform ${sortDirection === 'asc' ? 'rotate-180' : ''}`}
+              className={`w-3 h-3 transform ${sortDirection === 'asc' ? 'rotate-180' : ''} text-green-400`}
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -162,33 +162,33 @@ export function FreeAgents() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+        <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-[#0a0a0a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Free Agent Pool</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-3xl font-bold text-white">Free Agent Pool</h1>
+          <p className="text-gray-400 mt-1">
             {freeAgents.length} available players sorted by projected fantasy score
           </p>
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-800">
+              <thead className="bg-[#0a0a0a]">
                 <tr>
-                  <th className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                  <th className="sticky left-0 z-10 bg-[#0a0a0a] px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800">
                     Player
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Pos
                   </th>
                   {renderSortHeader('Salary', 'salary', 'right')}
@@ -203,58 +203,58 @@ export function FreeAgents() {
                   {renderSortHeader('3PM', 'threePointMade')}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-[#121212] divide-y divide-gray-800">
                 {freeAgents.map((player, index) => {
                   const stats = projectedStats.get(player.fantraxId);
 
                   return (
                     <tr
                       key={player.id}
-                      className="hover:bg-gray-50 cursor-pointer"
+                      className="hover:bg-gray-800/30 cursor-pointer transition-colors"
                       onClick={() => {
                         setSelectedPlayer(player);
                         setSelectedPlayerIndex(index);
                       }}
                     >
-                      <td className="sticky left-0 z-10 bg-white px-4 py-3 whitespace-nowrap border-r border-gray-200">
-                        <div className="text-sm font-medium text-gray-900">
+                      <td className="sticky left-0 z-10 bg-[#121212] px-4 py-3 whitespace-nowrap border-r border-gray-800">
+                        <div className="text-sm font-medium text-white">
                           {player.name}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-400">
                           {player.nbaTeam}
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
                         {player.position}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-white text-right font-medium">
                         {formatSalary(player.salary)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center font-semibold">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-green-400 text-center font-semibold">
                         {formatStat(stats?.score)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 text-center">
                         {formatStat(stats?.points)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 text-center">
                         {formatStat(stats?.rebounds)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 text-center">
                         {formatStat(stats?.assists)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 text-center">
                         {formatStat(stats?.steals)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 text-center">
                         {formatStat(stats?.blocks)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 text-center">
                         {formatPercent(stats?.fgPercent)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 text-center">
                         {formatPercent(stats?.ftPercent)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 text-center">
                         {formatStat(stats?.threePointMade)}
                       </td>
                     </tr>

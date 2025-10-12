@@ -11,8 +11,8 @@ export function Login() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-gray-500">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+        <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
@@ -37,33 +37,31 @@ export function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
       <div className="max-w-md w-full space-y-8 p-8">
         <div className="text-center">
           <div className="mb-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg mb-4">
-              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-              </svg>
+            <div className="inline-flex items-center justify-center mb-4">
+              <img src="/icons/mns-icon.png" alt="MNS" className="w-20 h-20 rounded-full" />
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            <h1 className="text-4xl font-bold text-white mb-2">
               MNS Keeper Manager
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-300">
               Master your draft strategy
             </p>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-gray-400 mt-2">
               Track keepers • Manage cap space • Plan scenarios
             </p>
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-lg shadow-md space-y-6">
+        <div className="bg-[#121212] p-8 rounded-lg border border-gray-800 space-y-6">
           {/* Email Link Sign In */}
           {!emailSent ? (
             <>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                <h2 className="text-lg font-semibold text-white mb-4">
                   Sign in with Email
                 </h2>
                 <form onSubmit={handleEmailSubmit} className="space-y-4">
@@ -78,16 +76,16 @@ export function Login() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
                     />
                   </div>
                   {error && (
-                    <p className="text-sm text-red-600">{error}</p>
+                    <p className="text-sm text-red-400">{error}</p>
                   )}
                   <button
                     type="submit"
                     disabled={sending}
-                    className="w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="w-full px-4 py-3 border-2 border-green-400 text-green-400 rounded-md hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all disabled:opacity-50 font-semibold cursor-pointer"
                   >
                     {sending ? 'Sending...' : 'Send Sign-In Link'}
                   </button>
@@ -96,10 +94,10 @@ export function Login() {
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
+                  <div className="w-full border-t border-gray-800" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or</span>
+                  <span className="px-2 bg-[#121212] text-gray-400">Or</span>
                 </div>
               </div>
             </>
@@ -107,7 +105,7 @@ export function Login() {
             <div className="text-center py-4">
               <div className="mb-4">
                 <svg
-                  className="mx-auto h-12 w-12 text-green-500"
+                  className="mx-auto h-12 w-12 text-green-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -120,13 +118,13 @@ export function Login() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-white mb-2">
                 Check your email!
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-300 mb-4">
                 We sent a sign-in link to <strong>{email}</strong>
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-400">
                 Click the link in your email to sign in. You can close this window.
               </p>
               <button
@@ -134,7 +132,7 @@ export function Login() {
                   setEmailSent(false);
                   setEmail('');
                 }}
-                className="mt-4 text-sm text-blue-600 hover:text-blue-800"
+                className="mt-4 text-sm text-green-400 hover:text-green-300 cursor-pointer"
               >
                 Use a different email
               </button>
@@ -145,7 +143,7 @@ export function Login() {
           {!emailSent && (
             <button
               onClick={signInWithGoogle}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#0a0a0a] border-2 border-gray-700 rounded-md text-white hover:border-green-400 hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.3)] transition-all font-semibold cursor-pointer"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -169,7 +167,7 @@ export function Login() {
             </button>
           )}
 
-          <p className="text-xs text-gray-500 text-center">
+          <p className="text-xs text-gray-400 text-center">
             Only authorized team owners can access this application
           </p>
         </div>

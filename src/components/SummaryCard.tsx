@@ -11,16 +11,16 @@ export function SummaryCard({ summary, maxKeepers = 8 }: SummaryCardProps) {
   const formatMoney = (cents: number) => `$${cents.toFixed(0)}`;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <h3 className="text-lg font-semibold mb-4">Roster Summary and Fees</h3>
+    <div className="bg-[#121212] p-6 rounded-lg border border-gray-800">
+      <h3 className="text-lg font-semibold mb-4 text-white">Roster Summary and Fees</h3>
 
       {/* Counts */}
       <div className="space-y-3 mb-6">
         <div className="flex justify-between items-center">
-          <span className="text-gray-600">Keepers</span>
+          <span className="text-gray-400">Keepers</span>
           <span
             className={`font-semibold ${
-              summary.keepersCount > maxKeepers ? 'text-red-600' : 'text-gray-900'
+              summary.keepersCount > maxKeepers ? 'text-red-400' : 'text-white'
             }`}
           >
             {summary.keepersCount} / {maxKeepers}
@@ -28,35 +28,35 @@ export function SummaryCard({ summary, maxKeepers = 8 }: SummaryCardProps) {
         </div>
 
         <div className="flex justify-between items-center">
-          <span className="text-gray-600">Redshirts</span>
-          <span className="font-semibold">{summary.redshirtsCount}</span>
+          <span className="text-gray-400">Redshirts</span>
+          <span className="font-semibold text-white">{summary.redshirtsCount}</span>
         </div>
 
         <div className="flex justify-between items-center">
-          <span className="text-gray-600">Int Stash</span>
-          <span className="font-semibold">{summary.intStashCount}</span>
+          <span className="text-gray-400">Int Stash</span>
+          <span className="font-semibold text-white">{summary.intStashCount}</span>
         </div>
       </div>
 
       {/* Fees breakdown */}
-      <div className="border-t pt-4">
-        <h4 className="font-semibold text-sm text-gray-700 mb-3">Fees Due</h4>
+      <div className="border-t border-gray-800 pt-4">
+        <h4 className="font-semibold text-sm text-gray-300 mb-3">Fees Due</h4>
 
         <div className="space-y-2 text-sm">
           {/* Buy-in fee (always shown) */}
           <div className="flex justify-between">
-            <span className="text-gray-600">Buy-in Fee</span>
-            <span className="font-medium">$50</span>
+            <span className="text-gray-400">Buy-in Fee</span>
+            <span className="font-medium text-white">$50</span>
           </div>
 
           {summary.franchiseTags > 0 && (
             <div>
               <div className="flex justify-between">
-                <span className="text-gray-600">
+                <span className="text-gray-400">
                   Franchise Tags ({summary.franchiseTags} × $
                   {CAP_CONSTANTS.FRANCHISE_TAG_FEE})
                 </span>
-                <span className="font-medium">
+                <span className="font-medium text-white">
                   {formatMoney(summary.franchiseTagDues)}
                 </span>
               </div>
@@ -68,11 +68,11 @@ export function SummaryCard({ summary, maxKeepers = 8 }: SummaryCardProps) {
 
           {summary.redshirtsCount > 0 && (
             <div className="flex justify-between">
-              <span className="text-gray-600">
+              <span className="text-gray-400">
                 Redshirts ({summary.redshirtsCount} × $
                 {CAP_CONSTANTS.REDSHIRT_FEE})
               </span>
-              <span className="font-medium">
+              <span className="font-medium text-white">
                 {formatMoney(summary.redshirtDues)}
               </span>
             </div>
@@ -80,10 +80,10 @@ export function SummaryCard({ summary, maxKeepers = 8 }: SummaryCardProps) {
 
           {summary.firstApronFee > 0 && (
             <div className="flex justify-between">
-              <span className="text-gray-600">
+              <span className="text-gray-400">
                 First Apron Fee (one-time)
               </span>
-              <span className="font-medium text-yellow-600">
+              <span className="font-medium text-yellow-400">
                 {formatMoney(summary.firstApronFee)}
               </span>
             </div>
@@ -91,20 +91,20 @@ export function SummaryCard({ summary, maxKeepers = 8 }: SummaryCardProps) {
 
           {summary.penaltyDues > 0 && (
             <div className="flex justify-between">
-              <span className="text-gray-600">
+              <span className="text-gray-400">
                 Second Apron ({summary.overSecondApronByM}M × $
                 {CAP_CONSTANTS.PENALTY_RATE_PER_M}/M)
               </span>
-              <span className="font-medium text-orange-600">
+              <span className="font-medium text-orange-400">
                 {formatMoney(summary.penaltyDues)}
               </span>
             </div>
           )}
 
-          <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
-            <span>Total Fees</span>
+          <div className="border-t border-gray-800 pt-2 mt-2 flex justify-between font-semibold">
+            <span className="text-white">Total Fees</span>
             <span
-              className={summary.totalFees + 50 > 0 ? 'text-red-600' : 'text-gray-900'}
+              className={summary.totalFees + 50 > 0 ? 'text-green-400' : 'text-white'}
             >
               {formatMoney(summary.totalFees + 50)}
             </span>
@@ -114,14 +114,14 @@ export function SummaryCard({ summary, maxKeepers = 8 }: SummaryCardProps) {
 
       {/* Validation warnings */}
       {summary.keepersCount > maxKeepers && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+        <div className="mt-4 p-3 bg-red-400/10 border border-red-400/30 rounded text-sm text-red-400">
           ⚠️ Too many keepers. Remove{' '}
           {summary.keepersCount - maxKeepers} keeper(s) before submitting.
         </div>
       )}
 
       {summary.keepersCount === 0 && summary.redshirtsCount === 0 && summary.intStashCount === 0 && (
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+        <div className="mt-4 p-3 bg-blue-400/10 border border-blue-400/30 rounded text-sm text-blue-400">
           ℹ️ No keepers, redshirts, or int stash selected. This is allowed but unusual.
         </div>
       )}

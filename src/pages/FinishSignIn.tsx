@@ -55,10 +55,10 @@ export function FinishSignIn() {
 
   if (processing) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <div className="text-gray-500">Signing you in...</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400 mx-auto mb-4"></div>
+          <div className="text-gray-400">Signing you in...</div>
         </div>
       </div>
     );
@@ -66,18 +66,18 @@ export function FinishSignIn() {
 
   if (needsEmail) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
         <div className="max-w-md w-full space-y-8 p-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-white mb-2">
               Confirm Your Email
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-300">
               Please enter the email address you used to sign in
             </p>
           </div>
 
-          <div className="bg-white p-8 rounded-lg shadow-md">
+          <div className="bg-[#121212] p-8 rounded-lg border border-gray-800">
             <form onSubmit={handleEmailSubmit} className="space-y-4">
               <div>
                 <label htmlFor="email" className="sr-only">
@@ -90,15 +90,15 @@ export function FinishSignIn() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
                 />
               </div>
               {error && (
-                <p className="text-sm text-red-600">{error}</p>
+                <p className="text-sm text-red-400">{error}</p>
               )}
               <button
                 type="submit"
-                className="w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border-2 border-green-400 text-green-400 rounded-md hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all font-semibold cursor-pointer"
               >
                 Sign In
               </button>
@@ -111,10 +111,10 @@ export function FinishSignIn() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
         <div className="max-w-md w-full space-y-8 p-8">
-          <div className="bg-white p-8 rounded-lg shadow-md text-center">
-            <div className="text-red-600 mb-4">
+          <div className="bg-[#121212] p-8 rounded-lg border border-gray-800 text-center">
+            <div className="text-red-400 mb-4">
               <svg
                 className="mx-auto h-12 w-12"
                 fill="none"
@@ -129,13 +129,13 @@ export function FinishSignIn() {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-white mb-2">
               Sign-In Failed
             </h3>
-            <p className="text-gray-600 mb-4">{error}</p>
+            <p className="text-gray-300 mb-4">{error}</p>
             <button
               onClick={() => navigate('/')}
-              className="text-blue-600 hover:text-blue-800"
+              className="text-green-400 hover:text-green-300 cursor-pointer"
             >
               Back to Sign In
             </button>
