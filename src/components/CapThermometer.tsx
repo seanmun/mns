@@ -63,11 +63,15 @@ export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps
           />
         </div>
 
-        <div className="flex justify-between text-xs text-gray-400 mt-1">
-          <span>$0M</span>
-          <span className="text-yellow-400">$195M (1st Apron)</span>
-          <span className="text-orange-400">$225M (2nd Apron)</span>
-          <span>$255M</span>
+        <div className="relative text-xs text-gray-400 mt-1 h-4">
+          <span className="absolute left-0">$0M</span>
+          <span className="absolute text-yellow-400" style={{ left: `${firstApronPercent}%`, transform: 'translateX(-50%)' }}>
+            $195M (1st)
+          </span>
+          <span className="absolute text-orange-400" style={{ left: `${secondApronPercent}%`, transform: 'translateX(-50%)' }}>
+            $225M (2nd)
+          </span>
+          <span className="absolute right-0">$255M</span>
         </div>
       </div>
 
