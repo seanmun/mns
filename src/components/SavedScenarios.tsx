@@ -11,13 +11,18 @@ export function SavedScenarios({ scenarios, onLoad, onDelete }: SavedScenariosPr
     return null;
   }
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
+  const formatDate = (timestamp: number, savedBy?: string) => {
+    const dateStr = new Date(timestamp).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
     });
+
+    if (savedBy) {
+      return `${dateStr} by ${savedBy}`;
+    }
+    return dateStr;
   };
 
   const formatCap = (value: number) => {
@@ -40,7 +45,7 @@ export function SavedScenarios({ scenarios, onLoad, onDelete }: SavedScenariosPr
               <div className="flex-1">
                 <h4 className="font-semibold text-gray-900">{scenario.name}</h4>
                 <p className="text-xs text-gray-500 mt-1">
-                  Saved {formatDate(scenario.timestamp)}
+                  Saved {formatDate(scenario.timestamp, scenario.savedBy)}
                 </p>
 
                 <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">

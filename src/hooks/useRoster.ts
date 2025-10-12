@@ -179,10 +179,11 @@ interface SaveScenarioParams {
   scenarioName: string;
   entries: RosterEntry[];
   summary: any;
+  savedBy?: string;
 }
 
 export async function saveScenario(params: SaveScenarioParams) {
-  const { leagueId, teamId, scenarioName, entries, summary } = params;
+  const { leagueId, teamId, scenarioName, entries, summary, savedBy } = params;
   const rosterId = `${leagueId}_${teamId}`;
 
   const rosterRef = doc(db, 'rosters', rosterId);
@@ -199,6 +200,7 @@ export async function saveScenario(params: SaveScenarioParams) {
     scenarioId: `scenario_${Date.now()}`,
     name: scenarioName,
     timestamp: Date.now(),
+    savedBy,
     entries,
     summary,
   });

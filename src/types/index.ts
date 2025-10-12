@@ -111,6 +111,7 @@ export interface SavedScenario {
   scenarioId: string;
   name: string;
   timestamp: number;
+  savedBy?: string;  // email of user who saved this scenario
   entries: RosterEntry[];
   summary: RosterSummary;
 }
