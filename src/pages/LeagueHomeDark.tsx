@@ -176,7 +176,7 @@ export function LeagueHomeDark() {
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Prize Pool Section */}
-            <div className="bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 rounded-lg shadow-lg p-6 text-gray-900 border border-green-300">
+            <div className="bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 rounded-lg shadow-lg p-6 text-black border border-green-300">
               <div className="flex items-center gap-3 mb-2">
                 <img src="/icons/money-icon.png" alt="Money" className="w-8 h-8" />
                 <h2 className="text-xl font-bold">Prize Pool</h2>
