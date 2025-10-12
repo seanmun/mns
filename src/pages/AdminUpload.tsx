@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { collection, doc, setDoc, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { baseKeeperRound } from '../lib/keeperAlgorithms';
