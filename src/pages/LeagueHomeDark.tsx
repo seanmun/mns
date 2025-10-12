@@ -83,7 +83,7 @@ export function LeagueHomeDark() {
               <p className="text-xs text-gray-400 mb-3">{myTeam.abbrev}</p>
               <button
                 onClick={() => navigate(`/league/${leagueId}/team/${myTeam.id}`)}
-                className="w-full bg-gradient-to-r from-green-400 to-green-500 text-gray-900 px-3 py-2 rounded-lg text-sm font-semibold hover:from-green-500 hover:to-green-600 transition-all"
+                className="w-full border-2 border-green-400 text-green-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all"
               >
                 Manage Roster
               </button>
@@ -242,7 +242,7 @@ export function LeagueHomeDark() {
                 <p className="text-sm text-gray-400 mb-4">{myTeam.abbrev}</p>
                 <button
                   onClick={() => navigate(`/league/${leagueId}/team/${myTeam.id}`)}
-                  className="w-full bg-gradient-to-r from-green-400 to-green-500 text-gray-900 px-4 py-3 rounded-lg font-semibold hover:from-green-500 hover:to-green-600 transition-all"
+                  className="w-full border-2 border-green-400 text-green-400 px-4 py-3 rounded-lg font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all"
                 >
                   Manage Roster
                 </button>
