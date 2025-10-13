@@ -4,8 +4,12 @@ import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import type { Team, League } from '../types';
 
+interface TeamWithRosterStatus extends Team {
+  rosterStatus?: 'draft' | 'submitted' | 'adminLocked';
+}
+
 export function AdminTeams() {
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [teams, setTeams] = useState<TeamWithRosterStatus[]>([]);
   const [leagues, setLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -48,7 +52,24 @@ export function AdminTeams() {
         id: doc.id,
         ...doc.data(),
       })) as Team[];
-      setTeams(teamsData);
+
+      // Load rosters to get submission status
+      const rostersSnap = await getDocs(collection(db, 'rosters'));
+      const rosterStatusMap = new Map<string, 'draft' | 'submitted' | 'adminLocked'>();
+      rostersSnap.docs.forEach((doc) => {
+        const data = doc.data();
+        if (data.teamId) {
+          rosterStatusMap.set(data.teamId, data.status || 'draft');
+        }
+      });
+
+      // Merge roster status into teams
+      const teamsWithStatus: TeamWithRosterStatus[] = teamsData.map((team) => ({
+        ...team,
+        rosterStatus: rosterStatusMap.get(team.id) || 'draft',
+      }));
+
+      setTeams(teamsWithStatus);
     } catch (error) {
       console.error('Error loading data:', error);
       alert('Failed to load data');
@@ -152,17 +173,26 @@ export function AdminTeams() {
     alert('Copied to clipboard!');
   };
 
-  const unlockTeamKeepers = async (team: Team) => {
+  const unlockTeamKeepers = async (team: TeamWithRosterStatus) => {
     const confirmed = window.confirm(
-      `Unlock keepers for ${team.name}?\n\nThis will:\n1. Set keepersSubmitted to false\n2. Allow the owner to modify their keeper selections again\n\nContinue?`
+      `Unlock keepers for ${team.name}?\n\nThis will:\n1. Change roster status back to "draft"\n2. Allow the owner to modify their keeper selections again\n\nContinue?`
     );
 
     if (!confirmed) return;
 
     try {
-      // Update team's keepersSubmitted flag
-      await updateDoc(doc(db, 'teams', team.id), {
-        keepersSubmitted: false,
+      // Find the roster document for this team
+      const rostersSnap = await getDocs(collection(db, 'rosters'));
+      const rosterDoc = rostersSnap.docs.find((doc) => doc.data().teamId === team.id);
+
+      if (!rosterDoc) {
+        alert('No roster found for this team');
+        return;
+      }
+
+      // Update roster status to draft
+      await updateDoc(doc(db, 'rosters', rosterDoc.id), {
+        status: 'draft',
       });
 
       alert(`Keepers unlocked for ${team.name}!`);
@@ -594,9 +624,13 @@ export function AdminTeams() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {team.keepersSubmitted ? (
+                          {team.rosterStatus === 'submitted' ? (
                             <span className="inline-flex items-center px-2 py-1 bg-green-400/10 text-green-400 border border-green-400/30 text-xs font-semibold rounded">
                               ✓ Submitted
+                            </span>
+                          ) : team.rosterStatus === 'adminLocked' ? (
+                            <span className="inline-flex items-center px-2 py-1 bg-purple-400/10 text-purple-400 border border-purple-400/30 text-xs font-semibold rounded">
+                              🔒 Locked
                             </span>
                           ) : (
                             <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-500 text-xs font-semibold rounded">
@@ -621,7 +655,7 @@ export function AdminTeams() {
                             >
                               Edit
                             </button>
-                            {team.keepersSubmitted && (
+                            {team.rosterStatus === 'submitted' && (
                               <button
                                 onClick={() => unlockTeamKeepers(team)}
                                 className="text-orange-600 hover:text-orange-800 font-medium text-sm"
