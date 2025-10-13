@@ -13,6 +13,7 @@ import { RookieDraft } from './pages/RookieDraft';
 import { Rules } from './pages/Rules';
 import { AdminUpload } from './pages/AdminUpload';
 import { AdminTeams } from './pages/AdminTeams';
+import { AdminPlayers } from './pages/AdminPlayers';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -140,6 +141,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <AdminUpload />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/players"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminPlayers />
                 </AppLayout>
               </PrivateRoute>
             }

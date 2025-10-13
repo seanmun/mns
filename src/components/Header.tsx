@@ -46,6 +46,12 @@ export function Header() {
                   Manage Teams
                 </Link>
                 <Link
+                  to="/admin/players"
+                  className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
+                >
+                  Manage Players
+                </Link>
+                <Link
                   to="/admin/upload"
                   className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
                 >
