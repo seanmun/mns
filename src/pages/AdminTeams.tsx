@@ -152,6 +152,29 @@ export function AdminTeams() {
     alert('Copied to clipboard!');
   };
 
+  const unlockTeamKeepers = async (team: Team) => {
+    const confirmed = window.confirm(
+      `Unlock keepers for ${team.name}?\n\nThis will:\n1. Set keepersSubmitted to false\n2. Allow the owner to modify their keeper selections again\n\nContinue?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Update team's keepersSubmitted flag
+      await updateDoc(doc(db, 'teams', team.id), {
+        keepersSubmitted: false,
+      });
+
+      alert(`Keepers unlocked for ${team.name}!`);
+
+      // Reload data
+      await loadData();
+    } catch (error) {
+      console.error('Error unlocking team keepers:', error);
+      alert('Failed to unlock team keepers');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -502,6 +525,9 @@ export function AdminTeams() {
                       Banners
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Team ID
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -568,6 +594,17 @@ export function AdminTeams() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
+                          {team.keepersSubmitted ? (
+                            <span className="inline-flex items-center px-2 py-1 bg-green-400/10 text-green-400 border border-green-400/30 text-xs font-semibold rounded">
+                              ✓ Submitted
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-500 text-xs font-semibold rounded">
+                              Draft
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => copyToClipboard(team.id)}
                             className="text-xs font-mono bg-gray-100 px-2 py-1 rounded hover:bg-gray-200"
@@ -577,12 +614,22 @@ export function AdminTeams() {
                           </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() => handleEdit(team)}
-                            className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                          >
-                            Edit
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEdit(team)}
+                              className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                            >
+                              Edit
+                            </button>
+                            {team.keepersSubmitted && (
+                              <button
+                                onClick={() => unlockTeamKeepers(team)}
+                                className="text-orange-600 hover:text-orange-800 font-medium text-sm"
+                              >
+                                🔓 Unlock
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
