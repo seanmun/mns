@@ -81,10 +81,11 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
     }
 
     // STEP 3: Now assign rounds to base round 2-14 keepers (they fill in after all R1 keepers)
-    // Sort by base round, then by priority (for same base round players)
+    // Sort by base round DESCENDING (highest first), then by priority (for same base round players)
+    // Higher base rounds have priority and get their rounds first
     otherKeepers.sort((a, b) => {
       if (a.baseRound !== b.baseRound) {
-        return a.baseRound! - b.baseRound!;
+        return b.baseRound! - a.baseRound!; // DESCENDING - higher base rounds first
       }
       // Same base round - use priority if both have it, otherwise maintain order
       if (a.priority !== undefined && b.priority !== undefined) {
@@ -131,9 +132,11 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
     }
   } else {
     // No Round 1 keepers - just assign other keepers normally
+    // Sort by base round DESCENDING (highest first), then by priority
+    // Higher base rounds have priority and get their rounds first
     otherKeepers.sort((a, b) => {
       if (a.baseRound !== b.baseRound) {
-        return a.baseRound! - b.baseRound!;
+        return b.baseRound! - a.baseRound!; // DESCENDING - higher base rounds first
       }
       // Same base round - use priority if both have it
       if (a.priority !== undefined && b.priority !== undefined) {
