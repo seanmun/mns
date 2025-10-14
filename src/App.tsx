@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LeagueProvider } from './contexts/LeagueContext';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { Login } from './pages/Login';
@@ -48,7 +49,8 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <LeagueProvider>
+          <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/finishSignIn" element={<FinishSignIn />} />
           <Route
@@ -182,6 +184,7 @@ function App() {
             }
           />
         </Routes>
+        </LeagueProvider>
       </AuthProvider>
     </BrowserRouter>
   );
