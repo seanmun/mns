@@ -8,6 +8,9 @@ export function Header() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // TODO: Replace with actual notification count from database
+  const hasNotifications = true; // This would come from your notification system
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
@@ -81,13 +84,19 @@ export function Header() {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
               >
-                {user.photoURL && (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName || 'User'}
-                    className="w-8 h-8 rounded-full border-2 border-gray-700"
-                  />
-                )}
+                <div className="relative">
+                  {user.photoURL && (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName || 'User'}
+                      className="w-8 h-8 rounded-full border-2 border-gray-700"
+                    />
+                  )}
+                  {/* Notification Indicator */}
+                  {hasNotifications && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0a0a0a] animate-pulse"></span>
+                  )}
+                </div>
                 <div className="text-sm">
                   <div className="font-medium text-white">
                     {user.displayName}
@@ -135,7 +144,10 @@ export function Header() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                    Inbox
+                    <span className="flex-1">Inbox</span>
+                    {hasNotifications && (
+                      <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                    )}
                   </button>
                   <div className="border-t border-gray-800 my-1"></div>
                   <button
