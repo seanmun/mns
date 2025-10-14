@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Header } from './components/Header';
+import { Footer } from './components/Footer';
 import { Login } from './pages/Login';
 import { FinishSignIn } from './pages/FinishSignIn';
 import { TeamSelect } from './pages/TeamSelect';
@@ -31,10 +32,13 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <Header />
-      {children}
-    </>
+      <main className="flex-1">
+        {children}
+      </main>
+      <Footer />
+    </div>
   );
 }
 
