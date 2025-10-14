@@ -1,15 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useRoster, useTeamPlayers, useTeam, useLeague, updateRoster, submitRoster, saveScenario } from '../hooks/useRoster';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { usePreviousStats } from '../hooks/usePreviousStats';
 import { useAuth } from '../contexts/AuthContext';
+import { useWatchList } from '../hooks/useWatchList';
 import { RosterTable } from '../components/RosterTable';
 import { CapThermometer } from '../components/CapThermometer';
 import { SummaryCard } from '../components/SummaryCard';
 import { DraftBoardView } from '../components/DraftBoardView';
+import { WatchListView } from '../components/WatchListView';
 import { baseKeeperRound, stackKeeperRounds, computeSummary, validateRoster } from '../lib/keeperAlgorithms';
-import type { RosterEntry, Decision } from '../types';
+import type { RosterEntry, Decision, Player } from '../types';
 
 export function OwnerDashboard() {
   const { leagueId, teamId } = useParams<{ leagueId: string; teamId: string }>();
@@ -21,6 +25,8 @@ export function OwnerDashboard() {
   const { roster, loading: rosterLoading } = useRoster(leagueId!, teamId!);
   const { projectedStats, loading: statsLoading } = useProjectedStats();
   const { previousStats } = usePreviousStats();
+  const { watchList } = useWatchList(user?.email || '', leagueId!, teamId!);
+  const [allLeaguePlayers, setAllLeaguePlayers] = useState<Player[]>([]);
 
   // Check if current user is the owner of this team
   const isOwner = team?.owners.includes(user?.email || '') || false;
@@ -59,11 +65,14 @@ export function OwnerDashboard() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    if (isLeftSwipe && carouselIndex < 1) {
-      setCarouselIndex(1);
+    // Carousel has 2 slides for draft mode, 3 slides for submitted mode
+    const maxCarouselIndex = roster?.status === 'submitted' ? 2 : 1;
+
+    if (isLeftSwipe && carouselIndex < maxCarouselIndex) {
+      setCarouselIndex(carouselIndex + 1);
     }
     if (isRightSwipe && carouselIndex > 0) {
-      setCarouselIndex(0);
+      setCarouselIndex(carouselIndex - 1);
     }
   };
 
@@ -107,6 +116,28 @@ export function OwnerDashboard() {
       // setActiveScenarioId(null); // Hidden for now
     }
   }, [roster, players, playersMap]);
+
+  // Fetch all league players for watchlist display
+  useEffect(() => {
+    const fetchAllPlayers = async () => {
+      if (!leagueId) return;
+
+      try {
+        const playersRef = collection(db, 'players');
+        const q = query(playersRef, where('roster.leagueId', '==', leagueId));
+        const snapshot = await getDocs(q);
+        const allPlayers = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Player[];
+        setAllLeaguePlayers(allPlayers);
+      } catch (error) {
+        console.error('Error fetching league players:', error);
+      }
+    };
+
+    fetchAllPlayers();
+  }, [leagueId]);
 
   const handleDecisionChange = (playerId: string, decision: Decision) => {
     setEntries((prev) =>
@@ -394,7 +425,7 @@ export function OwnerDashboard() {
         {/* Mobile: Quick stats cards and swipeable carousel */}
         <div className="lg:hidden mb-6">
             {/* Quick Stats Cards - clickable toggles */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className={`grid ${roster?.status === 'submitted' ? 'grid-cols-3' : 'grid-cols-2'} gap-3 mb-4`}>
               <button
                 onClick={() => setCarouselIndex(0)}
                 className={`p-4 rounded-lg shadow-sm text-left transition-all ${
@@ -421,6 +452,19 @@ export function OwnerDashboard() {
                   ${(currentSummary.totalFees + 50).toFixed(0)}
                 </div>
               </button>
+              {roster?.status === 'submitted' && (
+                <button
+                  onClick={() => setCarouselIndex(2)}
+                  className={`p-4 rounded-lg shadow-sm text-left transition-all ${
+                    carouselIndex === 2
+                      ? 'bg-green-400 text-black ring-2 ring-green-400'
+                      : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
+                  }`}
+                >
+                  <div className="text-xs font-medium opacity-80">Draft Board</div>
+                  <div className="text-2xl font-bold mt-1">⭐</div>
+                </button>
+              )}
             </div>
 
             <div className="relative overflow-hidden">
@@ -440,6 +484,13 @@ export function OwnerDashboard() {
                 <div className="w-full flex-shrink-0 px-2">
                   <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} />
                 </div>
+                {/* Slide 3: Draft Board & Watch List (only when submitted) */}
+                {roster?.status === 'submitted' && (
+                  <div className="w-full flex-shrink-0 px-2 space-y-4">
+                    <DraftBoardView players={sortedPlayers} entries={stackedEntries} />
+                    <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
+                  </div>
+                )}
               </div>
 
               {/* Dots indicator */}
@@ -458,6 +509,15 @@ export function OwnerDashboard() {
                   }`}
                   aria-label="View Roster Summary"
                 />
+                {roster?.status === 'submitted' && (
+                  <button
+                    onClick={() => setCarouselIndex(2)}
+                    className={`h-2 w-2 rounded-full transition-colors ${
+                      carouselIndex === 2 ? 'bg-green-400' : 'bg-gray-700'
+                    }`}
+                    aria-label="View Draft Board & Watch List"
+                  />
+                )}
               </div>
             </div>
         </div>
@@ -466,10 +526,13 @@ export function OwnerDashboard() {
         {/* Scenario Selector - Hidden for now */}
 
         {/* Roster table or Draft Board View */}
-        <div className="mb-6">
-          {roster?.status === 'submitted' ? (
+        {roster?.status === 'submitted' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <DraftBoardView players={sortedPlayers} entries={stackedEntries} />
-          ) : (
+            <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
+          </div>
+        ) : (
+          <div className="mb-6">
             <RosterTable
               players={sortedPlayers}
               entries={stackedEntries}
@@ -481,8 +544,8 @@ export function OwnerDashboard() {
               projectedStats={projectedStats}
               previousStats={previousStats}
             />
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Actions - Only visible to team owner */}
         {!isLocked && isOwner && (
