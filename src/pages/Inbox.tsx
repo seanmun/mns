@@ -1,13 +1,39 @@
+import { useState, useEffect } from 'react';
 import { getDailyQuote } from '../data/hinkieQuotes';
 
 export function Inbox() {
   const dailyQuote = getDailyQuote();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isRead, setIsRead] = useState(false);
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
+
+  // Load read status from localStorage
+  useEffect(() => {
+    const readKey = `hinkie-quote-read-${dailyQuote.id}-${new Date().toDateString()}`;
+    const hasRead = localStorage.getItem(readKey) === 'true';
+    setIsRead(hasRead);
+  }, [dailyQuote.id]);
+
+  // Handle expand and mark as read
+  const handleExpand = () => {
+    if (!isExpanded) {
+      setIsExpanded(true);
+      setIsRead(true);
+      const readKey = `hinkie-quote-read-${dailyQuote.id}-${new Date().toDateString()}`;
+      localStorage.setItem(readKey, 'true');
+
+      // Trigger a custom event to update the header notification
+      window.dispatchEvent(new Event('inboxRead'));
+    } else {
+      setIsExpanded(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] py-8">
@@ -21,25 +47,55 @@ export function Inbox() {
         </div>
 
         {/* Daily Quote Message */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
-          {/* Message Header */}
-          <div className="px-6 py-4 border-b border-gray-800">
+        <div className={`bg-[#121212] rounded-lg border overflow-hidden transition-colors ${
+          isRead ? 'border-gray-800' : 'border-green-400/50 shadow-[0_0_15px_rgba(74,222,128,0.3)]'
+        }`}>
+          {/* Message Header - Clickable */}
+          <button
+            onClick={handleExpand}
+            className="w-full px-6 py-4 border-b border-gray-800 hover:bg-gray-800/30 transition-colors text-left"
+          >
             <div className="flex items-center gap-3">
+              {/* Unread Indicator */}
+              {!isRead && (
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              )}
+
               <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-black font-bold">
                 SH
               </div>
-              <div className="flex-1">
-                <h3 className="text-white font-semibold">Sam Hinkie</h3>
-                <p className="text-gray-400 text-sm">{today}</p>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className={`font-semibold truncate ${isRead ? 'text-gray-400' : 'text-white'}`}>
+                    Sam Hinkie
+                  </h3>
+                  {!isRead && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-400 text-black">
+                      NEW
+                    </span>
+                  )}
+                </div>
+                <p className="text-gray-500 text-sm truncate">{dailyQuote.quote.substring(0, 50)}...</p>
               </div>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-400/20 text-green-400 border border-green-400/30">
-                Daily Quote
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-500">{today.split(',')[0]}</span>
+                <svg
+                  className={`w-5 h-5 text-gray-400 transition-transform ${
+                    isExpanded ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
-          </div>
+          </button>
 
-          {/* Message Content */}
-          <div className="px-6 py-8 md:flex md:items-center md:gap-8">
+          {/* Message Content - Expandable */}
+          {isExpanded && (
+            <div className="px-6 py-8 md:flex md:items-center md:gap-8">
             {/* Quote Image - 50% width on desktop */}
             <div className="mb-6 md:mb-0 md:w-1/2 rounded-lg overflow-hidden border border-gray-800 flex-shrink-0">
               <img
@@ -62,15 +118,18 @@ export function Inbox() {
                 — Sam Hinkie
               </footer>
             </blockquote>
-          </div>
-
-          {/* Message Footer */}
-          <div className="px-6 py-4 bg-[#0a0a0a] border-t border-gray-800">
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span>Quote #{dailyQuote.id} of 7</span>
-              <span>Trust the Process 🏀</span>
             </div>
-          </div>
+          )}
+
+          {/* Message Footer - Only show when expanded */}
+          {isExpanded && (
+            <div className="px-6 py-4 bg-[#0a0a0a] border-t border-gray-800">
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>Quote #{dailyQuote.id} of 7</span>
+                <span>Trust the Process 🏀</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Empty State / Future Messages */}

@@ -1,20 +1,40 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { getDailyQuote } from '../data/hinkieQuotes';
 
 export function Header() {
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [hasNotifications, setHasNotifications] = useState(false);
 
-  // TODO: Replace with actual notification count from database
-  const hasNotifications = true; // This would come from your notification system
+  // Check if today's quote has been read
+  const checkNotifications = () => {
+    const dailyQuote = getDailyQuote();
+    const readKey = `hinkie-quote-read-${dailyQuote.id}-${new Date().toDateString()}`;
+    const hasRead = localStorage.getItem(readKey) === 'true';
+    setHasNotifications(!hasRead);
+  };
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
   };
+
+  // Check notifications on mount and listen for changes
+  useEffect(() => {
+    checkNotifications();
+
+    // Listen for inbox read events
+    const handleInboxRead = () => {
+      checkNotifications();
+    };
+
+    window.addEventListener('inboxRead', handleInboxRead);
+    return () => window.removeEventListener('inboxRead', handleInboxRead);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
