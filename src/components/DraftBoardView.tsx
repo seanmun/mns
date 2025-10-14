@@ -20,6 +20,10 @@ export function DraftBoardView({ players, entries }: DraftBoardViewProps) {
       keepersByRound.get(round)!.push(entry);
     });
 
+  // Get redshirts and int stash players
+  const redshirts = entries.filter(e => e.decision === 'REDSHIRT');
+  const intStash = entries.filter(e => e.decision === 'INT_STASH');
+
   // Create array of all 13 rounds
   const rounds = Array.from({ length: 13 }, (_, i) => i + 1);
 
@@ -87,6 +91,80 @@ export function DraftBoardView({ players, entries }: DraftBoardViewProps) {
           );
         })}
       </div>
+
+      {/* Redshirts Section */}
+      {redshirts.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-lg font-bold text-blue-400">Redshirts</h3>
+            <span className="text-xs text-gray-500">({redshirts.length})</span>
+          </div>
+          <div className="space-y-2">
+            {redshirts.map(entry => {
+              const player = playersMap.get(entry.playerId);
+              if (!player) return null;
+
+              return (
+                <div
+                  key={entry.playerId}
+                  className="flex items-center gap-4 p-3 rounded-lg bg-blue-400/5 border border-blue-400/30"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-white truncate">
+                      {player.name}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-gray-400">
+                        {player.position} • {player.nbaTeam}
+                      </span>
+                      <span className="text-xs font-semibold text-blue-400">
+                        ${(player.salary / 1_000_000).toFixed(1)}M
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* International Stash Section */}
+      {intStash.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-lg font-bold text-purple-400">International Stash</h3>
+            <span className="text-xs text-gray-500">({intStash.length})</span>
+          </div>
+          <div className="space-y-2">
+            {intStash.map(entry => {
+              const player = playersMap.get(entry.playerId);
+              if (!player) return null;
+
+              return (
+                <div
+                  key={entry.playerId}
+                  className="flex items-center gap-4 p-3 rounded-lg bg-purple-400/5 border border-purple-400/30"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-white truncate">
+                      {player.name}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-gray-400">
+                        {player.position} • {player.nbaTeam}
+                      </span>
+                      <span className="text-xs font-semibold text-purple-400">
+                        ${(player.salary / 1_000_000).toFixed(1)}M
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Summary */}
       <div className="mt-6 pt-6 border-t border-gray-800">
