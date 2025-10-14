@@ -8,6 +8,7 @@ import { RosterTable } from '../components/RosterTable';
 import { CapThermometer } from '../components/CapThermometer';
 import { SummaryCard } from '../components/SummaryCard';
 import { SavedScenarios } from '../components/SavedScenarios';
+import { DraftBoardView } from '../components/DraftBoardView';
 import { baseKeeperRound, stackKeeperRounds, computeSummary, validateRoster } from '../lib/keeperAlgorithms';
 import type { RosterEntry, Decision, SavedScenario } from '../types';
 
@@ -500,19 +501,23 @@ export function OwnerDashboard() {
           </div>
         )}
 
-        {/* Roster table */}
+        {/* Roster table or Draft Board View */}
         <div className="mb-6">
-          <RosterTable
-            players={sortedPlayers}
-            entries={stackedEntries}
-            onDecisionChange={handleDecisionChange}
-            onUpdatePriority={handleUpdatePriority}
-            isLocked={isLocked}
-            isOwner={isOwner}
-            canViewDecisions={canViewDecisions}
-            projectedStats={projectedStats}
-            previousStats={previousStats}
-          />
+          {roster?.status === 'submitted' ? (
+            <DraftBoardView players={sortedPlayers} entries={stackedEntries} />
+          ) : (
+            <RosterTable
+              players={sortedPlayers}
+              entries={stackedEntries}
+              onDecisionChange={handleDecisionChange}
+              onUpdatePriority={handleUpdatePriority}
+              isLocked={isLocked}
+              isOwner={isOwner}
+              canViewDecisions={canViewDecisions}
+              projectedStats={projectedStats}
+              previousStats={previousStats}
+            />
+          )}
         </div>
 
         {/* Actions - Only visible to team owner */}
