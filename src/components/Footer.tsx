@@ -53,9 +53,14 @@ export function Footer() {
             <p className="text-gray-500 text-sm">
               © {currentYear} MNS Keeper League. All rights reserved.
             </p>
-            <p className="text-gray-500 text-sm">
-              🤖 Built with Claude Code
-            </p>
+            <a
+              href="https://seanmun.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-500 text-sm hover:text-green-400 transition-colors"
+            >
+              Built by Sean Munley
+            </a>
           </div>
         </div>
       </div>
