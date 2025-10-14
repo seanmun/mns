@@ -114,7 +114,7 @@ export function Header() {
                   )}
                   {/* Notification Indicator */}
                   {hasNotifications && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0a0a0a] animate-pulse"></span>
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-pink-500 rounded-full border-2 border-[#0a0a0a] animate-pulse"></span>
                   )}
                 </div>
                 <div className="text-sm">
@@ -166,7 +166,7 @@ export function Header() {
                     </svg>
                     <span className="flex-1">Inbox</span>
                     {hasNotifications && (
-                      <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                      <span className="w-2 h-2 bg-pink-500 rounded-full"></span>
                     )}
                   </button>
                   <div className="border-t border-gray-800 my-1"></div>
