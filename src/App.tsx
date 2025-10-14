@@ -16,6 +16,7 @@ import { AdminUpload } from './pages/AdminUpload';
 import { AdminTeams } from './pages/AdminTeams';
 import { AdminPlayers } from './pages/AdminPlayers';
 import { Inbox } from './pages/Inbox';
+import { Profile } from './pages/Profile';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -166,6 +167,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <Inbox />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <Profile />
                 </AppLayout>
               </PrivateRoute>
             }
