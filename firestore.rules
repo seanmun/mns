@@ -101,5 +101,15 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && request.auth.uid == userId;
     }
+
+    // Watchlists collection
+    match /watchlists/{watchlistId} {
+      // Users can read their own watchlists
+      allow read: if isSignedIn() && resource.data.userId == getUserEmail();
+      // Users can create/update their own watchlists
+      allow create, update: if isSignedIn() && request.resource.data.userId == getUserEmail();
+      // Users can delete their own watchlists
+      allow delete: if isSignedIn() && resource.data.userId == getUserEmail();
+    }
   }
 }
