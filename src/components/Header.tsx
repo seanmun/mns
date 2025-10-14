@@ -66,14 +66,6 @@ export function Header() {
 
           {/* Navigation */}
           <nav className="flex items-center space-x-6">
-            {/* Common Nav */}
-            <Link
-              to="/teams"
-              className="text-gray-300 hover:text-green-400 font-medium transition-colors"
-            >
-              League
-            </Link>
-
             {/* Admin-only Nav */}
             {isAdmin && (
               <>
@@ -142,6 +134,18 @@ export function Header() {
               {/* Dropdown Menu */}
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-[#121212] rounded-lg shadow-lg border border-gray-800 py-1 z-50">
+                  <button
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      navigate('/teams');
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    League
+                  </button>
                   <button
                     onClick={() => {
                       setIsDropdownOpen(false);
