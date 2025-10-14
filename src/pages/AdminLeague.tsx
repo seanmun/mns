@@ -16,12 +16,10 @@ export function AdminLeague() {
     name: '',
     seasonYear: 2025,
     'cap.floor': 170_000_000,
-    'cap.base': 225_000_000,
     'cap.firstApron': 195_000_000,
     'cap.secondApron': 225_000_000,
     'cap.max': 255_000_000,
     'cap.tradeLimit': 40_000_000,
-    'cap.penaltyStart': 225_000_000,
     'cap.penaltyRatePerM': 2,
   });
 
@@ -56,12 +54,10 @@ export function AdminLeague() {
       name: league.name,
       seasonYear: league.seasonYear,
       'cap.floor': league.cap.floor,
-      'cap.base': league.cap.base,
       'cap.firstApron': league.cap.firstApron,
       'cap.secondApron': league.cap.secondApron,
       'cap.max': league.cap.max,
       'cap.tradeLimit': league.cap.tradeLimit,
-      'cap.penaltyStart': league.cap.penaltyStart,
       'cap.penaltyRatePerM': league.cap.penaltyRatePerM,
     });
   };
@@ -77,12 +73,10 @@ export function AdminLeague() {
         name: editForm.name,
         seasonYear: editForm.seasonYear,
         'cap.floor': editForm['cap.floor'],
-        'cap.base': editForm['cap.base'],
         'cap.firstApron': editForm['cap.firstApron'],
         'cap.secondApron': editForm['cap.secondApron'],
         'cap.max': editForm['cap.max'],
         'cap.tradeLimit': editForm['cap.tradeLimit'],
-        'cap.penaltyStart': editForm['cap.penaltyStart'],
         'cap.penaltyRatePerM': editForm['cap.penaltyRatePerM'],
       });
 
@@ -95,13 +89,12 @@ export function AdminLeague() {
                 name: editForm.name,
                 seasonYear: editForm.seasonYear,
                 cap: {
+                  ...league.cap,
                   floor: editForm['cap.floor'],
-                  base: editForm['cap.base'],
                   firstApron: editForm['cap.firstApron'],
                   secondApron: editForm['cap.secondApron'],
                   max: editForm['cap.max'],
                   tradeLimit: editForm['cap.tradeLimit'],
-                  penaltyStart: editForm['cap.penaltyStart'],
                   penaltyRatePerM: editForm['cap.penaltyRatePerM'],
                 },
               }
@@ -189,119 +182,88 @@ export function AdminLeague() {
                 <div className="pt-4 border-t border-gray-800">
                   <h3 className="text-lg font-semibold text-white mb-3">Salary Cap</h3>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">
-                        Floor
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Floor ($M)
                       </label>
                       <input
                         type="number"
-                        value={editForm['cap.floor']}
+                        value={editForm['cap.floor'] / 1_000_000}
                         onChange={(e) =>
-                          setEditForm({ ...editForm, 'cap.floor': parseInt(e.target.value) })
+                          setEditForm({ ...editForm, 'cap.floor': parseInt(e.target.value) * 1_000_000 })
                         }
-                        className="w-full px-2 py-1 text-sm bg-[#0a0a0a] border border-gray-700 rounded text-white focus:outline-none focus:border-green-400"
+                        className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">
-                        Base Cap
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        First Apron ($M) - $50 one-time fee
                       </label>
                       <input
                         type="number"
-                        value={editForm['cap.base']}
+                        value={editForm['cap.firstApron'] / 1_000_000}
                         onChange={(e) =>
-                          setEditForm({ ...editForm, 'cap.base': parseInt(e.target.value) })
+                          setEditForm({ ...editForm, 'cap.firstApron': parseInt(e.target.value) * 1_000_000 })
                         }
-                        className="w-full px-2 py-1 text-sm bg-[#0a0a0a] border border-gray-700 rounded text-white focus:outline-none focus:border-green-400"
+                        className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">
-                        First Apron
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Second Apron ($M) - Penalty starts here
                       </label>
                       <input
                         type="number"
-                        value={editForm['cap.firstApron']}
+                        value={editForm['cap.secondApron'] / 1_000_000}
                         onChange={(e) =>
-                          setEditForm({ ...editForm, 'cap.firstApron': parseInt(e.target.value) })
+                          setEditForm({ ...editForm, 'cap.secondApron': parseInt(e.target.value) * 1_000_000 })
                         }
-                        className="w-full px-2 py-1 text-sm bg-[#0a0a0a] border border-gray-700 rounded text-white focus:outline-none focus:border-green-400"
+                        className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">
-                        Second Apron
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Hard Cap ($M) - Cannot exceed
                       </label>
                       <input
                         type="number"
-                        value={editForm['cap.secondApron']}
+                        value={editForm['cap.max'] / 1_000_000}
                         onChange={(e) =>
-                          setEditForm({ ...editForm, 'cap.secondApron': parseInt(e.target.value) })
+                          setEditForm({ ...editForm, 'cap.max': parseInt(e.target.value) * 1_000_000 })
                         }
-                        className="w-full px-2 py-1 text-sm bg-[#0a0a0a] border border-gray-700 rounded text-white focus:outline-none focus:border-green-400"
+                        className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">
-                        Hard Cap (Max)
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Trade Limit ($M) - Adjust cap via trades (±)
                       </label>
                       <input
                         type="number"
-                        value={editForm['cap.max']}
+                        value={editForm['cap.tradeLimit'] / 1_000_000}
                         onChange={(e) =>
-                          setEditForm({ ...editForm, 'cap.max': parseInt(e.target.value) })
+                          setEditForm({ ...editForm, 'cap.tradeLimit': parseInt(e.target.value) * 1_000_000 })
                         }
-                        className="w-full px-2 py-1 text-sm bg-[#0a0a0a] border border-gray-700 rounded text-white focus:outline-none focus:border-green-400"
+                        className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">
-                        Trade Limit
-                      </label>
-                      <input
-                        type="number"
-                        value={editForm['cap.tradeLimit']}
-                        onChange={(e) =>
-                          setEditForm({ ...editForm, 'cap.tradeLimit': parseInt(e.target.value) })
-                        }
-                        className="w-full px-2 py-1 text-sm bg-[#0a0a0a] border border-gray-700 rounded text-white focus:outline-none focus:border-green-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">
-                        Penalty Start
-                      </label>
-                      <input
-                        type="number"
-                        value={editForm['cap.penaltyStart']}
-                        onChange={(e) =>
-                          setEditForm({ ...editForm, 'cap.penaltyStart': parseInt(e.target.value) })
-                        }
-                        className="w-full px-2 py-1 text-sm bg-[#0a0a0a] border border-gray-700 rounded text-white focus:outline-none focus:border-green-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">
-                        Penalty Rate ($/M)
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                        Penalty Rate - $ per $1M over Second Apron
                       </label>
                       <input
                         type="number"
                         value={editForm['cap.penaltyRatePerM']}
                         onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            'cap.penaltyRatePerM': parseInt(e.target.value),
-                          })
+                          setEditForm({ ...editForm, 'cap.penaltyRatePerM': parseInt(e.target.value) })
                         }
-                        className="w-full px-2 py-1 text-sm bg-[#0a0a0a] border border-gray-700 rounded text-white focus:outline-none focus:border-green-400"
+                        className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
                       />
                     </div>
                   </div>
