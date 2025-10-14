@@ -38,11 +38,8 @@ export function Footer() {
           {/* Contact/Info */}
           <div>
             <h3 className="text-white font-bold text-lg mb-3">League Info</h3>
-            <p className="text-gray-400 text-sm mb-2">
-              2025-2026 Season
-            </p>
             <p className="text-gray-400 text-sm">
-              Built with React + Firebase
+              2025-2026 Season
             </p>
           </div>
         </div>
