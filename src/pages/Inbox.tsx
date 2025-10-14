@@ -121,15 +121,6 @@ export function Inbox() {
             </div>
           )}
 
-          {/* Message Footer - Only show when expanded */}
-          {isExpanded && (
-            <div className="px-6 py-4 bg-[#0a0a0a] border-t border-gray-800">
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>Quote #{dailyQuote.id} of 7</span>
-                <span>Trust the Process 🏀</span>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Empty State / Future Messages */}
