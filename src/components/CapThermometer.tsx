@@ -35,7 +35,7 @@ export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps
       <h3 className="text-lg font-semibold mb-4 text-white">Salary Cap Status</h3>
 
       {/* Salary cap scale (0 to 250M) */}
-      <div className="mb-6">
+      <div className="mb-6 md:mb-6">
         <div className="flex justify-between text-xs text-gray-400 mb-2">
           <span>Cap Used: {formatCap(capUsed)}</span>
           <span>Max: {formatCap(max)}</span>
@@ -63,15 +63,22 @@ export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps
           />
         </div>
 
-        <div className="relative text-xs text-gray-400 mt-1 h-4">
+        <div className="relative text-xs text-gray-400 mt-1 h-8 md:h-4">
           <span className="absolute left-0">$0M</span>
-          <span className="absolute text-yellow-400" style={{ left: `${firstApronPercent}%`, transform: 'translateX(-50%)' }}>
+          {/* Mobile: Stack apron markers vertically */}
+          <span className="absolute text-yellow-400 md:hidden" style={{ left: `${firstApronPercent}%`, transform: 'translateX(-50%)' }}>
+            $195M
+          </span>
+          <span className="absolute text-orange-400 md:hidden" style={{ left: `${secondApronPercent}%`, transform: 'translateX(-50%)', top: '13px' }}>
+            $225M
+          </span>
+          {/* Desktop: Show full labels side by side */}
+          <span className="absolute text-yellow-400 hidden md:inline" style={{ left: `${firstApronPercent}%`, transform: 'translateX(-50%)' }}>
             $195M (1st)
           </span>
-          <span className="absolute text-orange-400" style={{ left: `${secondApronPercent}%`, transform: 'translateX(-50%)' }}>
+          <span className="absolute text-orange-400 hidden md:inline" style={{ left: `${secondApronPercent}%`, transform: 'translateX(-50%)' }}>
             $225M (2nd)
           </span>
-          <span className="absolute right-0">$255M</span>
         </div>
       </div>
 
