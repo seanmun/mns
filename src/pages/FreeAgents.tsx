@@ -2,8 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { usePreviousStats } from '../hooks/usePreviousStats';
+import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
 import { PlayerModal } from '../components/PlayerModal';
 import type { Player } from '../types';
 
@@ -11,7 +13,9 @@ type SortColumn = 'score' | 'salary' | 'points' | 'rebounds' | 'assists' | 'stea
 
 export function FreeAgents() {
   const { leagueId } = useParams<{ leagueId: string }>();
+  const { user } = useAuth();
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+  const [userTeamId, setUserTeamId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [selectedPlayerIndex, setSelectedPlayerIndex] = useState<number>(-1);
@@ -20,6 +24,11 @@ export function FreeAgents() {
   const [searchTerm, setSearchTerm] = useState('');
   const { projectedStats } = useProjectedStats();
   const { previousStats } = usePreviousStats();
+  const { watchList, setWatchList } = useWatchList(
+    user?.email || undefined,
+    leagueId,
+    userTeamId || undefined
+  );
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -31,6 +40,55 @@ export function FreeAgents() {
       setSortDirection('desc');
     }
   };
+
+  const handleToggleWatchList = async (e: React.MouseEvent, playerFantraxId: string) => {
+    e.stopPropagation(); // Prevent row click from opening modal
+
+    if (!user?.email || !leagueId || !userTeamId) {
+      alert('Please sign in to add players to your watchlist');
+      return;
+    }
+
+    try {
+      const updatedWatchList = await togglePlayerInWatchList(
+        user.email,
+        leagueId,
+        userTeamId,
+        playerFantraxId,
+        watchList
+      );
+      setWatchList(updatedWatchList);
+    } catch (error) {
+      console.error('Error toggling watchlist:', error);
+      alert('Failed to update watchlist');
+    }
+  };
+
+  // Fetch user's team
+  useEffect(() => {
+    const fetchUserTeam = async () => {
+      if (!leagueId || !user?.email) return;
+
+      try {
+        const teamsRef = collection(db, 'teams');
+        const q = query(teamsRef, where('leagueId', '==', leagueId));
+        const snapshot = await getDocs(q);
+
+        const userTeam = snapshot.docs.find(doc => {
+          const teamData = doc.data();
+          return teamData.owners && teamData.owners.includes(user.email);
+        });
+
+        if (userTeam) {
+          setUserTeamId(userTeam.id);
+        }
+      } catch (error) {
+        console.error('Error fetching user team:', error);
+      }
+    };
+
+    fetchUserTeam();
+  }, [leagueId, user]);
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -239,6 +297,7 @@ export function FreeAgents() {
               <tbody className="bg-[#121212] divide-y divide-gray-800">
                 {freeAgents.map((player, index) => {
                   const stats = projectedStats.get(player.fantraxId);
+                  const isWatched = watchList?.playerIds.includes(player.fantraxId) || false;
 
                   return (
                     <tr
@@ -250,11 +309,32 @@ export function FreeAgents() {
                       }}
                     >
                       <td className="sticky left-0 z-10 bg-[#121212] px-2 sm:px-4 py-3 border-r border-gray-800 w-32 sm:w-auto">
-                        <div className="text-sm font-medium text-white truncate max-w-[7rem] sm:max-w-none">
-                          {player.name}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          {player.nbaTeam}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => handleToggleWatchList(e, player.fantraxId)}
+                            className="flex-shrink-0 hover:scale-110 transition-transform"
+                          >
+                            <svg
+                              className={`w-4 h-4 ${
+                                isWatched ? 'fill-green-400 text-green-400' : 'fill-none text-gray-600'
+                              } stroke-current stroke-2`}
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                              />
+                            </svg>
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-white truncate max-w-[5rem] sm:max-w-none">
+                              {player.name}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {player.nbaTeam}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">

@@ -185,6 +185,16 @@ export interface ProjectedStats {
   seasonYear: string;     // "2025-26"
 }
 
+// Watchlist
+export interface WatchList {
+  id: string;                 // Document ID
+  userId: string;             // User email
+  leagueId: string;
+  teamId: string;
+  playerIds: string[];        // Array of player fantraxIds
+  updatedAt: number;          // Timestamp
+}
+
 // Previous Season Stats (2024-25)
 export interface PreviousStats {
   fantraxId: string;      // Document ID (matches player.fantraxId)
