@@ -166,16 +166,22 @@ export function AdminLeague() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Season Year
+                    Season
                   </label>
-                  <input
-                    type="number"
+                  <select
                     value={editForm.seasonYear}
                     onChange={(e) =>
                       setEditForm({ ...editForm, seasonYear: parseInt(e.target.value) })
                     }
                     className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
-                  />
+                  >
+                    <option value={2024}>2024-2025</option>
+                    <option value={2025}>2025-2026</option>
+                    <option value={2026}>2026-2027</option>
+                    <option value={2027}>2027-2028</option>
+                    <option value={2028}>2028-2029</option>
+                    <option value={2029}>2029-2030</option>
+                  </select>
                 </div>
 
                 {/* Salary Cap Settings */}
