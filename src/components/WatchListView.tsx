@@ -22,7 +22,7 @@ export function WatchListView({ watchList, allPlayers, projectedStats }: WatchLi
   });
 
   return (
-    <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+    <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 flex flex-col h-[600px]">
       <h2 className="text-xl font-bold text-white mb-4">⭐ Watch List</h2>
       <p className="text-sm text-gray-400 mb-6">
         Players you're tracking from the free agent pool
@@ -51,80 +51,80 @@ export function WatchListView({ watchList, allPlayers, projectedStats }: WatchLi
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          {sortedWatchedPlayers.map((player) => {
-            const stats = projectedStats.get(player.fantraxId);
+        <>
+          <div className="flex-1 overflow-y-auto space-y-3 mb-6">
+            {sortedWatchedPlayers.map((player) => {
+              const stats = projectedStats.get(player.fantraxId);
 
-            return (
-              <div
-                key={player.id}
-                className="flex items-center gap-4 p-4 rounded-lg bg-green-400/5 border border-green-400/30 hover:bg-green-400/10 transition-colors"
-              >
-                {/* Rank/Score */}
-                <div className="flex-shrink-0 w-16 text-center">
-                  <div className="text-2xl font-bold text-green-400">
-                    {stats?.score ? Math.round(stats.score) : '-'}
+              return (
+                <div
+                  key={player.id}
+                  className="flex items-center gap-4 p-4 rounded-lg bg-green-400/5 border border-green-400/30 hover:bg-green-400/10 transition-colors"
+                >
+                  {/* Rank/Score */}
+                  <div className="flex-shrink-0 w-16 text-center">
+                    <div className="text-2xl font-bold text-green-400">
+                      {stats?.score ? Math.round(stats.score) : '-'}
+                    </div>
+                    <div className="text-xs text-gray-500">Score</div>
                   </div>
-                  <div className="text-xs text-gray-500">Score</div>
-                </div>
 
-                {/* Player Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-white">
-                    {player.name}
+                  {/* Player Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-white">
+                      {player.name}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-xs">
+                      <span className="text-gray-400">
+                        {player.position}
+                      </span>
+                      <span className="text-gray-500">•</span>
+                      <span className="text-gray-400">
+                        {player.nbaTeam}
+                      </span>
+                      <span className="text-gray-500">•</span>
+                      <span className="text-green-400 font-semibold">
+                        ${(player.salary / 1_000_000).toFixed(1)}M
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs">
-                    <span className="text-gray-400">
-                      {player.position}
-                    </span>
-                    <span className="text-gray-500">•</span>
-                    <span className="text-gray-400">
-                      {player.nbaTeam}
-                    </span>
-                    <span className="text-gray-500">•</span>
-                    <span className="text-green-400 font-semibold">
-                      ${(player.salary / 1_000_000).toFixed(1)}M
-                    </span>
-                  </div>
-                </div>
 
-                {/* Key Stats */}
-                <div className="hidden sm:flex gap-4 text-xs">
-                  <div className="text-center">
-                    <div className="font-semibold text-white">
-                      {stats?.points ? stats.points.toFixed(1) : '-'}
+                  {/* Key Stats */}
+                  <div className="hidden sm:flex gap-4 text-xs">
+                    <div className="text-center">
+                      <div className="font-semibold text-white">
+                        {stats?.points ? stats.points.toFixed(1) : '-'}
+                      </div>
+                      <div className="text-gray-500">PTS</div>
                     </div>
-                    <div className="text-gray-500">PTS</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-semibold text-white">
-                      {stats?.rebounds ? stats.rebounds.toFixed(1) : '-'}
+                    <div className="text-center">
+                      <div className="font-semibold text-white">
+                        {stats?.rebounds ? stats.rebounds.toFixed(1) : '-'}
+                      </div>
+                      <div className="text-gray-500">REB</div>
                     </div>
-                    <div className="text-gray-500">REB</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-semibold text-white">
-                      {stats?.assists ? stats.assists.toFixed(1) : '-'}
+                    <div className="text-center">
+                      <div className="font-semibold text-white">
+                        {stats?.assists ? stats.assists.toFixed(1) : '-'}
+                      </div>
+                      <div className="text-gray-500">AST</div>
                     </div>
-                    <div className="text-gray-500">AST</div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+
+          {/* Summary - Fixed at bottom */}
+          <div className="pt-6 border-t border-gray-800 flex-shrink-0">
+            <div className="text-center">
+              <div className="text-gray-400 text-sm">Players Watched</div>
+              <div className="text-3xl font-bold text-green-400 mt-1">
+                {sortedWatchedPlayers.length}
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Summary */}
-      {sortedWatchedPlayers.length > 0 && (
-        <div className="mt-6 pt-6 border-t border-gray-800">
-          <div className="text-center">
-            <div className="text-gray-400 text-sm">Players Watched</div>
-            <div className="text-3xl font-bold text-green-400 mt-1">
-              {sortedWatchedPlayers.length}
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
