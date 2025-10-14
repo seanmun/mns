@@ -53,7 +53,13 @@ service cloud.firestore {
     match /teams/{teamId} {
       // Allow reading if signed in (query filtering happens client-side)
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      // Allow admins full write access
+      allow create, delete: if isAdmin();
+      // Allow team owners to update their own team
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        getUserEmail() in resource.data.owners
+      );
     }
 
     // Players collection
