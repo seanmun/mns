@@ -16,6 +16,7 @@ import { Rules } from './pages/Rules';
 import { AdminUpload } from './pages/AdminUpload';
 import { AdminTeams } from './pages/AdminTeams';
 import { AdminPlayers } from './pages/AdminPlayers';
+import { AdminLeague } from './pages/AdminLeague';
 import { Inbox } from './pages/Inbox';
 import { Profile } from './pages/Profile';
 
@@ -159,6 +160,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <AdminPlayers />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/league"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminLeague />
                 </AppLayout>
               </PrivateRoute>
             }

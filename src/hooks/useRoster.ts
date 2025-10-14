@@ -14,12 +14,14 @@ import { db } from '../lib/firebase';
 import type { RosterDoc, RosterEntry, Player, Team, League } from '../types';
 import { stackKeeperRounds, computeSummary } from '../lib/keeperAlgorithms';
 
-export function useRoster(leagueId: string, teamId: string) {
+export function useRoster(leagueId: string, teamId: string, seasonYear?: number) {
   const [roster, setRoster] = useState<RosterDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const rosterId = `${leagueId}_${teamId}`;
+  // If seasonYear is provided, use new format: {leagueId}_{teamId}_{seasonYear}
+  // Otherwise, use legacy format: {leagueId}_{teamId} (for backwards compatibility)
+  const rosterId = seasonYear ? `${leagueId}_${teamId}_${seasonYear}` : `${leagueId}_${teamId}`;
 
   useEffect(() => {
     const rosterRef = doc(db, 'rosters', rosterId);
@@ -42,7 +44,7 @@ export function useRoster(leagueId: string, teamId: string) {
     );
 
     return () => unsubscribe();
-  }, [rosterId]);
+  }, [rosterId, seasonYear]);
 
   return { roster, loading, error };
 }

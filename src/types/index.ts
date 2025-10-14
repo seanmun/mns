@@ -121,7 +121,7 @@ export interface SavedScenario {
 }
 
 export interface RosterDoc {
-  id: string;  // {leagueId}_{teamId}
+  id: string;  // {leagueId}_{teamId}_{seasonYear} (e.g., mns2026_lakers_2025)
   teamId: string;
   leagueId: string;
   seasonYear: number;

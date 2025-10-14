@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -14,6 +14,22 @@ export function LeagueHome() {
   const [myTeam, setMyTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
   const [submittedTeamIds, setSubmittedTeamIds] = useState<Set<string>>(new Set());
+  const [currentSeason, setCurrentSeason] = useState<number>(2025);
+  const [availableSeasons, setAvailableSeasons] = useState<number[]>([2025]);
+  const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
+  const seasonDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (seasonDropdownRef.current && !seasonDropdownRef.current.contains(event.target as Node)) {
+        setIsSeasonDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -25,7 +41,12 @@ export function LeagueHome() {
           query(collection(db, 'leagues'), where('__name__', '==', leagueId))
         );
         if (!leagueDoc.empty) {
-          setLeague({ id: leagueDoc.docs[0].id, ...leagueDoc.docs[0].data() } as League);
+          const leagueData = { id: leagueDoc.docs[0].id, ...leagueDoc.docs[0].data() } as League;
+          setLeague(leagueData);
+          setCurrentSeason(leagueData.seasonYear);
+
+          // For now, just show current season. TODO: Query Firestore for all available seasons
+          setAvailableSeasons([leagueData.seasonYear]);
         }
 
         // Fetch all teams in this league
@@ -85,10 +106,80 @@ export function LeagueHome() {
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
+        {/* Header with Season Switcher */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">{league?.name || 'Money Never Sleeps 2025-26'}</h1>
-          <p className="text-gray-400 mt-1">Welcome back! Manage your team and prepare for the draft.</p>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-bold text-white">{league?.name || 'Money Never Sleeps'}</h1>
+
+            {/* Season Switcher Dropdown */}
+            <div className="relative" ref={seasonDropdownRef}>
+              <button
+                onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
+                className="flex items-center gap-2 px-3 py-1 bg-[#121212] border border-gray-800 rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                <span className="text-lg font-bold text-green-400">
+                  {currentSeason}-{(currentSeason + 1) % 100}
+                </span>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform ${
+                    isSeasonDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Season Dropdown */}
+              {isSeasonDropdownOpen && (
+                <div className="absolute left-0 mt-2 w-40 bg-[#121212] rounded-lg shadow-lg border border-gray-800 py-1 z-50">
+                  <div className="px-3 py-2 text-xs text-gray-500 uppercase tracking-wider">
+                    Seasons
+                  </div>
+                  {availableSeasons
+                    .sort((a, b) => b - a) // Sort newest first
+                    .map((season) => (
+                      <button
+                        key={season}
+                        onClick={() => {
+                          setCurrentSeason(season);
+                          setIsSeasonDropdownOpen(false);
+                          // TODO: Reload data for selected season
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${
+                          currentSeason === season
+                            ? 'bg-gray-800 text-green-400'
+                            : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                        }`}
+                        disabled={season !== league?.seasonYear}
+                      >
+                        <span>
+                          {season}-{(season + 1) % 100}
+                          {season !== league?.seasonYear && ' (Past)'}
+                        </span>
+                        {currentSeason === season && (
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <p className="text-gray-400 mt-1">
+            {currentSeason === league?.seasonYear
+              ? 'Welcome back! Manage your team and prepare for the draft.'
+              : 'Viewing past season data (read-only).'
+            }
+          </p>
         </div>
 
         {/* Mobile: Cards in 2x2 grid */}
