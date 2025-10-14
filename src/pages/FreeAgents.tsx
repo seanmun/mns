@@ -276,7 +276,7 @@ export function FreeAgents() {
             <table className="min-w-full divide-y divide-gray-800">
               <thead className="bg-[#0a0a0a]">
                 <tr>
-                  <th className="sticky left-0 z-10 bg-[#0a0a0a] px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800 w-40 sm:w-48">
+                  <th className="sticky left-0 z-10 bg-[#0a0a0a] px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800 w-36 sm:w-48">
                     Player
                   </th>
                   {renderSortHeader('Salary', 'salary', 'right')}
@@ -305,7 +305,7 @@ export function FreeAgents() {
                         setSelectedPlayerIndex(index);
                       }}
                     >
-                      <td className="sticky left-0 z-10 bg-[#121212] px-2 sm:px-4 py-3 border-r border-gray-800 w-40 sm:w-48">
+                      <td className="sticky left-0 z-10 bg-[#121212] px-2 sm:px-4 py-3 border-r border-gray-800 w-36 sm:w-48">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={(e) => handleToggleWatchList(e, player.fantraxId)}
