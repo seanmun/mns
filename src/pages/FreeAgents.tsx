@@ -279,9 +279,6 @@ export function FreeAgents() {
                   <th className="sticky left-0 z-10 bg-[#0a0a0a] px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800 w-40 sm:w-48">
                     Player
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Pos
-                  </th>
                   {renderSortHeader('Salary', 'salary', 'right')}
                   {renderSortHeader('Score', 'score')}
                   {renderSortHeader('PTS', 'points')}
@@ -336,9 +333,6 @@ export function FreeAgents() {
                             </div>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
-                        {player.position}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-white text-right font-medium">
                         {formatSalary(player.salary)}
