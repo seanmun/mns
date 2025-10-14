@@ -276,7 +276,7 @@ export function FreeAgents() {
             <table className="min-w-full divide-y divide-gray-800">
               <thead className="bg-[#0a0a0a]">
                 <tr>
-                  <th className="sticky left-0 z-10 bg-[#0a0a0a] px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800 w-32 sm:w-auto">
+                  <th className="sticky left-0 z-10 bg-[#0a0a0a] px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800 w-40 sm:w-48">
                     Player
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -308,7 +308,7 @@ export function FreeAgents() {
                         setSelectedPlayerIndex(index);
                       }}
                     >
-                      <td className="sticky left-0 z-10 bg-[#121212] px-2 sm:px-4 py-3 border-r border-gray-800 w-32 sm:w-auto">
+                      <td className="sticky left-0 z-10 bg-[#121212] px-2 sm:px-4 py-3 border-r border-gray-800 w-40 sm:w-48">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={(e) => handleToggleWatchList(e, player.fantraxId)}
@@ -328,11 +328,11 @@ export function FreeAgents() {
                             </svg>
                           </button>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-white truncate max-w-[5rem] sm:max-w-none">
+                            <div className="text-sm font-medium text-white truncate">
                               {player.name}
                             </div>
                             <div className="text-xs text-gray-400">
-                              {player.nbaTeam}
+                              {player.nbaTeam} | {player.position}
                             </div>
                           </div>
                         </div>
