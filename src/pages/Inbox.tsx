@@ -25,23 +25,23 @@ export function Inbox() {
           {/* Message Header */}
           <div className="px-6 py-4 border-b border-gray-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-black font-bold">
                 SH
               </div>
               <div className="flex-1">
                 <h3 className="text-white font-semibold">Sam Hinkie</h3>
                 <p className="text-gray-400 text-sm">{today}</p>
               </div>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-400/20 text-blue-400 border border-blue-400/30">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-400/20 text-green-400 border border-green-400/30">
                 Daily Quote
               </span>
             </div>
           </div>
 
           {/* Message Content */}
-          <div className="px-6 py-8">
-            {/* Quote Image */}
-            <div className="mb-6 rounded-lg overflow-hidden border border-gray-800">
+          <div className="px-6 py-8 md:flex md:items-center md:gap-8">
+            {/* Quote Image - 50% width on desktop */}
+            <div className="mb-6 md:mb-0 md:w-1/2 rounded-lg overflow-hidden border border-gray-800 flex-shrink-0">
               <img
                 src={dailyQuote.image}
                 alt={dailyQuote.quote}
@@ -53,12 +53,12 @@ export function Inbox() {
               />
             </div>
 
-            {/* Quote Text */}
-            <blockquote className="text-center">
-              <p className="text-2xl md:text-3xl font-serif text-white italic mb-4">
+            {/* Quote Text - 50% width on desktop */}
+            <blockquote className="text-center md:text-left md:w-1/2">
+              <p className="text-2xl md:text-3xl font-serif text-green-400 italic mb-4">
                 "{dailyQuote.quote}"
               </p>
-              <footer className="text-gray-400 text-sm">
+              <footer className="text-green-400 text-sm font-semibold">
                 — Sam Hinkie
               </footer>
             </blockquote>
