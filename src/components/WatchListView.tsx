@@ -22,14 +22,15 @@ export function WatchListView({ watchList, allPlayers, projectedStats }: WatchLi
   });
 
   return (
-    <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 flex flex-col h-[600px]">
+    <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 flex flex-col h-full">
       <h2 className="text-xl font-bold text-white mb-4">⭐ Watch List</h2>
       <p className="text-sm text-gray-400 mb-6">
         Players you're tracking from the free agent pool
       </p>
 
       {sortedWatchedPlayers.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
           <svg
             className="w-16 h-16 text-gray-600 mx-auto mb-4"
             fill="none"
@@ -48,6 +49,7 @@ export function WatchListView({ watchList, allPlayers, projectedStats }: WatchLi
           </div>
           <div className="text-gray-500 text-xs mt-2">
             Click the star icon on players in the Free Agent Pool to add them here
+          </div>
           </div>
         </div>
       ) : (
