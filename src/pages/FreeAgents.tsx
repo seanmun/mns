@@ -185,7 +185,7 @@ export function FreeAgents() {
             <table className="min-w-full divide-y divide-gray-800">
               <thead className="bg-[#0a0a0a]">
                 <tr>
-                  <th className="sticky left-0 z-10 bg-[#0a0a0a] px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800">
+                  <th className="sticky left-0 z-10 bg-[#0a0a0a] px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800 w-32 sm:w-auto">
                     Player
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -216,8 +216,8 @@ export function FreeAgents() {
                         setSelectedPlayerIndex(index);
                       }}
                     >
-                      <td className="sticky left-0 z-10 bg-[#121212] px-4 py-3 whitespace-nowrap border-r border-gray-800">
-                        <div className="text-sm font-medium text-white">
+                      <td className="sticky left-0 z-10 bg-[#121212] px-2 sm:px-4 py-3 border-r border-gray-800 w-32 sm:w-auto">
+                        <div className="text-sm font-medium text-white truncate max-w-[7rem] sm:max-w-none">
                           {player.name}
                         </div>
                         <div className="text-xs text-gray-400">
