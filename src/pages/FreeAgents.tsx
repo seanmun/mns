@@ -17,6 +17,7 @@ export function FreeAgents() {
   const [selectedPlayerIndex, setSelectedPlayerIndex] = useState<number>(-1);
   const [sortColumn, setSortColumn] = useState<SortColumn>('score');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [searchTerm, setSearchTerm] = useState('');
   const { projectedStats } = useProjectedStats();
   const { previousStats } = usePreviousStats();
 
@@ -58,9 +59,19 @@ export function FreeAgents() {
     fetchPlayers();
   }, [leagueId]);
 
-  // Filter out players that are on teams (have a teamId)
+  // Filter out players that are on teams (have a teamId) and apply search
   const freeAgents = useMemo(() => {
-    const agents = allPlayers.filter(player => !player.roster.teamId);
+    let agents = allPlayers.filter(player => !player.roster.teamId);
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase().trim();
+      agents = agents.filter(player =>
+        player.name.toLowerCase().includes(search) ||
+        player.position.toLowerCase().includes(search) ||
+        player.nbaTeam.toLowerCase().includes(search)
+      );
+    }
 
     // Sort by selected column
     return agents.sort((a, b) => {
@@ -119,7 +130,7 @@ export function FreeAgents() {
 
       return sortDirection === 'desc' ? valueB - valueA : valueA - valueB;
     });
-  }, [allPlayers, projectedStats, sortColumn, sortDirection]);
+  }, [allPlayers, projectedStats, sortColumn, sortDirection, searchTerm]);
 
   const formatSalary = (salary: number) => {
     return `$${(salary / 1_000_000).toFixed(2)}M`;
@@ -175,8 +186,30 @@ export function FreeAgents() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Free Agent Pool</h1>
           <p className="text-gray-400 mt-1">
-            {freeAgents.length} available players sorted by projected fantasy score
+            {freeAgents.length} available players {searchTerm && `matching "${searchTerm}"`}
           </p>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-6 bg-[#121212] p-4 rounded-lg border border-gray-800">
+          <label className="block text-sm font-medium text-white mb-2">
+            Search Players
+          </label>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by name, position, or team..."
+            className="w-full md:w-96 rounded-md bg-[#0a0a0a] border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-green-400 focus:ring-green-400 px-4 py-2"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="mt-2 text-sm text-gray-400 hover:text-white"
+            >
+              Clear search
+            </button>
+          )}
         </div>
 
         {/* Table */}
