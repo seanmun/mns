@@ -1,16 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { useRoster, useTeamPlayers, useTeam, useLeague, updateRoster, submitRoster, saveScenario, deleteScenario } from '../hooks/useRoster';
+import { useRoster, useTeamPlayers, useTeam, useLeague, updateRoster, submitRoster, saveScenario } from '../hooks/useRoster';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { usePreviousStats } from '../hooks/usePreviousStats';
 import { useAuth } from '../contexts/AuthContext';
 import { RosterTable } from '../components/RosterTable';
 import { CapThermometer } from '../components/CapThermometer';
 import { SummaryCard } from '../components/SummaryCard';
-import { SavedScenarios } from '../components/SavedScenarios';
 import { DraftBoardView } from '../components/DraftBoardView';
 import { baseKeeperRound, stackKeeperRounds, computeSummary, validateRoster } from '../lib/keeperAlgorithms';
-import type { RosterEntry, Decision, SavedScenario } from '../types';
+import type { RosterEntry, Decision } from '../types';
 
 export function OwnerDashboard() {
   const { leagueId, teamId } = useParams<{ leagueId: string; teamId: string }>();
@@ -32,7 +31,7 @@ export function OwnerDashboard() {
   const [entries, setEntries] = useState<RosterEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
-  const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
+  // const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null); // Hidden for now
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -84,7 +83,7 @@ export function OwnerDashboard() {
           };
         });
         setEntries(updatedEntries);
-        setActiveScenarioId(mostRecent.scenarioId);
+        // setActiveScenarioId(mostRecent.scenarioId); // Hidden for now
       } else {
         // No scenarios - show clean slate (all players as DROP)
         if (players.length > 0) {
@@ -94,7 +93,7 @@ export function OwnerDashboard() {
             baseRound: baseKeeperRound(player) || 13,
           }));
           setEntries(cleanSlate);
-          setActiveScenarioId(null);
+          // setActiveScenarioId(null); // Hidden for now
         }
       }
     } else if (players.length > 0 && entries.length === 0) {
@@ -105,7 +104,7 @@ export function OwnerDashboard() {
         baseRound: baseKeeperRound(player) || 13,
       }));
       setEntries(initialEntries);
-      setActiveScenarioId(null);
+      // setActiveScenarioId(null); // Hidden for now
     }
   }, [roster, players, playersMap]);
 
@@ -223,45 +222,10 @@ export function OwnerDashboard() {
     }
   };
 
-  const handleLoadScenario = (scenario: SavedScenario) => {
-    const confirmed = window.confirm(
-      `Load scenario "${scenario.name}"? This will replace your current keeper selections.`
-    );
-
-    if (!confirmed) return;
-
-    setEntries(scenario.entries);
-    setActiveScenarioId(scenario.scenarioId);
-  };
-
-  const handleScenarioChange = (scenarioId: string) => {
-    if (scenarioId === 'clean') {
-      // Load clean slate
-      const cleanSlate: RosterEntry[] = players.map((player) => ({
-        playerId: player.id,
-        decision: 'DROP',
-        baseRound: baseKeeperRound(player) || undefined,
-      }));
-      setEntries(cleanSlate);
-      setActiveScenarioId(null);
-    } else {
-      // Load selected scenario
-      const scenario = roster?.savedScenarios?.find(s => s.scenarioId === scenarioId);
-      if (scenario) {
-        setEntries(scenario.entries);
-        setActiveScenarioId(scenario.scenarioId);
-      }
-    }
-  };
-
-  const handleDeleteScenario = async (scenarioId: string) => {
-    try {
-      await deleteScenario(leagueId!, teamId!, scenarioId);
-    } catch (error) {
-      console.error('Error deleting scenario:', error);
-      alert('Failed to delete scenario. Please try again.');
-    }
-  };
+  // Removed scenario handling functions - scenarios hidden for now
+  // const handleLoadScenario = (scenario: SavedScenario) => { ... };
+  // const handleScenarioChange = (scenarioId: string) => { ... };
+  // const handleDeleteScenario = async (scenarioId: string) => { ... };
 
   const handleSubmit = async () => {
     const errors = validateRoster(entries, playersMap, team?.settings.maxKeepers);
@@ -345,6 +309,32 @@ export function OwnerDashboard() {
       return baseRoundA - baseRoundB;
     });
   }, [players, entries]);
+
+  // Calculate position eligibility counts for keepers
+  const positionCounts = useMemo(() => {
+    const keepers = entries.filter(e => e.decision === 'KEEP');
+    const counts = { guard: 0, forward: 0, center: 0 };
+
+    keepers.forEach(entry => {
+      const player = playersMap.get(entry.playerId);
+      if (!player) return;
+
+      const positions = player.position.split(',').map(p => p.trim());
+
+      // Count each position category
+      if (positions.some(p => p === 'PG' || p === 'SG' || p === 'G')) {
+        counts.guard++;
+      }
+      if (positions.some(p => p === 'SF' || p === 'PF' || p === 'F')) {
+        counts.forward++;
+      }
+      if (positions.some(p => p === 'C')) {
+        counts.center++;
+      }
+    });
+
+    return counts;
+  }, [entries, playersMap]);
 
   const isLocked = roster?.status === 'adminLocked' || roster?.status === 'submitted';
 
@@ -473,33 +463,7 @@ export function OwnerDashboard() {
         </div>
 
 
-        {/* Scenario Selector - Only visible to team owner */}
-        {!isLocked && isOwner && (
-          <div className="mb-4 bg-[#121212] p-4 rounded-lg border border-gray-800">
-            <label className="block text-sm font-medium text-white mb-2">
-              Active Scenario
-            </label>
-            <select
-              value={activeScenarioId || 'clean'}
-              onChange={(e) => handleScenarioChange(e.target.value)}
-              className="block w-full md:w-96 rounded-md bg-[#0a0a0a] border-gray-700 text-white shadow-sm focus:border-green-400 focus:ring-green-400"
-            >
-              <option value="clean">Clean Slate (No Scenario)</option>
-              {roster?.savedScenarios
-                ?.sort((a, b) => b.timestamp - a.timestamp)
-                .map((scenario) => (
-                  <option key={scenario.scenarioId} value={scenario.scenarioId}>
-                    {scenario.name} ({new Date(scenario.timestamp).toLocaleDateString()})
-                  </option>
-                ))}
-            </select>
-            {activeScenarioId && (
-              <p className="mt-2 text-sm text-gray-400">
-                Viewing saved scenario. Make changes and save as a new scenario or overwrite by saving with the same name.
-              </p>
-            )}
-          </div>
-        )}
+        {/* Scenario Selector - Hidden for now */}
 
         {/* Roster table or Draft Board View */}
         <div className="mb-6">
@@ -570,14 +534,36 @@ export function OwnerDashboard() {
           </div>
         )}
 
-        {/* Saved Scenarios - Only visible to team owner */}
-        {isOwner && roster?.savedScenarios && roster.savedScenarios.length > 0 && (
-          <div className="mt-6">
-            <SavedScenarios
-              scenarios={roster.savedScenarios}
-              onLoad={handleLoadScenario}
-              onDelete={!isLocked ? handleDeleteScenario : undefined}
-            />
+        {/* Position Eligibility Counts */}
+        {canViewDecisions && (
+          <div className="mt-6 bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <h2 className="text-xl font-bold text-white mb-4">Position Eligibility</h2>
+            <p className="text-sm text-gray-400 mb-4">
+              Number of keepers eligible for each position category
+            </p>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-blue-400 mb-2">
+                  {positionCounts.guard}
+                </div>
+                <div className="text-sm text-gray-400">Guards</div>
+                <div className="text-xs text-gray-500 mt-1">PG, SG, G</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-green-400 mb-2">
+                  {positionCounts.forward}
+                </div>
+                <div className="text-sm text-gray-400">Forwards</div>
+                <div className="text-xs text-gray-500 mt-1">SF, PF, F</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-purple-400 mb-2">
+                  {positionCounts.center}
+                </div>
+                <div className="text-sm text-gray-400">Centers</div>
+                <div className="text-xs text-gray-500 mt-1">C</div>
+              </div>
+            </div>
           </div>
         )}
       </div>
