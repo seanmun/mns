@@ -1,44 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useLeague } from '../contexts/LeagueContext';
+import type { Team } from '../types';
 
-// Mock data - NOT connected to real Firestore
-const MOCK_TEAMS = [
-  { id: 'team1', name: 'Lakers', abbrev: 'LAL' },
-  { id: 'team2', name: 'Celtics', abbrev: 'BOS' },
-  { id: 'team3', name: 'Warriors', abbrev: 'GSW' },
-  { id: 'team4', name: 'Heat', abbrev: 'MIA' },
-  { id: 'team5', name: 'Nets', abbrev: 'BKN' },
-  { id: 'team6', name: 'Bucks', abbrev: 'MIL' },
-  { id: 'team7', name: 'Suns', abbrev: 'PHX' },
-  { id: 'team8', name: 'Nuggets', abbrev: 'DEN' },
-  { id: 'team9', name: 'Mavericks', abbrev: 'DAL' },
-  { id: 'team10', name: 'Clippers', abbrev: 'LAC' },
-  { id: 'team11', name: '76ers', abbrev: 'PHI' },
-  { id: 'team12', name: 'Knicks', abbrev: 'NYK' },
+// Mock player names for randomization
+const MOCK_PLAYER_POOL = [
+  'LeBron James', 'Stephen Curry', 'Giannis Antetokounmpo', 'Nikola Jokic', 'Joel Embiid',
+  'Luka Doncic', 'Kevin Durant', 'Jayson Tatum', 'Anthony Davis', 'Damian Lillard',
+  'Jimmy Butler', 'Kawhi Leonard', 'Devin Booker', 'Jaylen Brown', 'Tyrese Haliburton',
+  'Shai Gilgeous-Alexander', 'Anthony Edwards', 'Donovan Mitchell', 'Bam Adebayo', 'Julius Randle',
+  'Karl-Anthony Towns', 'Domantas Sabonis', 'Pascal Siakam', 'DeMar DeRozan', 'Trae Young',
+  'LaMelo Ball', 'Ja Morant', 'Zion Williamson', 'Paolo Banchero', 'Cade Cunningham',
 ];
-
-// Mock keeper data for each team
-const MOCK_KEEPERS: Record<string, { round: number; playerName: string }[]> = {
-  team1: [
-    { round: 1, playerName: 'LeBron James' },
-    { round: 3, playerName: 'Anthony Davis' },
-  ],
-  team2: [
-    { round: 2, playerName: 'Jayson Tatum' },
-    { round: 5, playerName: 'Jaylen Brown' },
-  ],
-  team3: [{ round: 1, playerName: 'Stephen Curry' }],
-  team4: [{ round: 4, playerName: 'Jimmy Butler' }],
-  team5: [],
-  team6: [{ round: 1, playerName: 'Giannis Antetokounmpo' }],
-  team7: [{ round: 2, playerName: 'Kevin Durant' }],
-  team8: [{ round: 1, playerName: 'Nikola Jokic' }],
-  team9: [{ round: 3, playerName: 'Luka Doncic' }],
-  team10: [{ round: 6, playerName: 'Kawhi Leonard' }],
-  team11: [{ round: 1, playerName: 'Joel Embiid' }],
-  team12: [{ round: 7, playerName: 'Jalen Brunson' }],
-};
 
 interface DraftPick {
   round: number;
@@ -54,26 +30,95 @@ interface DraftPick {
 
 export function AdminDraftTest() {
   const { role } = useAuth();
+  const { currentLeagueId } = useLeague();
   const navigate = useNavigate();
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
   const [draftOrder, setDraftOrder] = useState<string[]>([]);
   const [draftBoard, setDraftBoard] = useState<DraftPick[]>([]);
   const [selectedRound, setSelectedRound] = useState(1);
   const [isOrderSet, setIsOrderSet] = useState(false);
+  const [mockKeepers, setMockKeepers] = useState<Record<string, { round: number; playerName: string }[]>>({});
+
+  // Fetch real teams from Firestore
+  useEffect(() => {
+    if (role !== 'admin' || !currentLeagueId) {
+      if (role !== 'admin') navigate('/');
+      return;
+    }
+
+    const fetchTeams = async () => {
+      try {
+        const teamsRef = collection(db, 'teams');
+        const q = query(teamsRef, where('leagueId', '==', currentLeagueId));
+        const snapshot = await getDocs(q);
+        const teamData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Team[];
+
+        setTeams(teamData);
+
+        // Generate random mock keepers for each team
+        const keepers: Record<string, { round: number; playerName: string }[]> = {};
+        teamData.forEach((team) => {
+          const keeperCount = Math.floor(Math.random() * 4) + 1; // 1-4 keepers
+          const teamKeepers: { round: number; playerName: string }[] = [];
+          const usedRounds = new Set<number>();
+          const usedPlayers = new Set<string>();
+
+          for (let i = 0; i < keeperCount; i++) {
+            let round;
+            do {
+              round = Math.floor(Math.random() * 13) + 1;
+            } while (usedRounds.has(round));
+            usedRounds.add(round);
+
+            let player;
+            do {
+              player = MOCK_PLAYER_POOL[Math.floor(Math.random() * MOCK_PLAYER_POOL.length)];
+            } while (usedPlayers.has(player));
+            usedPlayers.add(player);
+
+            teamKeepers.push({ round, playerName: player });
+          }
+
+          keepers[team.id] = teamKeepers;
+        });
+
+        setMockKeepers(keepers);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching teams:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchTeams();
+  }, [role, currentLeagueId, navigate]);
 
   if (role !== 'admin') {
     navigate('/');
     return null;
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+        <div className="text-gray-400">Loading teams...</div>
+      </div>
+    );
+  }
+
   const handleSetRandomOrder = () => {
-    const shuffled = [...MOCK_TEAMS]
+    const shuffled = [...teams]
       .map((team) => team.id)
       .sort(() => Math.random() - 0.5);
     setDraftOrder(shuffled);
   };
 
   const handleGenerateDraftBoard = () => {
-    if (draftOrder.length !== 12) {
+    if (draftOrder.length !== teams.length) {
       alert('Please set the draft order first');
       return;
     }
@@ -85,8 +130,8 @@ export function AdminDraftTest() {
       const roundOrder = round % 2 === 1 ? draftOrder : [...draftOrder].reverse();
 
       roundOrder.forEach((teamId, index) => {
-        const team = MOCK_TEAMS.find((t) => t.id === teamId)!;
-        const teamKeepers = MOCK_KEEPERS[teamId] || [];
+        const team = teams.find((t) => t.id === teamId)!;
+        const teamKeepers = mockKeepers[teamId] || [];
         const keeper = teamKeepers.find((k) => k.round === round);
 
         picks.push({
@@ -151,9 +196,9 @@ export function AdminDraftTest() {
               {draftOrder.length > 0 && (
                 <div className="space-y-2">
                   <h3 className="text-sm font-semibold text-gray-400 mb-2">Draft Order:</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {draftOrder.map((teamId, index) => {
-                      const team = MOCK_TEAMS.find((t) => t.id === teamId);
+                      const team = teams.find((t) => t.id === teamId);
                       return (
                         <div
                           key={teamId}
@@ -196,7 +241,7 @@ export function AdminDraftTest() {
                         : 'bg-[#0a0a0a] text-gray-400 hover:text-white hover:bg-gray-800'
                     }`}
                   >
-                    Round {round}
+                    {round}
                   </button>
                 ))}
               </div>
@@ -272,7 +317,7 @@ export function AdminDraftTest() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
                 <div className="text-sm text-gray-400">Total Picks</div>
-                <div className="text-2xl font-bold text-white">156</div>
+                <div className="text-2xl font-bold text-white">{teams.length * 13}</div>
               </div>
               <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
                 <div className="text-sm text-gray-400">Keeper Slots</div>
