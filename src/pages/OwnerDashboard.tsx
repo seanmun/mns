@@ -39,6 +39,7 @@ export function OwnerDashboard() {
   const [scenarioName, setScenarioName] = useState('');
   // const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null); // Hidden for now
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [draftCarouselIndex, setDraftCarouselIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
@@ -65,14 +66,26 @@ export function OwnerDashboard() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    // Carousel has 2 slides for draft mode, 3 slides for submitted mode
-    const maxCarouselIndex = roster?.status === 'submitted' ? 2 : 1;
-
-    if (isLeftSwipe && carouselIndex < maxCarouselIndex) {
-      setCarouselIndex(carouselIndex + 1);
+    if (isLeftSwipe && carouselIndex < 1) {
+      setCarouselIndex(1);
     }
     if (isRightSwipe && carouselIndex > 0) {
-      setCarouselIndex(carouselIndex - 1);
+      setCarouselIndex(0);
+    }
+  };
+
+  const onDraftTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && draftCarouselIndex < 1) {
+      setDraftCarouselIndex(1);
+    }
+    if (isRightSwipe && draftCarouselIndex > 0) {
+      setDraftCarouselIndex(0);
     }
   };
 
@@ -425,7 +438,7 @@ export function OwnerDashboard() {
         {/* Mobile: Quick stats cards and swipeable carousel */}
         <div className="lg:hidden mb-6">
             {/* Quick Stats Cards - clickable toggles */}
-            <div className={`grid ${roster?.status === 'submitted' ? 'grid-cols-3' : 'grid-cols-2'} gap-3 mb-4`}>
+            <div className="grid grid-cols-2 gap-3 mb-4">
               <button
                 onClick={() => setCarouselIndex(0)}
                 className={`p-4 rounded-lg shadow-sm text-left transition-all ${
@@ -452,19 +465,6 @@ export function OwnerDashboard() {
                   ${(currentSummary.totalFees + 50).toFixed(0)}
                 </div>
               </button>
-              {roster?.status === 'submitted' && (
-                <button
-                  onClick={() => setCarouselIndex(2)}
-                  className={`p-4 rounded-lg shadow-sm text-left transition-all ${
-                    carouselIndex === 2
-                      ? 'bg-green-400 text-black ring-2 ring-green-400'
-                      : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
-                  }`}
-                >
-                  <div className="text-xs font-medium opacity-80">Draft Board</div>
-                  <div className="text-2xl font-bold mt-1">⭐</div>
-                </button>
-              )}
             </div>
 
             <div className="relative overflow-hidden">
@@ -484,13 +484,6 @@ export function OwnerDashboard() {
                 <div className="w-full flex-shrink-0 px-2">
                   <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} />
                 </div>
-                {/* Slide 3: Draft Board & Watch List (only when submitted) */}
-                {roster?.status === 'submitted' && (
-                  <div className="w-full flex-shrink-0 px-2 space-y-4">
-                    <DraftBoardView players={sortedPlayers} entries={stackedEntries} />
-                    <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
-                  </div>
-                )}
               </div>
 
               {/* Dots indicator */}
@@ -509,15 +502,6 @@ export function OwnerDashboard() {
                   }`}
                   aria-label="View Roster Summary"
                 />
-                {roster?.status === 'submitted' && (
-                  <button
-                    onClick={() => setCarouselIndex(2)}
-                    className={`h-2 w-2 rounded-full transition-colors ${
-                      carouselIndex === 2 ? 'bg-green-400' : 'bg-gray-700'
-                    }`}
-                    aria-label="View Draft Board & Watch List"
-                  />
-                )}
               </div>
             </div>
         </div>
@@ -527,10 +511,80 @@ export function OwnerDashboard() {
 
         {/* Roster table or Draft Board View */}
         {roster?.status === 'submitted' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <DraftBoardView players={sortedPlayers} entries={stackedEntries} />
-            <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
-          </div>
+          <>
+            {/* Desktop: Side by side Draft Board and Watch List */}
+            <div className="hidden lg:grid lg:grid-cols-2 gap-6 mb-6">
+              <DraftBoardView players={sortedPlayers} entries={stackedEntries} />
+              <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
+            </div>
+
+            {/* Mobile: Draft Board and Watch List carousel */}
+            <div className="lg:hidden mb-6">
+              {/* Quick toggle buttons */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <button
+                  onClick={() => setDraftCarouselIndex(0)}
+                  className={`p-4 rounded-lg shadow-sm text-left transition-all ${
+                    draftCarouselIndex === 0
+                      ? 'bg-green-400 text-black ring-2 ring-green-400'
+                      : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
+                  }`}
+                >
+                  <div className="text-xs font-medium opacity-80">Draft Board</div>
+                  <div className="text-2xl font-bold mt-1">📋</div>
+                </button>
+                <button
+                  onClick={() => setDraftCarouselIndex(1)}
+                  className={`p-4 rounded-lg shadow-sm text-left transition-all ${
+                    draftCarouselIndex === 1
+                      ? 'bg-green-400 text-black ring-2 ring-green-400'
+                      : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
+                  }`}
+                >
+                  <div className="text-xs font-medium opacity-80">Watch List</div>
+                  <div className="text-2xl font-bold mt-1">⭐</div>
+                </button>
+              </div>
+
+              <div className="relative overflow-hidden">
+                {/* Carousel container */}
+                <div
+                  className="flex transition-transform duration-300 ease-out"
+                  style={{ transform: `translateX(-${draftCarouselIndex * 100}%)` }}
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onDraftTouchEnd}
+                >
+                  {/* Slide 1: Draft Board */}
+                  <div className="w-full flex-shrink-0 px-2">
+                    <DraftBoardView players={sortedPlayers} entries={stackedEntries} />
+                  </div>
+                  {/* Slide 2: Watch List */}
+                  <div className="w-full flex-shrink-0 px-2">
+                    <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
+                  </div>
+                </div>
+
+                {/* Dots indicator */}
+                <div className="flex justify-center gap-2 mt-4">
+                  <button
+                    onClick={() => setDraftCarouselIndex(0)}
+                    className={`h-2 w-2 rounded-full transition-colors ${
+                      draftCarouselIndex === 0 ? 'bg-green-400' : 'bg-gray-700'
+                    }`}
+                    aria-label="View Draft Board"
+                  />
+                  <button
+                    onClick={() => setDraftCarouselIndex(1)}
+                    className={`h-2 w-2 rounded-full transition-colors ${
+                      draftCarouselIndex === 1 ? 'bg-green-400' : 'bg-gray-700'
+                    }`}
+                    aria-label="View Watch List"
+                  />
+                </div>
+              </div>
+            </div>
+          </>
         ) : (
           <div className="mb-6">
             <RosterTable

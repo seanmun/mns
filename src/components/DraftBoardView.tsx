@@ -28,13 +28,13 @@ export function DraftBoardView({ players, entries }: DraftBoardViewProps) {
   const rounds = Array.from({ length: 13 }, (_, i) => i + 1);
 
   return (
-    <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+    <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 flex flex-col h-[600px]">
       <h2 className="text-xl font-bold text-white mb-4">Draft Board - Keeper Rounds</h2>
       <p className="text-sm text-gray-400 mb-6">
         Your keepers have been assigned to their final draft rounds. Remaining rounds will be filled during the draft.
       </p>
 
-      <div className="space-y-3">
+      <div className="flex-1 overflow-y-auto space-y-3">
         {rounds.map(round => {
           const keeper = keepersByRound.get(round)?.[0];
           const player = keeper ? playersMap.get(keeper.playerId) : null;
