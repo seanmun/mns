@@ -232,6 +232,18 @@ export function Draft() {
         }
 
         transaction.update(draftRef, updatedDraft);
+
+        // Update the player document to assign them to the drafting team
+        const actualPickOwner = draftPickOwnership.get(currentDraft.currentPick?.overallPick || 0)
+          || currentDraft.currentPick?.teamId;
+
+        console.log('[Draft] Assigning player', playerId, 'to team', actualPickOwner);
+
+        const playerRef = doc(db, 'players', playerId);
+        transaction.update(playerRef, {
+          'roster.teamId': actualPickOwner,
+          'roster.leagueId': currentDraft.leagueId
+        });
       });
 
       // Send Telegram notification
@@ -239,7 +251,17 @@ export function Draft() {
       const actualCurrentOwner = draft.currentPick
         ? draftPickOwnership.get(draft.currentPick.overallPick) || draft.currentPick.teamId
         : null;
+
+      console.log('[Draft] Sending Telegram for pick', draft.currentPick?.overallPick,
+        'Owner:', actualCurrentOwner, 'Team count:', teams.length);
+
       const currentTeam = teams.find(t => t.id === actualCurrentOwner);
+
+      if (!currentTeam) {
+        console.error('[Draft] Could not find team for ID:', actualCurrentOwner,
+          'Available teams:', teams.map(t => ({ id: t.id, name: t.name })));
+      }
+
       const nextTeam = teams.find(t => t.id === nextOpenPickTeamId);
 
       if (currentTeam && draft.currentPick) {
