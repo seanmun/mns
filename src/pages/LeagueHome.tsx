@@ -13,7 +13,6 @@ export function LeagueHome() {
   const [league, setLeague] = useState<League | null>(null);
   const [myTeam, setMyTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
-  const [submittedTeamIds, setSubmittedTeamIds] = useState<Set<string>>(new Set());
   const [teamRosters, setTeamRosters] = useState<Map<string, RosterDoc>>(new Map());
   const [totalKeeperFees, setTotalKeeperFees] = useState<number>(0);
   const [feeBreakdown, setFeeBreakdown] = useState({
@@ -70,7 +69,6 @@ export function LeagueHome() {
         setTeams(teamData);
 
         // Fetch roster status and calculate total keeper fees
-        const submittedIds = new Set<string>();
         const rostersMap = new Map<string, RosterDoc>();
         let totalFees = 0;
         let penaltyDues = 0;
@@ -87,7 +85,6 @@ export function LeagueHome() {
               rostersMap.set(team.id, rosterData);
 
               if (rosterData.status === 'submitted') {
-                submittedIds.add(team.id);
                 // Add team's total fees to prize pool
                 if (rosterData.summary) {
                   totalFees += rosterData.summary.totalFees || 0;
@@ -100,7 +97,6 @@ export function LeagueHome() {
             }
           })
         );
-        setSubmittedTeamIds(submittedIds);
         setTeamRosters(rostersMap);
         setTotalKeeperFees(totalFees);
         setFeeBreakdown({ penaltyDues, franchiseTagDues, redshirtDues, firstApronFee });

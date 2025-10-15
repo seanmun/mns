@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, getDocs, query, where, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
-import type { Team, Player, RosterDoc, RosterEntry } from '../types';
+import type { Team, Player, RosterDoc } from '../types';
 import { stackKeeperRounds, computeSummary } from '../lib/keeperAlgorithms';
 
 export function AdminViewRosters() {
