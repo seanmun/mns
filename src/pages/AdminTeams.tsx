@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import type { Team, League } from '../types';
@@ -8,9 +8,21 @@ interface TeamWithRosterStatus extends Team {
   rosterStatus?: 'draft' | 'submitted' | 'adminLocked';
 }
 
+interface Backup {
+  id: string;
+  leagueId: string;
+  leagueName: string;
+  seasonYear: number;
+  timestamp: number;
+  createdAt: string;
+  rosters: any[];
+  players: any[];
+}
+
 export function AdminTeams() {
   const [teams, setTeams] = useState<TeamWithRosterStatus[]>([]);
   const [leagues, setLeagues] = useState<League[]>([]);
+  const [backups, setBackups] = useState<Backup[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
@@ -71,6 +83,16 @@ export function AdminTeams() {
       }));
 
       setTeams(teamsWithStatus);
+
+      // Load backups
+      const backupsSnap = await getDocs(collection(db, 'backups'));
+      const backupsData = backupsSnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Backup[];
+      // Sort by timestamp descending (newest first)
+      backupsData.sort((a, b) => b.timestamp - a.timestamp);
+      setBackups(backupsData);
     } catch (error) {
       console.error('Error loading data:', error);
       alert('Failed to load data');
@@ -288,6 +310,41 @@ export function AdminTeams() {
                   if (!confirmed) return;
 
                   try {
+                    // If locking, create backup first
+                    if (newValue) {
+                      // Create backup before making changes
+                      const timestamp = Date.now();
+                      const backupId = `${league.id}_${timestamp}`;
+
+                      // Get all rosters for this league
+                      const rostersSnap = await getDocs(collection(db, 'rosters'));
+                      const leagueRosters = rostersSnap.docs
+                        .filter(doc => doc.id.startsWith(`${league.id}_`))
+                        .map(doc => ({ id: doc.id, ...doc.data() }));
+
+                      // Get all players in this league
+                      const playersSnap = await getDocs(collection(db, 'players'));
+                      const leaguePlayers = playersSnap.docs
+                        .filter(doc => {
+                          const data = doc.data();
+                          return data.roster?.leagueId === league.id;
+                        })
+                        .map(doc => ({ id: doc.id, ...doc.data() }));
+
+                      // Save backup
+                      await setDoc(doc(db, 'backups', backupId), {
+                        leagueId: league.id,
+                        leagueName: league.name,
+                        seasonYear: league.seasonYear,
+                        timestamp,
+                        rosters: leagueRosters,
+                        players: leaguePlayers,
+                        createdAt: new Date().toISOString(),
+                      });
+
+                      console.log(`Backup created: ${backupId}`);
+                    }
+
                     // Update league keepersLocked flag
                     await updateDoc(doc(db, 'leagues', league.id), {
                       keepersLocked: newValue,
@@ -330,7 +387,7 @@ export function AdminTeams() {
                         }
                       }
 
-                      alert(`Keepers locked successfully!\n\n${droppedCount} players dropped to free agency.`);
+                      alert(`Keepers locked successfully!\n\nBackup created: ${new Date().toLocaleString()}\n${droppedCount} players dropped to free agency.`);
                     } else {
                       alert('Keepers unlocked successfully!');
                     }
@@ -339,7 +396,7 @@ export function AdminTeams() {
                     await loadData();
                   } catch (error) {
                     console.error('Error updating league:', error);
-                    alert('Failed to update league settings');
+                    alert('Failed to update league settings. Backup may have been created - check Firestore backups collection.');
                   }
                 }}
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
@@ -353,6 +410,71 @@ export function AdminTeams() {
             </div>
           ))}
         </div>
+
+        {/* Backups Section */}
+        {backups.length > 0 && (
+          <div className="bg-white p-6 rounded-lg shadow mb-8">
+            <h3 className="text-lg font-semibold mb-4">Keeper Lock Backups</h3>
+            <div className="text-sm text-gray-600 mb-4">
+              Automatic backups created before locking keepers. Use these to restore if something goes wrong.
+            </div>
+            <div className="space-y-2">
+              {backups.map((backup) => (
+                <div key={backup.id} className="flex items-center justify-between py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                  <div>
+                    <div className="font-medium">
+                      {backup.leagueName} ({backup.seasonYear})
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Created: {new Date(backup.timestamp).toLocaleString()} •
+                      {backup.players.length} players • {backup.rosters.length} rosters
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const confirmed = window.confirm(
+                        `Restore backup from ${new Date(backup.timestamp).toLocaleString()}?\n\n` +
+                        `This will:\n` +
+                        `1. Restore all player team assignments\n` +
+                        `2. Restore all roster entries\n` +
+                        `3. Unlock keepers for the league\n\n` +
+                        `This action will overwrite current data. Continue?`
+                      );
+
+                      if (!confirmed) return;
+
+                      try {
+                        // Restore all players
+                        for (const player of backup.players) {
+                          await updateDoc(doc(db, 'players', player.id), player);
+                        }
+
+                        // Restore all rosters
+                        for (const roster of backup.rosters) {
+                          await setDoc(doc(db, 'rosters', roster.id), roster);
+                        }
+
+                        // Unlock keepers
+                        await updateDoc(doc(db, 'leagues', backup.leagueId), {
+                          keepersLocked: false,
+                        });
+
+                        alert(`Backup restored successfully!\n\n${backup.players.length} players and ${backup.rosters.length} rosters restored.`);
+                        await loadData();
+                      } catch (error) {
+                        console.error('Error restoring backup:', error);
+                        alert('Failed to restore backup. Check console for details.');
+                      }
+                    }}
+                    className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 font-medium transition-all"
+                  >
+                    Restore
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Create/Edit Team Form */}
         {showForm && (
