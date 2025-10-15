@@ -66,6 +66,10 @@ service cloud.firestore {
     match /players/{playerId} {
       allow read: if isSignedIn();
       allow write: if isAdmin(); // Only admins can modify player data
+      // Allow updating roster.teamId and roster.leagueId during draft
+      allow update: if isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['roster']) &&
+        request.resource.data.roster.diff(resource.data.roster).affectedKeys().hasOnly(['teamId', 'leagueId']);
     }
 
     // Projected Stats collection
