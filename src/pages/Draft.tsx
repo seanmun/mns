@@ -860,7 +860,7 @@ export function Draft() {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {getRoundPicks(selectedRound).map((pick) => {
               // Check if pick was traded
               const actualOwner = draftPickOwnership.get(pick.overallPick) || pick.teamId;
@@ -872,7 +872,7 @@ export function Draft() {
               return (
                 <div
                   key={pick.overallPick}
-                  className={`p-4 rounded-lg border ${
+                  className={`p-2 rounded-lg border ${
                     isOnClock
                       ? 'bg-purple-500/10 border-purple-500/30 ring-2 ring-purple-500'
                       : pick.isKeeperSlot
@@ -882,53 +882,53 @@ export function Draft() {
                       : 'bg-[#0a0a0a] border-gray-700'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="text-center">
-                        <div className="text-xs text-gray-500">Overall</div>
-                        <div className="text-lg font-bold text-green-400">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="text-center min-w-[32px]">
+                        <div className="text-[9px] text-gray-500 leading-tight">OVR</div>
+                        <div className="text-sm font-bold text-green-400 leading-tight">
                           {pick.overallPick}
                         </div>
                       </div>
-                      <div className="text-center">
-                        <div className="text-xs text-gray-500">Pick</div>
-                        <div className="text-sm font-semibold text-white">
+                      <div className="text-center min-w-[28px]">
+                        <div className="text-[9px] text-gray-500 leading-tight">Pick</div>
+                        <div className="text-xs font-semibold text-white leading-tight">
                           {pick.pickInRound}
                         </div>
                       </div>
-                      <div>
-                        <div className="font-semibold text-white">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="font-semibold text-white text-sm overflow-hidden text-ellipsis whitespace-nowrap" title={isTraded && actualOwnerTeam ? `${actualOwnerTeam.name} (via ${pick.teamAbbrev})` : pick.teamName}>
                           {isTraded && actualOwnerTeam ? (
                             <>
                               {actualOwnerTeam.name}
-                              <span className="text-xs text-yellow-400 ml-2">(via {pick.teamAbbrev})</span>
+                              <span className="text-xs text-yellow-400 ml-1">(via {pick.teamAbbrev})</span>
                             </>
                           ) : (
-                            `${pick.teamAbbrev} - ${pick.teamName}`
+                            pick.teamName
                           )}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {pick.isKeeperSlot ? 'Keeper' : isOnClock ? 'On the Clock' : pick.pickedAt ? 'Pick Made' : 'Available'}
+                        <div className="text-[10px] text-gray-500">
+                          {pick.isKeeperSlot ? 'Keeper' : isOnClock ? 'On the Clock' : pick.pickedAt ? 'Drafted' : 'Available'}
                         </div>
                       </div>
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       {pick.playerName ? (
                         <div>
                           <div className="text-sm font-semibold text-white">
                             {pick.playerName}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-[10px] text-gray-500">
                             {pick.isKeeperSlot ? 'Keeper' : 'Drafted'}
                           </div>
                         </div>
                       ) : isOnClock ? (
-                        <div className="text-sm text-purple-400 font-semibold animate-pulse">
+                        <div className="text-xs text-purple-400 font-semibold animate-pulse">
                           Selecting...
                         </div>
                       ) : (
-                        <div className="text-sm text-gray-500">-</div>
+                        <div className="text-xs text-gray-500">-</div>
                       )}
                     </div>
                   </div>
