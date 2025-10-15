@@ -79,6 +79,22 @@ export function AdminViewRosters() {
     }
   };
 
+  // Recursively remove undefined values from an object
+  const cleanObject = (obj: any): any => {
+    if (Array.isArray(obj)) {
+      return obj.map(cleanObject);
+    }
+    if (obj !== null && typeof obj === 'object') {
+      return Object.entries(obj).reduce((acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = cleanObject(value);
+        }
+        return acc;
+      }, {} as any);
+    }
+    return obj;
+  };
+
   const handleUnsubmitAll = async () => {
     const confirmed = window.confirm(
       'Unsubmit ALL rosters and load their most recent scenarios?\n\n' +
@@ -118,12 +134,15 @@ export function AdminViewRosters() {
             franchiseTags,
           });
 
-          // Update roster: set to draft, load scenario entries
-          await updateDoc(doc(db, 'rosters', rosterId), {
+          // Clean all data to remove undefined values
+          const cleanData = cleanObject({
             status: 'draft',
             entries: stackedEntries,
             summary,
           });
+
+          // Update roster: set to draft, load scenario entries
+          await updateDoc(doc(db, 'rosters', rosterId), cleanData);
 
           updatedCount++;
         } else {

@@ -81,15 +81,15 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
     }
 
     // STEP 3: Now assign rounds to base round 2-14 keepers (they fill in after all R1 keepers)
-    // Sort by base round DESCENDING (highest first), then by priority DESCENDING (higher priority last)
-    // Higher base rounds get their rounds first, pushing lower base rounds toward Round 1
+    // Sort by base round ASCENDING (lowest first), then by priority ASCENDING
+    // Lower base rounds get their rounds first
     otherKeepers.sort((a, b) => {
       if (a.baseRound !== b.baseRound) {
-        return b.baseRound! - a.baseRound!; // DESCENDING - higher base rounds first
+        return a.baseRound! - b.baseRound!; // ASCENDING - lower base rounds first
       }
-      // Same base round - REVERSE priority (higher priority = later in draft)
+      // Same base round - sort by priority ASCENDING (lower priority first)
       if (a.priority !== undefined && b.priority !== undefined) {
-        return b.priority - a.priority; // DESCENDING priority
+        return a.priority - b.priority; // ASCENDING priority
       }
       return 0; // Keep original order if no priorities set
     });
