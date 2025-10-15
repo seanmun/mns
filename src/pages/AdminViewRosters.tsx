@@ -51,10 +51,11 @@ export function AdminViewRosters() {
       setPlayers(playersMap);
 
       // Load rosters for each team
+      const rostersSnap = await getDocs(collection(db, 'rosters'));
       const rostersMap = new Map<string, RosterDoc>();
+
       for (const team of teamsData) {
-        const rosterId = `${currentLeagueId}_${team.id}_${currentLeague.seasonYear}`;
-        const rostersSnap = await getDocs(collection(db, 'rosters'));
+        const rosterId = `${currentLeagueId}_${team.id}`;
         const rosterDoc = rostersSnap.docs.find(d => d.id === rosterId);
 
         if (rosterDoc) {
