@@ -41,6 +41,7 @@ export interface Team {
   abbrev: string;
   owners: string[];  // email addresses
   ownerNames?: string[];  // owner display names
+  telegramUsername?: string;  // Telegram @username for draft notifications
   capAdjustments: TeamCapAdjustments;
   settings: {
     maxKeepers: number;  // typically 8
@@ -211,6 +212,51 @@ export interface PreviousStats {
   blocks: number;         // BLK
   assistToTurnover: number; // A/TO
   seasonYear: string;     // "2024-25"
+}
+
+// Draft types
+export type DraftStatus = "setup" | "in_progress" | "paused" | "completed";
+
+export interface DraftPick {
+  round: number;
+  pickInRound: number;
+  overallPick: number;
+  teamId: string;
+  teamName: string;
+  teamAbbrev: string;
+  playerId?: string;          // Set when pick is made
+  playerName?: string;        // Set when pick is made
+  isKeeperSlot: boolean;
+  pickedAt?: number;          // Timestamp when pick was made
+  pickedBy?: string;          // Email of user who made the pick
+}
+
+export interface DraftCurrentPick {
+  round: number;
+  pickInRound: number;
+  overallPick: number;
+  teamId: string;
+  startedAt: number;          // Timestamp
+}
+
+export interface DraftSettings {
+  allowAdminOverride: boolean;
+  isTestDraft: boolean;  // If true, only admins can see the draft
+}
+
+export interface Draft {
+  id: string;                 // Document ID
+  leagueId: string;
+  seasonYear: number;
+  status: DraftStatus;
+  draftOrder: string[];       // Array of team IDs in draft order
+  currentPick?: DraftCurrentPick;
+  picks: DraftPick[];         // All picks (including keepers and future picks)
+  settings: DraftSettings;
+  createdAt: number;
+  createdBy: string;          // Admin email who created draft
+  startedAt?: number;
+  completedAt?: number;
 }
 
 // User roles

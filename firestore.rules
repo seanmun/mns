@@ -117,5 +117,13 @@ service cloud.firestore {
       // Users can delete their own watchlists
       allow delete: if isSignedIn() && resource.data.userId == getUserEmail();
     }
+
+    // Drafts collection
+    match /drafts/{draftId} {
+      // All signed-in users can read drafts
+      allow read: if isSignedIn();
+      // Only admins can create/update/delete drafts
+      allow write: if isAdmin();
+    }
   }
 }

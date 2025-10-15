@@ -18,6 +18,7 @@ import { AdminTeams } from './pages/AdminTeams';
 import { AdminPlayers } from './pages/AdminPlayers';
 import { AdminLeague } from './pages/AdminLeague';
 import { AdminDraftTest } from './pages/AdminDraftTest';
+import { AdminDraftSetup } from './pages/AdminDraftSetup';
 import { Inbox } from './pages/Inbox';
 import { Profile } from './pages/Profile';
 
@@ -181,6 +182,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <AdminDraftTest />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/draft-setup"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminDraftSetup />
                 </AppLayout>
               </PrivateRoute>
             }

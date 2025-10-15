@@ -29,7 +29,7 @@ interface DraftPick {
 }
 
 export function AdminDraftTest() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const { currentLeagueId } = useLeague();
   const navigate = useNavigate();
   const [teams, setTeams] = useState<Team[]>([]);
@@ -158,6 +158,11 @@ export function AdminDraftTest() {
     return draftBoard.filter((pick) => pick.round === round);
   };
 
+  // Determine which teams belong to the current user
+  const userTeamIds = teams
+    .filter((team) => team.owners.includes(user?.email || ''))
+    .map((team) => team.id);
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -247,12 +252,47 @@ export function AdminDraftTest() {
               </div>
             </div>
 
+            {/* Legend */}
+            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+              <div className="flex flex-wrap gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-blue-500/10 border border-blue-500/30"></div>
+                  <span className="text-gray-400">Keeper Slot</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-green-500/10 border border-green-500/30"></div>
+                  <span className="text-gray-400">Your Pick</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-[#0a0a0a] border border-gray-700"></div>
+                  <span className="text-gray-400">Other Teams</span>
+                </div>
+              </div>
+            </div>
+
             {/* Draft Board */}
             <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-white">
-                  Round {selectedRound} {selectedRound % 2 === 0 && '(Snake - Reversed)'}
-                </h2>
+                <div>
+                  <h2 className="text-xl font-semibold text-white">
+                    Round {selectedRound} {selectedRound % 2 === 0 && '(Snake - Reversed)'}
+                  </h2>
+                  {(() => {
+                    const roundPicks = getRoundPicks(selectedRound);
+                    const userPickIndex = roundPicks.findIndex(p => userTeamIds.includes(p.teamId));
+                    if (userPickIndex !== -1) {
+                      const picksUntilUser = userPickIndex;
+                      return (
+                        <p className="text-sm text-green-400 mt-1">
+                          {picksUntilUser === 0
+                            ? "You're on the clock!"
+                            : `${picksUntilUser} pick${picksUntilUser === 1 ? '' : 's'} until you're up`}
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
                 <button
                   onClick={() => setIsOrderSet(false)}
                   className="px-3 py-1 text-sm bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors"
@@ -262,12 +302,16 @@ export function AdminDraftTest() {
               </div>
 
               <div className="space-y-2">
-                {getRoundPicks(selectedRound).map((pick) => (
+                {getRoundPicks(selectedRound).map((pick) => {
+                  const isUserPick = userTeamIds.includes(pick.teamId);
+                  return (
                   <div
                     key={pick.overallPick}
                     className={`p-4 rounded-lg border ${
                       pick.isKeeperSlot
                         ? 'bg-blue-500/10 border-blue-500/30'
+                        : isUserPick
+                        ? 'bg-green-500/10 border-green-500/30'
                         : 'bg-[#0a0a0a] border-gray-700'
                     }`}
                   >
@@ -309,7 +353,8 @@ export function AdminDraftTest() {
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+                })}
               </div>
             </div>
 

@@ -26,6 +26,7 @@ export function AdminTeams() {
     leagueId: '',
     owners: '',
     ownerNames: '',
+    telegramUsername: '',
     maxKeepers: 8,
     tradeDelta: 0,
     banners: [] as number[],
@@ -86,6 +87,7 @@ export function AdminTeams() {
       leagueId: team.leagueId,
       owners: team.owners.join(', '),
       ownerNames: team.ownerNames?.join(', ') || '',
+      telegramUsername: team.telegramUsername || '',
       maxKeepers: team.settings.maxKeepers,
       tradeDelta: team.capAdjustments.tradeDelta,
       banners: team.banners || [],
@@ -112,7 +114,7 @@ export function AdminTeams() {
         .map((name) => name.trim())
         .filter((name) => name.length > 0);
 
-      const teamData = {
+      const teamData: any = {
         name: formData.name,
         abbrev: formData.abbrev,
         leagueId: formData.leagueId,
@@ -126,6 +128,11 @@ export function AdminTeams() {
         },
         banners: formData.banners,
       };
+
+      // Only add telegramUsername if it has a value
+      if (formData.telegramUsername) {
+        teamData.telegramUsername = formData.telegramUsername;
+      }
 
       if (editingTeam) {
         // Update existing team
@@ -144,6 +151,7 @@ export function AdminTeams() {
         leagueId: '',
         owners: '',
         ownerNames: '',
+        telegramUsername: '',
         maxKeepers: 8,
         tradeDelta: 0,
         banners: [],
@@ -241,6 +249,7 @@ export function AdminTeams() {
                     leagueId: '',
                     owners: '',
                     ownerNames: '',
+                    telegramUsername: '',
                     maxKeepers: 8,
                     tradeDelta: 0,
                     banners: [],
@@ -472,6 +481,21 @@ export function AdminTeams() {
                       setFormData({ ...formData, ownerNames: e.target.value })
                     }
                     placeholder="e.g., John Smith, Jane Doe"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Telegram Username (for draft notifications)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.telegramUsername}
+                    onChange={(e) =>
+                      setFormData({ ...formData, telegramUsername: e.target.value })
+                    }
+                    placeholder="@username"
                     className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
