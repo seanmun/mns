@@ -3,7 +3,7 @@ import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firesto
 import { db } from '../lib/firebase';
 import type { WatchList } from '../types';
 
-export function useWatchList(userId: string | undefined, leagueId: string | undefined, teamId: string | undefined) {
+export function useWatchList(_userId: string | undefined, leagueId: string | undefined, teamId: string | undefined) {
   const [watchList, setWatchList] = useState<WatchList | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -54,7 +54,7 @@ export function useWatchList(userId: string | undefined, leagueId: string | unde
 }
 
 export async function togglePlayerInWatchList(
-  userId: string,
+  _userId: string,
   leagueId: string,
   teamId: string,
   playerFantraxId: string,
