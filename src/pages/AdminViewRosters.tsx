@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team, Player, RosterDoc, RosterEntry } from '../types';
-import { stackKeeperRounds } from '../lib/keeperAlgorithms';
+import { stackKeeperRounds, computeSummary } from '../lib/keeperAlgorithms';
 
 export function AdminViewRosters() {
   const { role } = useAuth();
@@ -79,6 +79,70 @@ export function AdminViewRosters() {
     }
   };
 
+  const handleUnsubmitAll = async () => {
+    const confirmed = window.confirm(
+      'Unsubmit ALL rosters and load their most recent scenarios?\n\n' +
+      'This will:\n' +
+      '1. Set all rosters to "draft" status\n' +
+      '2. Load the most recent saved scenario for each team\n' +
+      '3. Apply the current keeper stacking algorithm\n\n' +
+      'Continue?'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      let updatedCount = 0;
+
+      for (const team of teams) {
+        const roster = rosters.get(team.id);
+        if (!roster) continue;
+
+        // Get most recent scenario
+        const mostRecentScenario = roster.savedScenarios && roster.savedScenarios.length > 0
+          ? [...roster.savedScenarios].sort((a, b) => b.timestamp - a.timestamp)[0]
+          : null;
+
+        if (mostRecentScenario) {
+          const rosterId = `${currentLeagueId}_${team.id}`;
+
+          // Apply new stacking algorithm to scenario entries
+          const entriesCopy = mostRecentScenario.entries.map(e => ({ ...e }));
+          const { entries: stackedEntries, franchiseTags } = stackKeeperRounds(entriesCopy);
+
+          // Recalculate summary with new stacking
+          const summary = computeSummary({
+            entries: stackedEntries,
+            allPlayers: players,
+            tradeDelta: team.capAdjustments?.tradeDelta || 0,
+            franchiseTags,
+          });
+
+          // Update roster: set to draft, load scenario entries
+          await updateDoc(doc(db, 'rosters', rosterId), {
+            status: 'draft',
+            entries: stackedEntries,
+            summary,
+          });
+
+          updatedCount++;
+        } else {
+          // No scenario - just unsubmit
+          const rosterId = `${currentLeagueId}_${team.id}`;
+          await updateDoc(doc(db, 'rosters', rosterId), {
+            status: 'draft',
+          });
+        }
+      }
+
+      alert(`Unsubmitted ${updatedCount} rosters with scenarios.`);
+      await loadData();
+    } catch (error) {
+      console.error('Error unsubmitting rosters:', error);
+      alert('Failed to unsubmit rosters');
+    }
+  };
+
   if (role !== 'admin') {
     return null;
   }
@@ -122,12 +186,20 @@ export function AdminViewRosters() {
               {currentLeague?.name} ({currentLeague?.seasonYear})
             </p>
           </div>
-          <button
-            onClick={() => navigate('/admin/teams')}
-            className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
-          >
-            Back to Admin
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleUnsubmitAll}
+              className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 font-medium"
+            >
+              Unsubmit All & Load Scenarios
+            </button>
+            <button
+              onClick={() => navigate('/admin/teams')}
+              className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
+            >
+              Back to Admin
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-12 gap-6">
