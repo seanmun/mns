@@ -84,15 +84,20 @@ export function AdminTeams() {
 
       setTeams(teamsWithStatus);
 
-      // Load backups
-      const backupsSnap = await getDocs(collection(db, 'backups'));
-      const backupsData = backupsSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Backup[];
-      // Sort by timestamp descending (newest first)
-      backupsData.sort((a, b) => b.timestamp - a.timestamp);
-      setBackups(backupsData);
+      // Load backups (if collection exists and accessible)
+      try {
+        const backupsSnap = await getDocs(collection(db, 'backups'));
+        const backupsData = backupsSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Backup[];
+        // Sort by timestamp descending (newest first)
+        backupsData.sort((a, b) => b.timestamp - a.timestamp);
+        setBackups(backupsData);
+      } catch (backupError) {
+        console.warn('Could not load backups (collection may not exist yet):', backupError);
+        setBackups([]);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       alert('Failed to load data');
