@@ -14,6 +14,14 @@ export function LeagueHome() {
   const [myTeam, setMyTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
   const [submittedTeamIds, setSubmittedTeamIds] = useState<Set<string>>(new Set());
+  const [teamRosters, setTeamRosters] = useState<Map<string, RosterDoc>>(new Map());
+  const [totalKeeperFees, setTotalKeeperFees] = useState<number>(0);
+  const [feeBreakdown, setFeeBreakdown] = useState({
+    penaltyDues: 0,
+    franchiseTagDues: 0,
+    redshirtDues: 0,
+    firstApronFee: 0
+  });
   const [currentSeason, setCurrentSeason] = useState<number>(2025);
   const [availableSeasons, setAvailableSeasons] = useState<number[]>([2025]);
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
@@ -61,21 +69,41 @@ export function LeagueHome() {
 
         setTeams(teamData);
 
-        // Fetch roster status for each team
+        // Fetch roster status and calculate total keeper fees
         const submittedIds = new Set<string>();
+        const rostersMap = new Map<string, RosterDoc>();
+        let totalFees = 0;
+        let penaltyDues = 0;
+        let franchiseTagDues = 0;
+        let redshirtDues = 0;
+        let firstApronFee = 0;
+
         await Promise.all(
           teamData.map(async (team) => {
             const rosterDocId = `${leagueId}_${team.id}`;
             const rosterDoc = await getDoc(doc(db, 'rosters', rosterDocId));
             if (rosterDoc.exists()) {
-              const rosterData = rosterDoc.data() as RosterDoc;
+              const rosterData = { id: rosterDoc.id, ...rosterDoc.data() } as RosterDoc;
+              rostersMap.set(team.id, rosterData);
+
               if (rosterData.status === 'submitted') {
                 submittedIds.add(team.id);
+                // Add team's total fees to prize pool
+                if (rosterData.summary) {
+                  totalFees += rosterData.summary.totalFees || 0;
+                  penaltyDues += rosterData.summary.penaltyDues || 0;
+                  franchiseTagDues += rosterData.summary.franchiseTagDues || 0;
+                  redshirtDues += rosterData.summary.redshirtDues || 0;
+                  firstApronFee += rosterData.summary.firstApronFee || 0;
+                }
               }
             }
           })
         );
         setSubmittedTeamIds(submittedIds);
+        setTeamRosters(rostersMap);
+        setTotalKeeperFees(totalFees);
+        setFeeBreakdown({ penaltyDues, franchiseTagDues, redshirtDues, firstApronFee });
 
         // Find user's team
         const userTeam = teamData.find((team) => team.owners.includes(user.email || ''));
@@ -289,21 +317,59 @@ export function LeagueHome() {
                 <img src="/icons/money-icon.png" alt="Money" className="w-8 h-8 rounded-full" />
                 <h2 className="text-xl font-bold">Prize Pool</h2>
               </div>
-              <div className="text-4xl font-bold mb-4">${teams.length * 50}</div>
+              <div className="text-4xl font-bold mb-4">${teams.length * 50 + totalKeeperFees}</div>
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div className="bg-[#0a0a0a] rounded p-3 border border-green-400/30">
                   <div className="font-semibold text-green-400">1st Place</div>
-                  <div className="text-2xl font-bold text-green-400">${teams.length * 50 * 0.5}</div>
+                  <div className="text-2xl font-bold text-green-400">${((teams.length * 50 + totalKeeperFees) * 0.5).toFixed(0)}</div>
                 </div>
                 <div className="bg-[#0a0a0a] rounded p-3 border border-purple-400/30">
                   <div className="font-semibold text-purple-400">2nd Place</div>
-                  <div className="text-2xl font-bold text-purple-400">${teams.length * 50 * 0.3}</div>
+                  <div className="text-2xl font-bold text-purple-400">${((teams.length * 50 + totalKeeperFees) * 0.3).toFixed(0)}</div>
                 </div>
                 <div className="bg-[#0a0a0a] rounded p-3 border border-pink-400/30">
                   <div className="font-semibold text-pink-400">3rd Place</div>
-                  <div className="text-2xl font-bold text-pink-400">${teams.length * 50 * 0.2}</div>
+                  <div className="text-2xl font-bold text-pink-400">${((teams.length * 50 + totalKeeperFees) * 0.2).toFixed(0)}</div>
                 </div>
               </div>
+              {totalKeeperFees > 0 && (
+                <div className="mt-4 pt-4 border-t border-black/20">
+                  <div className="text-xs space-y-1 text-black/70">
+                    <div className="flex justify-between">
+                      <span>Base Entry Fees (12 × $50)</span>
+                      <span className="font-semibold">${teams.length * 50}</span>
+                    </div>
+                    {feeBreakdown.firstApronFee > 0 && (
+                      <div className="flex justify-between">
+                        <span>First Apron Fees ($50 over $195M)</span>
+                        <span className="font-semibold">${feeBreakdown.firstApronFee}</span>
+                      </div>
+                    )}
+                    {feeBreakdown.penaltyDues > 0 && (
+                      <div className="flex justify-between">
+                        <span>Second Apron Penalties ($2/M over $225M)</span>
+                        <span className="font-semibold">${feeBreakdown.penaltyDues}</span>
+                      </div>
+                    )}
+                    {feeBreakdown.franchiseTagDues > 0 && (
+                      <div className="flex justify-between">
+                        <span>Franchise Tag Fees ($15 each)</span>
+                        <span className="font-semibold">${feeBreakdown.franchiseTagDues}</span>
+                      </div>
+                    )}
+                    {feeBreakdown.redshirtDues > 0 && (
+                      <div className="flex justify-between">
+                        <span>Redshirt Fees ($10 each)</span>
+                        <span className="font-semibold">${feeBreakdown.redshirtDues}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between pt-1 border-t border-black/20 font-bold text-black">
+                      <span>Total Prize Pool</span>
+                      <span>${teams.length * 50 + totalKeeperFees}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* All Teams Section */}
@@ -311,37 +377,37 @@ export function LeagueHome() {
               <div className="p-6 border-b border-gray-800">
                 <h2 className="text-xl font-bold text-white">All Teams</h2>
                 <p className="text-sm text-gray-400 mt-1">
-                  View submitted rosters. Scenarios are private until submission.
+                  View team rosters and keeper selections.
                 </p>
               </div>
               <div className="divide-y divide-gray-800">
-                {teams.map((team) => (
-                  <button
-                    key={team.id}
-                    onClick={() => handleTeamClick(team.id)}
-                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors text-left"
-                  >
-                    <div>
-                      <div className="font-semibold text-white">{team.name}</div>
-                      <div className="text-sm text-gray-400">
-                        {team.ownerNames && team.ownerNames.length > 0 ? team.ownerNames.join(', ') : team.owners.join(', ')}
+                {teams.map((team) => {
+                  const roster = teamRosters.get(team.id);
+                  const capUsed = roster?.summary?.capUsed || 0;
+
+                  return (
+                    <button
+                      key={team.id}
+                      onClick={() => handleTeamClick(team.id)}
+                      className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors text-left"
+                    >
+                      <div className="flex-1">
+                        <div className="font-semibold text-white">{team.name}</div>
+                        <div className="text-sm text-gray-400 mt-1">
+                          Current Salary: ${(capUsed / 1_000_000).toFixed(1)}M
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {submittedTeamIds.has(team.id) && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-400/10 text-green-400 border border-green-400/30">
-                          Submitted
+                      <div className="flex items-center gap-3">
+                        <span className="inline-flex items-center px-3 py-1 rounded text-xs font-medium bg-green-400/10 text-green-400 border border-green-400/30">
+                          View Team
                         </span>
-                      )}
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300">
-                        View Roster
-                      </span>
-                      <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </button>
-                ))}
+                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
