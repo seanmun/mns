@@ -81,15 +81,15 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
     }
 
     // STEP 3: Now assign rounds to base round 2-14 keepers (they fill in after all R1 keepers)
-    // Sort by base round ASCENDING (lowest first), then by priority (for same base round players)
-    // Lower base rounds MUST pick before higher base rounds (strict ordering)
+    // Sort by base round DESCENDING (highest first), then by priority DESCENDING (higher priority last)
+    // Higher base rounds get their rounds first, pushing lower base rounds toward Round 1
     otherKeepers.sort((a, b) => {
       if (a.baseRound !== b.baseRound) {
-        return a.baseRound! - b.baseRound!; // ASCENDING - lower base rounds first
+        return b.baseRound! - a.baseRound!; // DESCENDING - higher base rounds first
       }
-      // Same base round - use priority if both have it, otherwise maintain order
+      // Same base round - REVERSE priority (higher priority = later in draft)
       if (a.priority !== undefined && b.priority !== undefined) {
-        return a.priority - b.priority;
+        return b.priority - a.priority; // DESCENDING priority
       }
       return 0; // Keep original order if no priorities set
     });
@@ -135,15 +135,15 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
     }
   } else {
     // No Round 1 keepers - just assign other keepers normally
-    // Sort by base round ASCENDING (lowest first), then by priority
-    // Lower base rounds MUST pick before higher base rounds (strict ordering)
+    // Sort by base round DESCENDING (highest first), then by priority DESCENDING
+    // Higher base rounds get their rounds first, pushing lower base rounds toward Round 1
     otherKeepers.sort((a, b) => {
       if (a.baseRound !== b.baseRound) {
-        return a.baseRound! - b.baseRound!; // ASCENDING - lower base rounds first
+        return b.baseRound! - a.baseRound!; // DESCENDING - higher base rounds first
       }
-      // Same base round - use priority if both have it
+      // Same base round - REVERSE priority (higher priority = later in draft)
       if (a.priority !== undefined && b.priority !== undefined) {
-        return a.priority - b.priority;
+        return b.priority - a.priority; // DESCENDING priority
       }
       return 0;
     });
