@@ -130,8 +130,40 @@ export function AdminDraftSetup() {
       return;
     }
 
+    const confirmed = window.confirm(
+      'Initialize draft? This will:\n\n' +
+      '1. Create a backup of current rosters\n' +
+      '2. Lock all keeper picks in the draft board\n' +
+      '3. Start the draft process\n\n' +
+      'Continue?'
+    );
+
+    if (!confirmed) return;
+
     try {
-      // Generate all picks including keeper slots
+      // STEP 1: Create backup before initializing draft
+      const timestamp = Date.now();
+      const backupId = `draft_init_${currentLeagueId}_${timestamp}`;
+
+      console.log('[Draft Setup] Creating backup before draft initialization...');
+      await setDoc(doc(db, 'backups', backupId), {
+        type: 'draft_initialization',
+        leagueId: currentLeagueId,
+        leagueName: currentLeague.name,
+        seasonYear: currentLeague.seasonYear,
+        timestamp,
+        rosters: rosters.map(r => ({
+          id: r.id,
+          teamId: r.teamId,
+          entries: r.entries,
+          status: r.status,
+          summary: r.summary,
+        })),
+        createdAt: new Date().toISOString(),
+      });
+      console.log('[Draft Setup] Backup created:', backupId);
+
+      // STEP 2: Generate all picks including keeper slots
       const picks: DraftPick[] = [];
       let overallPick = 1;
 
@@ -213,7 +245,13 @@ export function AdminDraftSetup() {
       setExistingDraft(draft);
       setStep('complete');
 
-      alert('Draft initialized successfully!');
+      const keeperCount = picks.filter(p => p.isKeeperSlot).length;
+      alert(
+        `Draft initialized successfully!\n\n` +
+        `Backup created: ${new Date(timestamp).toLocaleString()}\n` +
+        `Keepers loaded: ${keeperCount}\n` +
+        `Total picks: ${picks.length}`
+      );
     } catch (error: any) {
       console.error('Error initializing draft:', error);
       alert(`Failed to initialize draft: ${error?.message || 'Unknown error'}`);
