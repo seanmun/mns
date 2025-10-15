@@ -205,8 +205,10 @@ export function Draft() {
           p => p.overallPick > (currentDraft.currentPick?.overallPick || 0) && !p.isKeeperSlot
         );
 
-        // Store next team ID for Telegram notification
-        nextOpenPickTeamId = nextOpenPick?.teamId;
+        // Store next team ID for Telegram notification (accounting for trades)
+        if (nextOpenPick) {
+          nextOpenPickTeamId = draftPickOwnership.get(nextOpenPick.overallPick) || nextOpenPick.teamId;
+        }
 
         const updatedDraft: any = {
           picks: updatedPicks,
@@ -233,7 +235,11 @@ export function Draft() {
       });
 
       // Send Telegram notification
-      const currentTeam = teams.find(t => t.id === draft.currentPick?.teamId);
+      // Get the actual owner of the current pick (accounting for trades)
+      const actualCurrentOwner = draft.currentPick
+        ? draftPickOwnership.get(draft.currentPick.overallPick) || draft.currentPick.teamId
+        : null;
+      const currentTeam = teams.find(t => t.id === actualCurrentOwner);
       const nextTeam = teams.find(t => t.id === nextOpenPickTeamId);
 
       if (currentTeam && draft.currentPick) {

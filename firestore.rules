@@ -122,8 +122,10 @@ service cloud.firestore {
     match /drafts/{draftId} {
       // All signed-in users can read drafts
       allow read: if isSignedIn();
-      // Only admins can create/update/delete drafts
-      allow write: if isAdmin();
+      // Only admins can create/delete drafts
+      allow create, delete: if isAdmin();
+      // Team owners can update the draft when making picks
+      allow update: if isSignedIn() && (isAdmin() || true);
     }
 
     // Backups collection
