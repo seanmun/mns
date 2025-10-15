@@ -19,6 +19,7 @@ import { AdminPlayers } from './pages/AdminPlayers';
 import { AdminLeague } from './pages/AdminLeague';
 import { AdminDraftTest } from './pages/AdminDraftTest';
 import { AdminDraftSetup } from './pages/AdminDraftSetup';
+import { AdminViewRosters } from './pages/AdminViewRosters';
 import { Inbox } from './pages/Inbox';
 import { Profile } from './pages/Profile';
 
@@ -142,6 +143,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <AdminTeams />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/view-rosters"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminViewRosters />
                 </AppLayout>
               </PrivateRoute>
             }
