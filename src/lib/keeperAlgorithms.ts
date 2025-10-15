@@ -103,16 +103,19 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
         occupiedRounds.add(baseRound);
       } else {
         // Base round occupied - try backward first, then forward
-        let backwardRound = baseRound - 1;
-        let forwardRound = baseRound + 1;
         let foundRound: number | null = null;
 
-        // Try backward first (but not into Round 1 or below)
-        if (backwardRound >= 2 && !occupiedRounds.has(backwardRound)) {
+        // Try backward first (keep trying until we find an open round or hit the minimum)
+        let backwardRound = baseRound - 1;
+        while (backwardRound >= 2 && occupiedRounds.has(backwardRound)) {
+          backwardRound--;
+        }
+        if (backwardRound >= 2) {
           foundRound = backwardRound;
         }
         // If backward doesn't work, go forward
         else {
+          let forwardRound = baseRound + 1;
           while (forwardRound <= 13 && occupiedRounds.has(forwardRound)) {
             forwardRound++;
           }
@@ -154,16 +157,19 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
         occupiedRounds.add(baseRound);
       } else {
         // Base round occupied - try backward first, then forward
-        let backwardRound = baseRound - 1;
-        let forwardRound = baseRound + 1;
         let foundRound: number | null = null;
 
-        // Try backward first (but not into Round 0 or below)
-        if (backwardRound >= 1 && !occupiedRounds.has(backwardRound)) {
+        // Try backward first (keep trying until we find an open round or hit the minimum)
+        let backwardRound = baseRound - 1;
+        while (backwardRound >= 1 && occupiedRounds.has(backwardRound)) {
+          backwardRound--;
+        }
+        if (backwardRound >= 1) {
           foundRound = backwardRound;
         }
         // If backward doesn't work, go forward
         else {
+          let forwardRound = baseRound + 1;
           while (forwardRound <= 13 && occupiedRounds.has(forwardRound)) {
             forwardRound++;
           }
