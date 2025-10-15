@@ -108,14 +108,14 @@ service cloud.firestore {
       allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
-    // Watchlists collection (team-based, shared by all co-owners)
+    // Watchlists collection
     match /watchlists/{watchlistId} {
-      // Team owners can read their team's watchlist
-      allow read: if isSignedIn() && isTeamOwner(resource.data.teamId);
-      // Team owners can create/update their team's watchlist
-      allow create, update: if isSignedIn() && isTeamOwner(request.resource.data.teamId);
-      // Team owners can delete their team's watchlist
-      allow delete: if isSignedIn() && isTeamOwner(resource.data.teamId);
+      // Users can read their own watchlists
+      allow read: if isSignedIn() && resource.data.userId == getUserEmail();
+      // Users can create/update their own watchlists
+      allow create, update: if isSignedIn() && request.resource.data.userId == getUserEmail();
+      // Users can delete their own watchlists
+      allow delete: if isSignedIn() && resource.data.userId == getUserEmail();
     }
 
     // Drafts collection

@@ -9,16 +9,17 @@ export function useWatchList(userId: string | undefined, leagueId: string | unde
 
   useEffect(() => {
     const fetchWatchList = async () => {
-      if (!leagueId || !teamId) {
+      if (!userId || !leagueId || !teamId) {
         setLoading(false);
         return;
       }
 
       try {
-        // Query for watchlist by leagueId and teamId only (team-based, not user-based)
+        // Query for watchlist by userId, leagueId, and teamId
         const watchListRef = collection(db, 'watchlists');
         const q = query(
           watchListRef,
+          where('userId', '==', userId),
           where('leagueId', '==', leagueId),
           where('teamId', '==', teamId)
         );
@@ -31,9 +32,10 @@ export function useWatchList(userId: string | undefined, leagueId: string | unde
             ...doc.data(),
           } as WatchList);
         } else {
-          // Initialize empty watchlist (team-based)
+          // Initialize empty watchlist
           setWatchList({
             id: '',
+            userId,
             leagueId,
             teamId,
             playerIds: [],
@@ -48,7 +50,7 @@ export function useWatchList(userId: string | undefined, leagueId: string | unde
     };
 
     fetchWatchList();
-  }, [leagueId, teamId]);
+  }, [userId, leagueId, teamId]);
 
   return { watchList, loading, setWatchList };
 }
@@ -70,6 +72,7 @@ export async function togglePlayerInWatchList(
 
     const updatedWatchList: WatchList = {
       id: currentWatchList?.id || '',
+      userId,
       leagueId,
       teamId,
       playerIds: updatedPlayerIds,
@@ -81,6 +84,7 @@ export async function togglePlayerInWatchList(
       const watchListRef = collection(db, 'watchlists');
       const docRef = doc(watchListRef);
       await setDoc(docRef, {
+        userId,
         leagueId,
         teamId,
         playerIds: updatedPlayerIds,
@@ -91,6 +95,7 @@ export async function togglePlayerInWatchList(
       // Update existing document
       const docRef = doc(db, 'watchlists', currentWatchList.id);
       await setDoc(docRef, {
+        userId,
         leagueId,
         teamId,
         playerIds: updatedPlayerIds,

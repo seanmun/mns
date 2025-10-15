@@ -186,9 +186,10 @@ export interface ProjectedStats {
   seasonYear: string;     // "2025-26"
 }
 
-// Watchlist (team-based, shared by all co-owners)
+// Watchlist
 export interface WatchList {
   id: string;                 // Document ID
+  userId: string;             // User email
   leagueId: string;
   teamId: string;
   playerIds: string[];        // Array of player fantraxIds
