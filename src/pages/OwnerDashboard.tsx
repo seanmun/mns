@@ -38,6 +38,7 @@ export function OwnerDashboard() {
   const { watchList } = useWatchList(user?.email || '', leagueId!, teamId!);
   const [allLeaguePlayers, setAllLeaguePlayers] = useState<Player[]>([]);
   const [rookiePicks, setRookiePicks] = useState<RookieDraftPick[]>([]);
+  const [draftedPlayers, setDraftedPlayers] = useState<Player[]>([]);
 
   // Check if current user is the owner of this team
   const isOwner = team?.owners.includes(user?.email || '') || false;
@@ -184,9 +185,62 @@ export function OwnerDashboard() {
       }
     };
 
+    const fetchDraftedPlayers = async () => {
+      if (!leagueId || !teamId || !league) return;
+      try {
+        // Load current draft
+        const draftId = `${leagueId}_${league.seasonYear}`;
+        const draftRef = collection(db, 'drafts');
+        const draftQuery = query(draftRef, where('__name__', '==', draftId));
+        const draftSnap = await getDocs(draftQuery);
+
+        if (!draftSnap.empty) {
+          const draft = draftSnap.docs[0].data();
+
+          // Load draft pick ownership to check for traded picks
+          const draftPicksRef = collection(db, 'draftPicks');
+          const draftPicksQuery = query(draftPicksRef, where('leagueId', '==', leagueId));
+          const draftPicksSnap = await getDocs(draftPicksQuery);
+
+          const pickOwnership = new Map<number, string>();
+          draftPicksSnap.docs.forEach(doc => {
+            const pick = doc.data();
+            pickOwnership.set(pick.pickNumber, pick.currentOwner);
+          });
+
+          // Get picks for this team that have been drafted (accounting for trades)
+          const teamDraftedPicks = draft.picks?.filter((pick: any) => {
+            if (!pick.playerId || !pick.pickedAt || pick.isKeeperSlot) return false;
+
+            // Check actual owner (accounting for trades)
+            const actualOwner = pickOwnership.get(pick.overallPick) || pick.teamId;
+            return actualOwner === teamId;
+          }) || [];
+
+          // Load player data for drafted picks
+          if (teamDraftedPicks.length > 0) {
+            const playerIds = teamDraftedPicks.map((pick: any) => pick.playerId);
+            const playersRef = collection(db, 'players');
+            const playersSnap = await getDocs(playersRef);
+
+            const draftedPlayerData = playersSnap.docs
+              .map(doc => ({ id: doc.id, ...doc.data() }) as Player)
+              .filter(p => playerIds.includes(p.id));
+
+            setDraftedPlayers(draftedPlayerData);
+          } else {
+            setDraftedPlayers([]);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading drafted players:', error);
+      }
+    };
+
     fetchAllPlayers();
     fetchRookiePicks();
-  }, [leagueId, teamId]);
+    fetchDraftedPlayers();
+  }, [leagueId, teamId, league]);
 
   const handleDecisionChange = (playerId: string, decision: Decision) => {
     setEntries((prev) =>
@@ -771,6 +825,48 @@ export function OwnerDashboard() {
                 </div>
                 <div className="text-sm text-gray-400">Centers</div>
                 <div className="text-xs text-gray-500 mt-1">C</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Drafted Players */}
+        {draftedPlayers.length > 0 && (
+          <div className="mt-6 bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <h2 className="text-xl font-bold text-white mb-4">Drafted Players ({draftedPlayers.length})</h2>
+            <div className="space-y-2">
+              {draftedPlayers.map(player => {
+                const stats = projectedStats.get(player.fantraxId);
+                return (
+                  <div key={player.id} className="bg-[#0a0a0a] p-4 rounded-lg border border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-white">{player.name}</div>
+                        <div className="text-xs text-gray-400">
+                          {player.position} - {player.nbaTeam}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-green-400">
+                          ${(player.salary / 1_000_000).toFixed(1)}M
+                        </div>
+                        {stats && (
+                          <div className="text-xs text-gray-400">
+                            {stats.points.toFixed(1)} pts, {stats.rebounds.toFixed(1)} reb, {stats.assists.toFixed(1)} ast
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-700">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Total Salary</span>
+                <span className="font-bold text-white">
+                  ${(draftedPlayers.reduce((sum, p) => sum + p.salary, 0) / 1_000_000).toFixed(1)}M
+                </span>
               </div>
             </div>
           </div>
