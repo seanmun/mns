@@ -20,6 +20,9 @@ import { AdminLeague } from './pages/AdminLeague';
 import { AdminDraftTest } from './pages/AdminDraftTest';
 import { AdminDraftSetup } from './pages/AdminDraftSetup';
 import { AdminViewRosters } from './pages/AdminViewRosters';
+import { AdminRookiePicks } from './pages/AdminRookiePicks';
+import { AdminDraftPicks } from './pages/AdminDraftPicks';
+import { AdminTradeManager } from './pages/AdminTradeManager';
 import { Inbox } from './pages/Inbox';
 import { Profile } from './pages/Profile';
 
@@ -153,6 +156,36 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <AdminViewRosters />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/rookie-picks"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminRookiePicks />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/draft-picks"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminDraftPicks />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/trade"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminTradeManager />
                 </AppLayout>
               </PrivateRoute>
             }

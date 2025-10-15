@@ -18,6 +18,7 @@ export function Draft() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [draftPickOwnership, setDraftPickOwnership] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [selectedRound, setSelectedRound] = useState(1);
   const [view, setView] = useState<'board' | 'players'>('board');
@@ -42,7 +43,12 @@ export function Draft() {
     .filter((team) => team.owners.includes(user?.email || ''))
     .map((team) => team.id);
 
-  const isUserOnClock = draft?.currentPick && userTeamIds.includes(draft.currentPick.teamId);
+  // Check if user owns the current pick (accounting for trades)
+  const currentPickOwner = draft?.currentPick
+    ? draftPickOwnership.get(draft.currentPick.overallPick) || draft.currentPick.teamId
+    : null;
+
+  const isUserOnClock = draft?.currentPick && currentPickOwner && userTeamIds.includes(currentPickOwner);
 
   // Get user's team ID for watchlist
   useEffect(() => {
@@ -65,6 +71,7 @@ export function Draft() {
     if (!leagueId || !currentLeague) return;
 
     loadInitialData();
+    loadDraftPickOwnership();
   }, [leagueId, currentLeague]);
 
   useEffect(() => {
@@ -115,6 +122,27 @@ export function Draft() {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadDraftPickOwnership = async () => {
+    if (!leagueId) return;
+
+    try {
+      const draftPicksRef = collection(db, 'draftPicks');
+      const draftPicksQuery = query(draftPicksRef, where('leagueId', '==', leagueId));
+      const draftPicksSnap = await getDocs(draftPicksQuery);
+
+      const ownershipMap = new Map<number, string>();
+      draftPicksSnap.docs.forEach((doc) => {
+        const pick = doc.data();
+        ownershipMap.set(pick.pickNumber, pick.currentOwner);
+      });
+
+      console.log('[Draft] Loaded draft pick ownership:', ownershipMap.size, 'picks');
+      setDraftPickOwnership(ownershipMap);
+    } catch (error) {
+      console.error('Error loading draft pick ownership:', error);
     }
   };
 
@@ -806,8 +834,12 @@ export function Draft() {
 
           <div className="space-y-2">
             {getRoundPicks(selectedRound).map((pick) => {
-              const isUserPick = userTeamIds.includes(pick.teamId);
+              // Check if pick was traded
+              const actualOwner = draftPickOwnership.get(pick.overallPick) || pick.teamId;
+              const isUserPick = userTeamIds.includes(actualOwner);
               const isOnClock = draft.currentPick?.overallPick === pick.overallPick;
+              const isTraded = actualOwner !== pick.teamId;
+              const actualOwnerTeam = teams.find(t => t.id === actualOwner);
 
               return (
                 <div
@@ -838,7 +870,14 @@ export function Draft() {
                       </div>
                       <div>
                         <div className="font-semibold text-white">
-                          {pick.teamAbbrev} - {pick.teamName}
+                          {isTraded && actualOwnerTeam ? (
+                            <>
+                              {actualOwnerTeam.name}
+                              <span className="text-xs text-yellow-400 ml-2">(via {pick.teamAbbrev})</span>
+                            </>
+                          ) : (
+                            `${pick.teamAbbrev} - ${pick.teamName}`
+                          )}
                         </div>
                         <div className="text-xs text-gray-500">
                           {pick.isKeeperSlot ? 'Keeper' : isOnClock ? 'On the Clock' : pick.pickedAt ? 'Pick Made' : 'Available'}

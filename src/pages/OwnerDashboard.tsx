@@ -15,6 +15,16 @@ import { WatchListView } from '../components/WatchListView';
 import { baseKeeperRound, stackKeeperRounds, computeSummary, validateRoster } from '../lib/keeperAlgorithms';
 import type { RosterEntry, Decision, Player, SavedScenario } from '../types';
 
+interface RookieDraftPick {
+  id: string;
+  year: number;
+  round: 1 | 2;
+  originalTeam: string;
+  originalTeamName: string;
+  currentOwner: string;
+  leagueId: string;
+}
+
 export function OwnerDashboard() {
   const { leagueId, teamId } = useParams<{ leagueId: string; teamId: string }>();
   const { user } = useAuth();
@@ -27,6 +37,7 @@ export function OwnerDashboard() {
   const { previousStats } = usePreviousStats();
   const { watchList } = useWatchList(user?.email || '', leagueId!, teamId!);
   const [allLeaguePlayers, setAllLeaguePlayers] = useState<Player[]>([]);
+  const [rookiePicks, setRookiePicks] = useState<RookieDraftPick[]>([]);
 
   // Check if current user is the owner of this team
   const isOwner = team?.owners.includes(user?.email || '') || false;
@@ -136,7 +147,7 @@ export function OwnerDashboard() {
     }
   }, [roster, players, playersMap]);
 
-  // Fetch all league players for watchlist display
+  // Fetch all league players for watchlist display and rookie picks
   useEffect(() => {
     const fetchAllPlayers = async () => {
       if (!leagueId) return;
@@ -157,8 +168,25 @@ export function OwnerDashboard() {
       }
     };
 
+    const fetchRookiePicks = async () => {
+      if (!leagueId || !teamId) return;
+      try {
+        const picksRef = collection(db, 'rookieDraftPicks');
+        const picksQuery = query(picksRef, where('leagueId', '==', leagueId), where('currentOwner', '==', teamId));
+        const picksSnap = await getDocs(picksQuery);
+        const picksData = picksSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as RookieDraftPick[];
+        setRookiePicks(picksData);
+      } catch (error) {
+        console.error('Error loading rookie picks:', error);
+      }
+    };
+
     fetchAllPlayers();
-  }, [leagueId]);
+    fetchRookiePicks();
+  }, [leagueId, teamId]);
 
   const handleDecisionChange = (playerId: string, decision: Decision) => {
     setEntries((prev) =>
@@ -744,6 +772,65 @@ export function OwnerDashboard() {
                 <div className="text-sm text-gray-400">Centers</div>
                 <div className="text-xs text-gray-500 mt-1">C</div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rookie Draft Picks */}
+        {rookiePicks.length > 0 && (
+          <div className="mt-6 bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <h2 className="text-xl font-bold text-white mb-4">Rookie Draft Picks ({rookiePicks.length})</h2>
+            <div className="space-y-4">
+              {(() => {
+                // Group picks by year
+                const picksByYear: Record<number, RookieDraftPick[]> = {};
+                rookiePicks.forEach(pick => {
+                  if (!picksByYear[pick.year]) {
+                    picksByYear[pick.year] = [];
+                  }
+                  picksByYear[pick.year].push(pick);
+                });
+
+                // Sort picks within each year by round
+                Object.keys(picksByYear).forEach(year => {
+                  picksByYear[Number(year)].sort((a, b) => a.round - b.round);
+                });
+
+                return Object.keys(picksByYear).sort().map(year => (
+                  <div key={year}>
+                    <h3 className="text-sm font-medium text-gray-400 mb-2">{year}</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {picksByYear[Number(year)].map(pick => {
+                        const isTraded = pick.currentOwner !== pick.originalTeam;
+                        return (
+                          <div
+                            key={pick.id}
+                            className={`p-3 rounded border ${
+                              isTraded
+                                ? 'bg-yellow-400/10 border-yellow-400/30'
+                                : 'bg-[#0a0a0a] border-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className={`font-medium text-sm ${
+                                pick.round === 1 ? 'text-green-400' : 'text-purple-400'
+                              }`}>
+                                Round {pick.round}
+                              </span>
+                              {isTraded && (
+                                <span className="text-xs text-yellow-400">Traded</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {pick.originalTeamName}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         )}

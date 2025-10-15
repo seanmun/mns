@@ -7,6 +7,16 @@ import { useLeague } from '../contexts/LeagueContext';
 import type { Team, Player, RosterDoc } from '../types';
 import { stackKeeperRounds, computeSummary } from '../lib/keeperAlgorithms';
 
+interface RookieDraftPick {
+  id: string;
+  year: number;
+  round: 1 | 2;
+  originalTeam: string;
+  originalTeamName: string;
+  currentOwner: string;
+  leagueId: string;
+}
+
 export function AdminViewRosters() {
   const { role } = useAuth();
   const { currentLeagueId, currentLeague } = useLeague();
@@ -15,6 +25,7 @@ export function AdminViewRosters() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [rosters, setRosters] = useState<Map<string, RosterDoc>>(new Map());
   const [players, setPlayers] = useState<Map<string, Player>>(new Map());
+  const [rookiePicks, setRookiePicks] = useState<RookieDraftPick[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
@@ -88,6 +99,16 @@ export function AdminViewRosters() {
         }
       }
       setRosters(rostersMap);
+
+      // Load rookie picks
+      const picksRef = collection(db, 'rookieDraftPicks');
+      const picksQuery = query(picksRef, where('leagueId', '==', currentLeagueId));
+      const picksSnap = await getDocs(picksQuery);
+      const picksData = picksSnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as RookieDraftPick[];
+      setRookiePicks(picksData);
 
       // Auto-select first team
       if (teamsData.length > 0 && !selectedTeamId) {
@@ -216,6 +237,25 @@ export function AdminViewRosters() {
   };
 
   const selectedInfo = getKeeperInfo(selectedRoster);
+
+  // Get rookie picks for selected team
+  const teamRookiePicks = selectedTeamId
+    ? rookiePicks.filter(p => p.currentOwner === selectedTeamId)
+    : [];
+
+  // Group picks by year
+  const picksByYear: Record<number, RookieDraftPick[]> = {};
+  teamRookiePicks.forEach(pick => {
+    if (!picksByYear[pick.year]) {
+      picksByYear[pick.year] = [];
+    }
+    picksByYear[pick.year].push(pick);
+  });
+
+  // Sort picks within each year by round
+  Object.keys(picksByYear).forEach(year => {
+    picksByYear[Number(year)].sort((a, b) => a.round - b.round);
+  });
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white p-6">
@@ -386,7 +426,50 @@ export function AdminViewRosters() {
                   </div>
                 )}
 
-                {selectedInfo.keepers.length === 0 && selectedInfo.redshirts.length === 0 && selectedInfo.intStash.length === 0 && (
+                {/* Rookie Draft Picks */}
+                {teamRookiePicks.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3">Rookie Draft Picks ({teamRookiePicks.length})</h3>
+                    <div className="space-y-4">
+                      {Object.keys(picksByYear).sort().map(year => (
+                        <div key={year}>
+                          <h4 className="text-sm font-medium text-gray-400 mb-2">{year}</h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            {picksByYear[Number(year)].map(pick => {
+                              const isTraded = pick.currentOwner !== pick.originalTeam;
+                              return (
+                                <div
+                                  key={pick.id}
+                                  className={`p-3 rounded border ${
+                                    isTraded
+                                      ? 'bg-yellow-400/10 border-yellow-400/30'
+                                      : 'bg-[#0a0a0a] border-gray-700'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className={`font-medium ${
+                                      pick.round === 1 ? 'text-green-400' : 'text-purple-400'
+                                    }`}>
+                                      Round {pick.round}
+                                    </span>
+                                    {isTraded && (
+                                      <span className="text-xs text-yellow-400">Traded</span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-gray-400 mt-1">
+                                    {pick.originalTeamName}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedInfo.keepers.length === 0 && selectedInfo.redshirts.length === 0 && selectedInfo.intStash.length === 0 && teamRookiePicks.length === 0 && (
                   <div className="text-center py-12 text-gray-500">
                     No keepers selected
                   </div>

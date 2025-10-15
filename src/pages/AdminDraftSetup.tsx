@@ -80,6 +80,25 @@ export function AdminDraftSetup() {
         if (draft.status === 'in_progress' || draft.status === 'completed') {
           setStep('complete');
         }
+      } else {
+        // Load draft order from draftPicks collection (Round 1)
+        const draftPicksRef = collection(db, 'draftPicks');
+        const draftPicksQuery = query(
+          draftPicksRef,
+          where('leagueId', '==', currentLeagueId),
+          where('round', '==', 1)
+        );
+        const draftPicksSnap = await getDocs(draftPicksQuery);
+
+        if (!draftPicksSnap.empty) {
+          const round1Picks = draftPicksSnap.docs
+            .map(doc => doc.data())
+            .sort((a: any, b: any) => a.pickNumber - b.pickNumber);
+
+          const loadedOrder = round1Picks.map((pick: any) => pick.originalTeam);
+          console.log('[Draft Setup] Loaded draft order from draftPicks:', loadedOrder);
+          setDraftOrder(loadedOrder);
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error);

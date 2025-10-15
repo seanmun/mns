@@ -131,5 +131,21 @@ service cloud.firestore {
       // Only admins can read/write backups
       allow read, write: if isAdmin();
     }
+
+    // Rookie Draft Picks collection
+    match /rookieDraftPicks/{pickId} {
+      // All signed-in users can read rookie picks
+      allow read: if isSignedIn();
+      // Only admins can create/update/delete rookie picks
+      allow write: if isAdmin();
+    }
+
+    // Draft Picks collection
+    match /draftPicks/{pickId} {
+      // All signed-in users can read draft picks
+      allow read: if isSignedIn();
+      // Only admins can create/update/delete draft picks
+      allow write: if isAdmin();
+    }
   }
 }
