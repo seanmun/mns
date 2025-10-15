@@ -27,6 +27,28 @@ export function AdminViewRosters() {
     loadData();
   }, [role, currentLeagueId, navigate]);
 
+  const handleSubmitRoster = async () => {
+    if (!currentLeagueId || !selectedTeamId) return;
+
+    const confirmed = window.confirm(
+      `Submit ${selectedTeam?.name}'s roster?\n\nThis will lock their keeper selections.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const rosterId = `${currentLeagueId}_${selectedTeamId}`;
+      await updateDoc(doc(db, 'rosters', rosterId), {
+        status: 'submitted',
+      });
+      alert('Roster submitted successfully');
+      await loadData();
+    } catch (error) {
+      console.error('Error submitting roster:', error);
+      alert('Failed to submit roster');
+    }
+  };
+
   const loadData = async () => {
     if (!currentLeagueId || !currentLeague) return;
 
@@ -280,6 +302,14 @@ export function AdminViewRosters() {
                       </span>
                     </div>
                   </div>
+                  {selectedRoster.status === 'draft' && (
+                    <button
+                      onClick={handleSubmitRoster}
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium"
+                    >
+                      Submit Roster
+                    </button>
+                  )}
                 </div>
 
                 {/* Keepers Table */}
@@ -339,7 +369,24 @@ export function AdminViewRosters() {
                   </div>
                 )}
 
-                {selectedInfo.keepers.length === 0 && selectedInfo.redshirts.length === 0 && (
+                {/* International Stash */}
+                {selectedInfo.intStash.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3">International Stash ({selectedInfo.intStash.length})</h3>
+                    <div className="space-y-2">
+                      {selectedInfo.intStash.map((entry) => {
+                        const player = players.get(entry.playerId);
+                        return (
+                          <div key={entry.playerId} className="p-2 bg-[#0a0a0a] rounded">
+                            {player?.name || 'Unknown'} - {player?.position}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {selectedInfo.keepers.length === 0 && selectedInfo.redshirts.length === 0 && selectedInfo.intStash.length === 0 && (
                   <div className="text-center py-12 text-gray-500">
                     No keepers selected
                   </div>

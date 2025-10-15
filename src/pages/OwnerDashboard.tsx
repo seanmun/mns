@@ -92,8 +92,14 @@ export function OwnerDashboard() {
   // Initialize entries from roster or most recent scenario
   useEffect(() => {
     if (roster) {
-      // Load most recent scenario if available, otherwise show clean slate
-      if (roster.savedScenarios && roster.savedScenarios.length > 0) {
+      // If roster is submitted, load from roster.entries (the locked keepers)
+      if (roster.status === 'submitted' && roster.entries && roster.entries.length > 0) {
+        console.log('[OwnerDashboard] Loading submitted roster entries:', roster.entries.length);
+        setEntries(roster.entries);
+        setActiveScenarioId(null);
+      }
+      // Otherwise, load most recent scenario if available
+      else if (roster.savedScenarios && roster.savedScenarios.length > 0) {
         const mostRecent = [...roster.savedScenarios].sort((a, b) => b.timestamp - a.timestamp)[0];
         // Recalculate baseRound for all entries to ensure they're up to date
         const updatedEntries = mostRecent.entries.map((entry) => {
@@ -143,6 +149,8 @@ export function OwnerDashboard() {
           id: doc.id,
           ...doc.data(),
         })) as Player[];
+        console.log(`[OwnerDashboard] Fetched ${allPlayers.length} league players for leagueId: ${leagueId}`);
+        console.log(`[OwnerDashboard] Team ${teamId} roster entries:`, roster?.entries?.length || 0);
         setAllLeaguePlayers(allPlayers);
       } catch (error) {
         console.error('Error fetching league players:', error);
@@ -556,77 +564,87 @@ export function OwnerDashboard() {
         {/* Roster table or Draft Board View */}
         {roster?.status === 'submitted' ? (
           <>
-            {/* Desktop: Side by side Draft Board and Watch List */}
-            <div className="hidden lg:grid lg:grid-cols-2 gap-6 mb-6">
-              <DraftBoardView players={sortedPlayers} entries={stackedEntries} />
-              <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
+            {/* Desktop: Only Draft Board if viewing another team's roster */}
+            <div className="hidden lg:block mb-6">
+              <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} />
             </div>
+            {isOwner && (
+              <div className="hidden lg:block mb-6">
+                <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
+              </div>
+            )}
 
-            {/* Mobile: Draft Board and Watch List carousel */}
+            {/* Mobile: Draft Board only, or carousel if owner */}
             <div className="lg:hidden mb-6">
-              {/* Quick toggle buttons */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <button
-                  onClick={() => setDraftCarouselIndex(0)}
-                  className={`p-4 rounded-lg shadow-sm text-left transition-all ${
-                    draftCarouselIndex === 0
-                      ? 'bg-green-400 text-black ring-2 ring-green-400'
-                      : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
-                  }`}
-                >
-                  <div className="text-xs font-medium opacity-80">Draft Board</div>
-                  <div className="text-2xl font-bold mt-1">📋</div>
-                </button>
-                <button
-                  onClick={() => setDraftCarouselIndex(1)}
-                  className={`p-4 rounded-lg shadow-sm text-left transition-all ${
-                    draftCarouselIndex === 1
-                      ? 'bg-green-400 text-black ring-2 ring-green-400'
-                      : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
-                  }`}
-                >
-                  <div className="text-xs font-medium opacity-80">Watch List</div>
-                  <div className="text-2xl font-bold mt-1">⭐</div>
-                </button>
-              </div>
-
-              <div className="relative overflow-hidden">
-                {/* Carousel container */}
-                <div
-                  className="flex transition-transform duration-300 ease-out"
-                  style={{ transform: `translateX(-${draftCarouselIndex * 100}%)` }}
-                  onTouchStart={onTouchStart}
-                  onTouchMove={onTouchMove}
-                  onTouchEnd={onDraftTouchEnd}
-                >
-                  {/* Slide 1: Draft Board */}
-                  <div className="w-full flex-shrink-0 px-2">
-                    <DraftBoardView players={sortedPlayers} entries={stackedEntries} />
+              {isOwner ? (
+                <>
+                  {/* Quick toggle buttons */}
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <button
+                      onClick={() => setDraftCarouselIndex(0)}
+                      className={`p-4 rounded-lg shadow-sm text-left transition-all ${
+                        draftCarouselIndex === 0
+                          ? 'bg-green-400 text-black ring-2 ring-green-400'
+                          : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
+                      }`}
+                    >
+                      <div className="text-xs font-medium opacity-80">Draft Board</div>
+                      <div className="text-2xl font-bold mt-1">📋</div>
+                    </button>
+                    <button
+                      onClick={() => setDraftCarouselIndex(1)}
+                      className={`p-4 rounded-lg shadow-sm text-left transition-all ${
+                        draftCarouselIndex === 1
+                          ? 'bg-green-400 text-black ring-2 ring-green-400'
+                          : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
+                      }`}
+                    >
+                      <div className="text-xs font-medium opacity-80">Watch List</div>
+                      <div className="text-2xl font-bold mt-1">⭐</div>
+                    </button>
                   </div>
-                  {/* Slide 2: Watch List */}
-                  <div className="w-full flex-shrink-0 px-2">
-                    <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
-                  </div>
-                </div>
 
-                {/* Dots indicator */}
-                <div className="flex justify-center gap-2 mt-4">
-                  <button
-                    onClick={() => setDraftCarouselIndex(0)}
-                    className={`h-2 w-2 rounded-full transition-colors ${
-                      draftCarouselIndex === 0 ? 'bg-green-400' : 'bg-gray-700'
-                    }`}
-                    aria-label="View Draft Board"
-                  />
-                  <button
-                    onClick={() => setDraftCarouselIndex(1)}
-                    className={`h-2 w-2 rounded-full transition-colors ${
-                      draftCarouselIndex === 1 ? 'bg-green-400' : 'bg-gray-700'
-                    }`}
-                    aria-label="View Watch List"
-                  />
-                </div>
-              </div>
+                  <div className="relative overflow-hidden">
+                    {/* Carousel container */}
+                    <div
+                      className="flex transition-transform duration-300 ease-out"
+                      style={{ transform: `translateX(-${draftCarouselIndex * 100}%)` }}
+                      onTouchStart={onTouchStart}
+                      onTouchMove={onTouchMove}
+                      onTouchEnd={onDraftTouchEnd}
+                    >
+                      {/* Slide 1: Draft Board */}
+                      <div className="w-full flex-shrink-0 px-2">
+                        <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} />
+                      </div>
+                      {/* Slide 2: Watch List */}
+                      <div className="w-full flex-shrink-0 px-2">
+                        <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
+                      </div>
+                    </div>
+
+                    {/* Dots indicator */}
+                    <div className="flex justify-center gap-2 mt-4">
+                      <button
+                        onClick={() => setDraftCarouselIndex(0)}
+                        className={`h-2 w-2 rounded-full transition-colors ${
+                          draftCarouselIndex === 0 ? 'bg-green-400' : 'bg-gray-700'
+                        }`}
+                        aria-label="View Draft Board"
+                      />
+                      <button
+                        onClick={() => setDraftCarouselIndex(1)}
+                        className={`h-2 w-2 rounded-full transition-colors ${
+                          draftCarouselIndex === 1 ? 'bg-green-400' : 'bg-gray-700'
+                        }`}
+                        aria-label="View Watch List"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} />
+              )}
             </div>
           </>
         ) : (

@@ -303,16 +303,20 @@ export function AdminTeams() {
                   Keepers are {league.keepersLocked ? 'locked and visible to all' : 'private until locked'}
                 </div>
               </div>
-              <button
-                onClick={async () => {
-                  const newValue = !league.keepersLocked;
-                  const confirmed = window.confirm(
-                    newValue
-                      ? 'Lock keepers? This will:\n\n1. Make all submitted keeper decisions visible to everyone\n2. Drop all non-kept players to free agency (removes teamId)\n\nThis action cannot be easily undone. Continue?'
-                      : 'Unlock keepers? This will hide keeper decisions again (for testing purposes).\n\nNote: This will NOT reassign dropped players back to teams.'
-                  );
+              <div className="flex items-center gap-3">
+                <span className={`text-sm font-medium ${league.keepersLocked ? 'text-green-400' : 'text-gray-400'}`}>
+                  {league.keepersLocked ? 'LOCKED' : 'UNLOCKED'}
+                </span>
+                <button
+                  onClick={async () => {
+                    const newValue = !league.keepersLocked;
+                    const confirmed = window.confirm(
+                      newValue
+                        ? 'Lock keepers? This will:\n\n1. Make all submitted keeper decisions visible to everyone\n2. Drop all non-kept players to free agency (removes teamId)\n\nThis action cannot be easily undone. Continue?'
+                        : 'Unlock keepers? This will hide keeper decisions again (for testing purposes).\n\nNote: This will NOT reassign dropped players back to teams.'
+                    );
 
-                  if (!confirmed) return;
+                    if (!confirmed) return;
 
                   try {
                     // If locking, create backup first
@@ -404,14 +408,15 @@ export function AdminTeams() {
                     alert('Failed to update league settings. Backup may have been created - check Firestore backups collection.');
                   }
                 }}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  league.keepersLocked
-                    ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
-                    : 'border-2 border-green-400 text-green-400 hover:bg-green-400/10'
-                }`}
-              >
-                {league.keepersLocked ? '🔓 Unlock Keepers' : '🔒 Lock Keepers'}
-              </button>
+                  className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                    league.keepersLocked
+                      ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                      : 'bg-green-600 hover:bg-green-700 text-white'
+                  }`}
+                >
+                  {league.keepersLocked ? 'Unlock' : 'Lock'}
+                </button>
+              </div>
             </div>
           ))}
         </div>

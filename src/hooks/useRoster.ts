@@ -30,8 +30,12 @@ export function useRoster(leagueId: string, teamId: string, seasonYear?: number)
       rosterRef,
       (snapshot) => {
         if (snapshot.exists()) {
-          setRoster({ id: snapshot.id, ...snapshot.data() } as RosterDoc);
+          const rosterData = { id: snapshot.id, ...snapshot.data() } as RosterDoc;
+          console.log(`[useRoster] Roster ${rosterId} exists. Entries count:`, rosterData.entries?.length || 0);
+          console.log(`[useRoster] Roster status:`, rosterData.status);
+          setRoster(rosterData);
         } else {
+          console.log(`[useRoster] Roster ${rosterId} does NOT exist`);
           setRoster(null);
         }
         setLoading(false);
