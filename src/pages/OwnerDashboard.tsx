@@ -39,6 +39,7 @@ export function OwnerDashboard() {
   const [allLeaguePlayers, setAllLeaguePlayers] = useState<Player[]>([]);
   const [rookiePicks, setRookiePicks] = useState<RookieDraftPick[]>([]);
   const [draftedPlayers, setDraftedPlayers] = useState<Player[]>([]);
+  const [teamDraftPicks, setTeamDraftPicks] = useState<any[]>([]);
 
   // Check if current user is the owner of this team
   const isOwner = team?.owners.includes(user?.email || '') || false;
@@ -210,8 +211,8 @@ export function OwnerDashboard() {
 
           // Get picks for this team that have been drafted (accounting for trades)
           const teamDraftedPicks = draft.picks?.filter((pick: any) => {
-            // Include all picks that have a player, whether keeper slot or not
-            if (!pick.playerId || !pick.pickedAt) return false;
+            // ONLY include NON-KEEPER picks (keeper slots are already in roster entries)
+            if (!pick.playerId || !pick.pickedAt || pick.isKeeperSlot) return false;
 
             // Check actual owner (accounting for trades)
             const actualOwner = pickOwnership.get(pick.overallPick) || pick.teamId;
@@ -243,8 +244,10 @@ export function OwnerDashboard() {
             console.log('[OwnerDashboard] Player data:', draftedPlayerData.map(p => ({ id: p.id, name: p.name })));
 
             setDraftedPlayers(draftedPlayerData);
+            setTeamDraftPicks(teamDraftedPicks);
           } else {
             setDraftedPlayers([]);
+            setTeamDraftPicks([]);
           }
         }
       } catch (error) {
@@ -350,6 +353,7 @@ export function OwnerDashboard() {
         allPlayers: playersMap,
         tradeDelta: team?.capAdjustments.tradeDelta || 0,
         franchiseTags,
+        draftedPlayers,
       });
 
       await saveScenario({
@@ -437,6 +441,7 @@ export function OwnerDashboard() {
         allPlayers: playersMap,
         tradeDelta: team?.capAdjustments.tradeDelta || 0,
         franchiseTags: 0,
+        draftedPlayers,
       });
       return { stackedEntries: dropEntries, currentSummary: summary };
     }
@@ -449,9 +454,10 @@ export function OwnerDashboard() {
       allPlayers: playersMap,
       tradeDelta: team?.capAdjustments.tradeDelta || 0,
       franchiseTags,
+      draftedPlayers,
     });
     return { stackedEntries: entriesCopy, currentSummary: summary };
-  }, [entries, playersMap, team, canViewDecisions]);
+  }, [entries, playersMap, team, canViewDecisions, draftedPlayers]);
 
 
   const sortedPlayers = useMemo(() => {
@@ -664,12 +670,12 @@ export function OwnerDashboard() {
             {/* Desktop: 2-column layout for owners, single column for others */}
             {isOwner ? (
               <div className="hidden lg:grid lg:grid-cols-2 gap-6 mb-6">
-                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} />
+                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} draftedPicks={teamDraftPicks} />
                 <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
               </div>
             ) : (
               <div className="hidden lg:block mb-6">
-                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} />
+                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} draftedPicks={teamDraftPicks} />
               </div>
             )}
 
@@ -714,7 +720,7 @@ export function OwnerDashboard() {
                     >
                       {/* Slide 1: Draft Board */}
                       <div className="w-full flex-shrink-0 px-2">
-                        <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} />
+                        <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} draftedPicks={teamDraftPicks} />
                       </div>
                       {/* Slide 2: Watch List */}
                       <div className="w-full flex-shrink-0 px-2">
@@ -742,7 +748,7 @@ export function OwnerDashboard() {
                   </div>
                 </>
               ) : (
-                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} />
+                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} draftedPicks={teamDraftPicks} />
               )}
             </div>
           </>
@@ -845,47 +851,6 @@ export function OwnerDashboard() {
           </div>
         )}
 
-        {/* Drafted Players */}
-        {draftedPlayers.length > 0 && (
-          <div className="mt-6 bg-[#121212] rounded-lg border border-gray-800 p-6">
-            <h2 className="text-xl font-bold text-white mb-4">Drafted Players ({draftedPlayers.length})</h2>
-            <div className="space-y-2">
-              {draftedPlayers.map(player => {
-                const stats = projectedStats.get(player.fantraxId);
-                return (
-                  <div key={player.id} className="bg-[#0a0a0a] p-4 rounded-lg border border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold text-white">{player.name}</div>
-                        <div className="text-xs text-gray-400">
-                          {player.position} - {player.nbaTeam}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-green-400">
-                          ${(player.salary / 1_000_000).toFixed(1)}M
-                        </div>
-                        {stats && (
-                          <div className="text-xs text-gray-400">
-                            {stats.points.toFixed(1)} pts, {stats.rebounds.toFixed(1)} reb, {stats.assists.toFixed(1)} ast
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Total Salary</span>
-                <span className="font-bold text-white">
-                  ${(draftedPlayers.reduce((sum, p) => sum + p.salary, 0) / 1_000_000).toFixed(1)}M
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Rookie Draft Picks */}
         {rookiePicks.length > 0 && (

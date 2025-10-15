@@ -17,13 +17,13 @@ export function SummaryCard({ summary, maxKeepers = 8 }: SummaryCardProps) {
       {/* Counts */}
       <div className="space-y-3 mb-6">
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">Keepers</span>
+          <span className="text-gray-400">Roster</span>
           <span
             className={`font-semibold ${
-              summary.keepersCount > maxKeepers ? 'text-red-400' : 'text-white'
+              summary.keepersCount + summary.draftedCount > 13 ? 'text-red-400' : 'text-white'
             }`}
           >
-            {summary.keepersCount} / {maxKeepers}
+            {summary.keepersCount + summary.draftedCount} / 13
           </span>
         </div>
 

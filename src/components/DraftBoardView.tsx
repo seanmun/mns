@@ -1,11 +1,12 @@
-import type { Player, RosterEntry } from '../types';
+import type { Player, RosterEntry, DraftPick } from '../types';
 
 interface DraftBoardViewProps {
   players: Player[];
   entries: RosterEntry[];
+  draftedPicks?: DraftPick[];  // Draft picks with round info
 }
 
-export function DraftBoardView({ players, entries }: DraftBoardViewProps) {
+export function DraftBoardView({ players, entries, draftedPicks = [] }: DraftBoardViewProps) {
   const playersMap = new Map(players.map(p => [p.id, p]));
 
   // Group keepers by their assigned keeper round
@@ -20,6 +21,17 @@ export function DraftBoardView({ players, entries }: DraftBoardViewProps) {
       keepersByRound.get(round)!.push(entry);
     });
 
+  // Group drafted players by round (only non-keeper picks)
+  const draftedByRound = new Map<number, DraftPick[]>();
+  draftedPicks
+    .filter(pick => pick.playerId && !pick.isKeeperSlot)
+    .forEach(pick => {
+      if (!draftedByRound.has(pick.round)) {
+        draftedByRound.set(pick.round, []);
+      }
+      draftedByRound.get(pick.round)!.push(pick);
+    });
+
   // Get redshirts and int stash players
   const redshirts = entries.filter(e => e.decision === 'REDSHIRT');
   const intStash = entries.filter(e => e.decision === 'INT_STASH');
@@ -29,29 +41,38 @@ export function DraftBoardView({ players, entries }: DraftBoardViewProps) {
 
   return (
     <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
-      <h2 className="text-xl font-bold text-white mb-4">Draft Board - Keeper Rounds</h2>
+      <h2 className="text-xl font-bold text-white mb-4">Draft Board</h2>
       <p className="text-sm text-gray-400 mb-6">
-        Your keepers have been assigned to their final draft rounds. Remaining rounds will be filled during the draft.
+        Your draft picks by round. Keepers in green, drafted players in purple.
       </p>
 
       <div className="space-y-3">
         {rounds.map(round => {
           const keeper = keepersByRound.get(round)?.[0];
-          const player = keeper ? playersMap.get(keeper.playerId) : null;
+          const drafted = draftedByRound.get(round)?.[0];
+
+          // Determine which takes priority (keeper over drafted)
+          const hasKeeper = !!keeper;
+          const hasDrafted = !!drafted;
+
+          const keeperPlayer = keeper ? playersMap.get(keeper.playerId) : null;
+          const draftedPlayer = drafted ? playersMap.get(drafted.playerId!) : null;
 
           return (
             <div
               key={round}
               className={`flex items-center gap-4 p-4 rounded-lg border ${
-                keeper
+                hasKeeper
                   ? 'bg-green-400/5 border-green-400/30'
+                  : hasDrafted
+                  ? 'bg-purple-400/5 border-purple-400/30'
                   : 'bg-[#0a0a0a] border-gray-800'
               }`}
             >
               {/* Round Number */}
               <div className="flex-shrink-0 w-16">
                 <div className={`text-center font-bold ${
-                  keeper ? 'text-green-400' : 'text-gray-500'
+                  hasKeeper ? 'text-green-400' : hasDrafted ? 'text-purple-400' : 'text-gray-500'
                 }`}>
                   <div className="text-xs opacity-70">RD</div>
                   <div className="text-2xl">{round}</div>
@@ -59,19 +80,24 @@ export function DraftBoardView({ players, entries }: DraftBoardViewProps) {
               </div>
 
               {/* Player Info or Empty Slot */}
-              {keeper && player ? (
+              {hasKeeper && keeperPlayer ? (
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-white truncate">
-                        {player.name}
+                      <div className="flex items-center gap-2">
+                        <div className="font-semibold text-white truncate">
+                          {keeperPlayer.name}
+                        </div>
+                        <span className="text-xs px-1.5 py-0.5 bg-green-400/20 text-green-400 rounded">
+                          Keeper
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-gray-400">
-                          {player.position} • {player.nbaTeam}
+                          {keeperPlayer.position} • {keeperPlayer.nbaTeam}
                         </span>
                         <span className="text-xs font-semibold text-green-400">
-                          ${(player.salary / 1_000_000).toFixed(1)}M
+                          ${(keeperPlayer.salary / 1_000_000).toFixed(1)}M
                         </span>
                         {keeper.baseRound && keeper.baseRound !== round && (
                           <span className="text-xs text-gray-500">
@@ -82,9 +108,32 @@ export function DraftBoardView({ players, entries }: DraftBoardViewProps) {
                     </div>
                   </div>
                 </div>
+              ) : hasDrafted && draftedPlayer ? (
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <div className="font-semibold text-white truncate">
+                          {draftedPlayer.name}
+                        </div>
+                        <span className="text-xs px-1.5 py-0.5 bg-purple-400/20 text-purple-400 rounded">
+                          Drafted
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-400">
+                          {draftedPlayer.position} • {draftedPlayer.nbaTeam}
+                        </span>
+                        <span className="text-xs font-semibold text-purple-400">
+                          ${(draftedPlayer.salary / 1_000_000).toFixed(1)}M
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div className="flex-1 text-gray-500 text-sm">
-                  Available - To be filled in draft
+                  Available
                 </div>
               )}
             </div>
@@ -168,17 +217,23 @@ export function DraftBoardView({ players, entries }: DraftBoardViewProps) {
 
       {/* Summary */}
       <div className="mt-6 pt-6 border-t border-gray-800">
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-3 gap-4 text-sm">
           <div>
-            <div className="text-gray-400">Keeper Rounds Filled</div>
+            <div className="text-gray-400">Keepers</div>
             <div className="text-2xl font-bold text-green-400">
-              {keepersByRound.size} / 13
+              {keepersByRound.size}
             </div>
           </div>
           <div>
-            <div className="text-gray-400">Draft Picks Remaining</div>
+            <div className="text-gray-400">Drafted</div>
+            <div className="text-2xl font-bold text-purple-400">
+              {draftedByRound.size}
+            </div>
+          </div>
+          <div>
+            <div className="text-gray-400">Available</div>
             <div className="text-2xl font-bold text-white">
-              {13 - keepersByRound.size}
+              {13 - keepersByRound.size - draftedByRound.size}
             </div>
           </div>
         </div>

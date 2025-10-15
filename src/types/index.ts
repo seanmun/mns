@@ -96,6 +96,7 @@ export interface RosterEntry {
 
 export interface RosterSummary {
   keepersCount: number;
+  draftedCount: number;         // players drafted in live draft
   redshirtsCount: number;
   intStashCount: number;
   capUsed: number;

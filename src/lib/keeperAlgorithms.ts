@@ -209,6 +209,7 @@ interface ComputeSummaryParams {
   redshirtFee?: number;
   franchiseTagFee?: number;
   franchiseTags: number;
+  draftedPlayers?: Player[];  // Players drafted in live draft
 }
 
 /**
@@ -225,6 +226,7 @@ export function computeSummary(params: ComputeSummaryParams): RosterSummary {
     redshirtFee = 10,
     franchiseTagFee = 15,
     franchiseTags,
+    draftedPlayers = [],
   } = params;
 
   // Get kept, redshirted, and int stash player IDs
@@ -240,11 +242,14 @@ export function computeSummary(params: ComputeSummaryParams): RosterSummary {
     .filter((e) => e.decision === "INT_STASH")
     .map((e) => e.playerId);
 
-  // Calculate cap used (only KEEP decisions count)
-  const capUsed = keptIds.reduce((sum, playerId) => {
+  // Calculate cap used (KEEP decisions + drafted players)
+  let capUsed = keptIds.reduce((sum, playerId) => {
     const player = allPlayers.get(playerId);
     return sum + (player?.salary || 0);
   }, 0);
+
+  // Add drafted players' salaries to cap
+  capUsed += draftedPlayers.reduce((sum, player) => sum + player.salary, 0);
 
   // Calculate effective cap (base + trade delta, clamped to 170M-255M)
   const capEffective = Math.max(
@@ -271,6 +276,7 @@ export function computeSummary(params: ComputeSummaryParams): RosterSummary {
 
   return {
     keepersCount: keptIds.length,
+    draftedCount: draftedPlayers.length,
     redshirtsCount: redshirtIds.length,
     intStashCount: intStashIds.length,
     capUsed,
