@@ -210,7 +210,8 @@ export function OwnerDashboard() {
 
           // Get picks for this team that have been drafted (accounting for trades)
           const teamDraftedPicks = draft.picks?.filter((pick: any) => {
-            if (!pick.playerId || !pick.pickedAt || pick.isKeeperSlot) return false;
+            // Include all picks that have a player, whether keeper slot or not
+            if (!pick.playerId || !pick.pickedAt) return false;
 
             // Check actual owner (accounting for trades)
             const actualOwner = pickOwnership.get(pick.overallPick) || pick.teamId;
