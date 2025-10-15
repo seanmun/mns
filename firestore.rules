@@ -125,5 +125,11 @@ service cloud.firestore {
       // Only admins can create/update/delete drafts
       allow write: if isAdmin();
     }
+
+    // Backups collection
+    match /backups/{backupId} {
+      // Only admins can read/write backups
+      allow read, write: if isAdmin();
+    }
   }
 }
