@@ -228,12 +228,19 @@ export function OwnerDashboard() {
           // Load player data for drafted picks
           if (teamDraftedPicks.length > 0) {
             const playerIds = teamDraftedPicks.map((pick: any) => pick.playerId);
+            console.log('[OwnerDashboard] Looking for player IDs:', playerIds);
+
             const playersRef = collection(db, 'players');
             const playersSnap = await getDocs(playersRef);
+
+            console.log('[OwnerDashboard] Total players in DB:', playersSnap.docs.length);
 
             const draftedPlayerData = playersSnap.docs
               .map(doc => ({ id: doc.id, ...doc.data() }) as Player)
               .filter(p => playerIds.includes(p.id));
+
+            console.log('[OwnerDashboard] Matched players:', draftedPlayerData.length);
+            console.log('[OwnerDashboard] Player data:', draftedPlayerData.map(p => ({ id: p.id, name: p.name })));
 
             setDraftedPlayers(draftedPlayerData);
           } else {

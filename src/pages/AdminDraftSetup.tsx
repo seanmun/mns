@@ -319,6 +319,72 @@ export function AdminDraftSetup() {
     }
   };
 
+  const handleFixDraftedPlayers = async () => {
+    if (!existingDraft || !currentLeagueId) return;
+
+    const confirmed = window.confirm(
+      '🔧 FIX DRAFTED PLAYERS\n\n' +
+      'This will update all drafted players to assign them to their teams.\n\n' +
+      'This fixes the issue where players were drafted but not added to team rosters.\n\n' +
+      'Continue?'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Find all picks that have a player assigned
+      const draftedPicks = existingDraft.picks.filter(pick => pick.playerId);
+
+      console.log('[AdminDraftSetup] Fixing', draftedPicks.length, 'drafted players');
+
+      // Load draft pick ownership for trades
+      const draftPicksRef = collection(db, 'draftPicks');
+      const draftPicksQuery = query(draftPicksRef, where('leagueId', '==', currentLeagueId));
+      const draftPicksSnap = await getDocs(draftPicksQuery);
+
+      const ownershipMap = new Map<number, string>();
+      draftPicksSnap.docs.forEach((doc) => {
+        const pick = doc.data();
+        ownershipMap.set(pick.pickNumber, pick.currentOwner);
+      });
+
+      // Update each player
+      let fixed = 0;
+      for (const pick of draftedPicks) {
+        try {
+          // Get actual owner (accounting for trades)
+          const actualOwner = ownershipMap.get(pick.overallPick) || pick.teamId;
+
+          const playerRef = doc(db, 'players', pick.playerId!);
+          const playerSnap = await getDoc(playerRef);
+
+          if (playerSnap.exists()) {
+            await setDoc(playerRef, {
+              ...playerSnap.data(),
+              roster: {
+                ...playerSnap.data().roster,
+                teamId: actualOwner,
+                leagueId: currentLeagueId
+              }
+            });
+            fixed++;
+            console.log('[AdminDraftSetup] Fixed player', pick.playerName, 'assigned to', actualOwner);
+          } else {
+            console.warn('[AdminDraftSetup] Player not found:', pick.playerId);
+          }
+        } catch (error) {
+          console.error('[AdminDraftSetup] Error fixing player:', pick.playerName, error);
+        }
+      }
+
+      alert(`Successfully fixed ${fixed} drafted players!`);
+      await loadData(); // Reload to refresh data
+    } catch (error: any) {
+      console.error('[AdminDraftSetup] Error fixing drafted players:', error);
+      alert(`Failed to fix players: ${error?.message || 'Unknown error'}`);
+    }
+  };
+
   if (step === 'complete' && existingDraft) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] py-8">
@@ -390,7 +456,14 @@ export function AdminDraftSetup() {
               Back to Admin
             </button>
 
-            <div className="border-t border-gray-800 pt-3 mt-3">
+            <div className="border-t border-gray-800 pt-3 mt-3 space-y-3">
+              <button
+                onClick={handleFixDraftedPlayers}
+                className="w-full px-6 py-3 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 font-semibold rounded-lg hover:bg-yellow-500/20 transition-colors"
+              >
+                🔧 Fix Drafted Players
+              </button>
+
               <button
                 onClick={handleDeleteDraft}
                 className="w-full px-6 py-3 bg-red-500/10 border border-red-500/30 text-red-400 font-semibold rounded-lg hover:bg-red-500/20 transition-colors"
