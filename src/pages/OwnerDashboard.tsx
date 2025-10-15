@@ -524,7 +524,7 @@ export function OwnerDashboard() {
 
 
         {/* Scenario Selector Dropdown - Only show when keepers are not locked and user is owner */}
-        {isOwner && roster?.status !== 'adminLocked' && (
+        {isOwner && roster?.status !== 'adminLocked' && league?.keepersLocked !== true && (
           <div className="bg-[#121212] p-6 rounded-lg border border-gray-800 mb-6">
             <label className="block text-sm font-medium text-white mb-2">
               Load Scenario
@@ -564,13 +564,15 @@ export function OwnerDashboard() {
         {/* Roster table or Draft Board View */}
         {roster?.status === 'submitted' ? (
           <>
-            {/* Desktop: Only Draft Board if viewing another team's roster */}
-            <div className="hidden lg:block mb-6">
-              <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} />
-            </div>
-            {isOwner && (
-              <div className="hidden lg:block mb-6">
+            {/* Desktop: 2-column layout for owners, single column for others */}
+            {isOwner ? (
+              <div className="hidden lg:grid lg:grid-cols-2 gap-6 mb-6">
+                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} />
                 <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
+              </div>
+            ) : (
+              <div className="hidden lg:block mb-6">
+                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} />
               </div>
             )}
 
