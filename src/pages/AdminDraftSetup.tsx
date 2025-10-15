@@ -55,7 +55,7 @@ export function AdminDraftSetup() {
       // Load rosters for each team
       const rostersData: RosterDoc[] = [];
       for (const team of teamsData) {
-        const rosterId = `${currentLeagueId}_${team.id}_${currentLeague.seasonYear}`;
+        const rosterId = `${currentLeagueId}_${team.id}`;
         const rosterRef = doc(db, 'rosters', rosterId);
         const rosterSnap = await getDoc(rosterRef);
         if (rosterSnap.exists()) {
