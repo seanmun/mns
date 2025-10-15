@@ -883,14 +883,14 @@ export function Draft() {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <div className="text-center min-w-[32px]">
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                      <div className="text-center flex-shrink-0 min-w-[32px]">
                         <div className="text-[9px] text-gray-500 leading-tight">OVR</div>
                         <div className="text-sm font-bold text-green-400 leading-tight">
                           {pick.overallPick}
                         </div>
                       </div>
-                      <div className="text-center min-w-[28px]">
+                      <div className="text-center flex-shrink-0 min-w-[28px]">
                         <div className="text-[9px] text-gray-500 leading-tight">Pick</div>
                         <div className="text-xs font-semibold text-white leading-tight">
                           {pick.pickInRound}
@@ -913,7 +913,7 @@ export function Draft() {
                       </div>
                     </div>
 
-                    <div className="text-right flex-shrink-0">
+                    <div className="text-right flex-shrink-0 min-w-[80px]">
                       {pick.playerName ? (
                         <div>
                           <div className="text-sm font-semibold text-white">
