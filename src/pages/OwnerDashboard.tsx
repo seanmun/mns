@@ -13,7 +13,7 @@ import { SummaryCard } from '../components/SummaryCard';
 import { DraftBoardView } from '../components/DraftBoardView';
 import { WatchListView } from '../components/WatchListView';
 import { baseKeeperRound, stackKeeperRounds, computeSummary, validateRoster } from '../lib/keeperAlgorithms';
-import type { RosterEntry, Decision, Player } from '../types';
+import type { RosterEntry, Decision, Player, SavedScenario } from '../types';
 
 export function OwnerDashboard() {
   const { leagueId, teamId } = useParams<{ leagueId: string; teamId: string }>();
@@ -37,7 +37,7 @@ export function OwnerDashboard() {
   const [entries, setEntries] = useState<RosterEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
-  // const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null); // Hidden for now
+  const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [draftCarouselIndex, setDraftCarouselIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -105,7 +105,7 @@ export function OwnerDashboard() {
           };
         });
         setEntries(updatedEntries);
-        // setActiveScenarioId(mostRecent.scenarioId); // Hidden for now
+        setActiveScenarioId(mostRecent.scenarioId);
       } else {
         // No scenarios - show clean slate (all players as DROP)
         if (players.length > 0) {
@@ -115,7 +115,7 @@ export function OwnerDashboard() {
             baseRound: baseKeeperRound(player) || 13,
           }));
           setEntries(cleanSlate);
-          // setActiveScenarioId(null); // Hidden for now
+          setActiveScenarioId(null);
         }
       }
     } else if (players.length > 0 && entries.length === 0) {
@@ -126,7 +126,7 @@ export function OwnerDashboard() {
         baseRound: baseKeeperRound(player) || 13,
       }));
       setEntries(initialEntries);
-      // setActiveScenarioId(null); // Hidden for now
+      setActiveScenarioId(null);
     }
   }, [roster, players, playersMap]);
 
@@ -266,10 +266,18 @@ export function OwnerDashboard() {
     }
   };
 
-  // Removed scenario handling functions - scenarios hidden for now
-  // const handleLoadScenario = (scenario: SavedScenario) => { ... };
-  // const handleScenarioChange = (scenarioId: string) => { ... };
-  // const handleDeleteScenario = async (scenarioId: string) => { ... };
+  const handleLoadScenario = (scenario: SavedScenario) => {
+    // Recalculate baseRound for all entries to ensure they're up to date
+    const updatedEntries = scenario.entries.map((entry) => {
+      const player = playersMap.get(entry.playerId);
+      return {
+        ...entry,
+        baseRound: player ? (baseKeeperRound(player) || 13) : (entry.baseRound || 13),
+      };
+    });
+    setEntries(updatedEntries);
+    setActiveScenarioId(scenario.scenarioId);
+  };
 
   const handleSubmit = async () => {
     const errors = validateRoster(entries, playersMap, team?.settings.maxKeepers);
@@ -507,7 +515,43 @@ export function OwnerDashboard() {
         </div>
 
 
-        {/* Scenario Selector - Hidden for now */}
+        {/* Scenario Selector Dropdown - Only show when keepers are not locked and user is owner */}
+        {isOwner && roster?.status !== 'adminLocked' && (
+          <div className="bg-[#121212] p-6 rounded-lg border border-gray-800 mb-6">
+            <label className="block text-sm font-medium text-white mb-2">
+              Load Scenario
+            </label>
+            <select
+              value={activeScenarioId || ''}
+              onChange={(e) => {
+                const scenarioId = e.target.value;
+                if (scenarioId === '') {
+                  // Load blank slate
+                  const cleanSlate: RosterEntry[] = players.map((player) => ({
+                    playerId: player.id,
+                    decision: 'DROP',
+                    baseRound: baseKeeperRound(player) || 13,
+                  }));
+                  setEntries(cleanSlate);
+                  setActiveScenarioId(null);
+                } else {
+                  const scenario = roster?.savedScenarios?.find(s => s.scenarioId === scenarioId);
+                  if (scenario) {
+                    handleLoadScenario(scenario);
+                  }
+                }
+              }}
+              className="w-full rounded-md bg-[#0a0a0a] border-gray-700 text-white shadow-sm focus:border-green-400 focus:ring-green-400"
+            >
+              <option value="">Blank Slate (All Dropped)</option>
+              {roster?.savedScenarios?.map((scenario) => (
+                <option key={scenario.scenarioId} value={scenario.scenarioId}>
+                  {scenario.name} - {scenario.summary.keepersCount} keepers, ${(scenario.summary.capUsed / 1_000_000).toFixed(1)}M cap, ${scenario.summary.totalFees} fees
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Roster table or Draft Board View */}
         {roster?.status === 'submitted' ? (
