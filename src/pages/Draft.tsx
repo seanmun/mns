@@ -7,7 +7,7 @@ import { useLeague } from '../contexts/LeagueContext';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
 import { sendTelegramMessage } from '../utils/telegram';
-import type { Draft, DraftPick, Team, Player } from '../types';
+import type { Draft, Team, Player } from '../types';
 
 export function Draft() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -23,7 +23,6 @@ export function Draft() {
   const [view, setView] = useState<'board' | 'players'>('board');
   const [searchTerm, setSearchTerm] = useState('');
   const [positionFilter, setPositionFilter] = useState<string>('all');
-  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sortColumn, setSortColumn] = useState<'salary' | 'score' | 'points' | 'rebounds' | 'assists' | 'steals' | 'blocks' | 'fgPercent' | 'ftPercent' | 'threePointMade'>('score');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -229,7 +228,6 @@ export function Draft() {
 
       // Success! Switch back to board view
       setView('board');
-      setExpandedPlayerId(null);
       setSearchTerm('');
 
       alert(`Successfully drafted ${player.name}!`);
