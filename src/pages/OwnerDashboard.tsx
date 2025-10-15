@@ -218,6 +218,13 @@ export function OwnerDashboard() {
             return actualOwner === teamId;
           }) || [];
 
+          console.log('[OwnerDashboard] Team:', teamId);
+          console.log('[OwnerDashboard] Total draft picks:', draft.picks?.length);
+          console.log('[OwnerDashboard] Drafted picks for this team:', teamDraftedPicks.length);
+          if (teamDraftedPicks.length > 0) {
+            console.log('[OwnerDashboard] First pick details:', teamDraftedPicks[0]);
+          }
+
           // Load player data for drafted picks
           if (teamDraftedPicks.length > 0) {
             const playerIds = teamDraftedPicks.map((pick: any) => pick.playerId);
