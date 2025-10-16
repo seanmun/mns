@@ -267,3 +267,15 @@ export interface UserClaims {
   leagueIds: string[];
   teamIds: string[];
 }
+
+// Portfolio (prize pool tracking)
+export interface Portfolio {
+  id: string;                    // Same as leagueId
+  leagueId: string;
+  walletAddress: string;         // EVM address (e.g., "0x...")
+  usdInvested: number;           // Total USD invested in wallet
+  lastUpdated: number;           // Timestamp of last blockchain fetch
+  cachedEthBalance?: number;     // Cached ETH balance
+  cachedUsdValue?: number;       // Cached USD value of wallet
+  cachedEthPrice?: number;       // Cached ETH/USD price
+}

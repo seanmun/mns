@@ -23,6 +23,7 @@ import { AdminViewRosters } from './pages/AdminViewRosters';
 import { AdminRookiePicks } from './pages/AdminRookiePicks';
 import { AdminDraftPicks } from './pages/AdminDraftPicks';
 import { AdminTradeManager } from './pages/AdminTradeManager';
+import { AdminPortfolio } from './pages/AdminPortfolio';
 import { Inbox } from './pages/Inbox';
 import { Profile } from './pages/Profile';
 
@@ -176,6 +177,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <AdminDraftPicks />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/portfolio"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminPortfolio />
                 </AppLayout>
               </PrivateRoute>
             }

@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import type { Team, League, RosterDoc, Draft, Player } from '../types';
+import { fetchWalletData } from '../lib/blockchain';
+import type { Team, League, RosterDoc, Draft, Player, Portfolio } from '../types';
 
 export function LeagueHome() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -25,6 +26,8 @@ export function LeagueHome() {
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
   const seasonDropdownRef = useRef<HTMLDivElement>(null);
   const [teamSalaries, setTeamSalaries] = useState<Map<string, number>>(new Map());
+  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [portfolioLoading, setPortfolioLoading] = useState(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -72,13 +75,10 @@ export function LeagueHome() {
 
         setTeams(teamData);
 
-        // Fetch roster status and calculate total keeper fees
+        // Fetch roster summaries ONLY for franchise tags and redshirt fees (set during keeper phase)
         const rostersMap = new Map<string, RosterDoc>();
-        let totalFees = 0;
-        let penaltyDues = 0;
         let franchiseTagDues = 0;
         let redshirtDues = 0;
-        let firstApronFee = 0;
 
         // NOTE: Roster document IDs are stored as {leagueId}_{teamId} WITHOUT year suffix
         // For 2025-2026 season, IDs are like: "XPL9dJv8BTFNAMlrNBpJ_8RmmV46iLVXcRQ3ltJuW"
@@ -87,33 +87,18 @@ export function LeagueHome() {
           teamData.map(async (team) => {
             const rosterDocId = `${leagueId}_${team.id}`;
             const rosterDoc = await getDoc(doc(db, 'rosters', rosterDocId));
-            console.log('[LeagueHome] Looking for roster:', rosterDocId, 'exists:', rosterDoc.exists());
             if (rosterDoc.exists()) {
               const rosterData = { id: rosterDoc.id, ...rosterDoc.data() } as RosterDoc;
               rostersMap.set(team.id, rosterData);
-              console.log('[LeagueHome] Roster status:', rosterData.status, 'summary exists:', !!rosterData.summary);
 
-              if (rosterData.status === 'submitted') {
-                // Add team's total fees to prize pool
-                if (rosterData.summary) {
-                  console.log('[LeagueHome] Adding fees from', team.name, ':', {
-                    totalFees: rosterData.summary.totalFees,
-                    franchiseTagDues: rosterData.summary.franchiseTagDues,
-                    redshirtDues: rosterData.summary.redshirtDues
-                  });
-                  totalFees += rosterData.summary.totalFees || 0;
-                  penaltyDues += rosterData.summary.penaltyDues || 0;
-                  franchiseTagDues += rosterData.summary.franchiseTagDues || 0;
-                  redshirtDues += rosterData.summary.redshirtDues || 0;
-                  firstApronFee += rosterData.summary.firstApronFee || 0;
-                }
+              if (rosterData.status === 'submitted' && rosterData.summary) {
+                // ONLY pull keeper-phase fees (franchise tags, redshirts)
+                franchiseTagDues += rosterData.summary.franchiseTagDues || 0;
+                redshirtDues += rosterData.summary.redshirtDues || 0;
               }
             }
           })
         );
-        console.log('[LeagueHome] Total keeper fees:', totalFees, 'Breakdown:', { penaltyDues, franchiseTagDues, redshirtDues, firstApronFee });
-        setTotalKeeperFees(totalFees);
-        setFeeBreakdown({ penaltyDues, franchiseTagDues, redshirtDues, firstApronFee });
 
         // Simple approach: sum all player salaries from draft picks
         const draftId = `${leagueId}_${leagueData.seasonYear}`;
@@ -149,28 +134,40 @@ export function LeagueHome() {
 
           setTeamSalaries(salariesMap);
 
-          // Recalculate first apron fees based on total roster salaries (keepers + drafted)
-          let actualFirstApronFees = 0;
+          // Calculate apron fees based on TOTAL ROSTER salaries (keepers + drafted players)
+          let firstApronFees = 0;
+          let secondApronPenalties = 0;
+
           salariesMap.forEach((totalSalary) => {
+            // First apron fee: $50 if over $195M
             if (totalSalary > 195_000_000) {
-              actualFirstApronFees += 50;
+              firstApronFees += 50;
+            }
+
+            // Second apron penalty: $2 per $1M over $225M
+            if (totalSalary > 225_000_000) {
+              const overByM = Math.ceil((totalSalary - 225_000_000) / 1_000_000);
+              secondApronPenalties += overByM * 2;
             }
           });
 
-          // Update fee breakdown with recalculated first apron fees
-          const updatedTotalFees = totalFees - firstApronFee + actualFirstApronFees;
-          setTotalKeeperFees(updatedTotalFees);
+          // Total fees = keeper-phase fees + apron fees based on final rosters
+          const totalPrizeFees = franchiseTagDues + redshirtDues + firstApronFees + secondApronPenalties;
+          setTotalKeeperFees(totalPrizeFees);
           setFeeBreakdown({
-            penaltyDues,
+            penaltyDues: secondApronPenalties,
             franchiseTagDues,
             redshirtDues,
-            firstApronFee: actualFirstApronFees
+            firstApronFee: firstApronFees
           });
         }
 
         // Find user's team
         const userTeam = teamData.find((team) => team.owners.includes(user.email || ''));
         setMyTeam(userTeam || null);
+
+        // Load portfolio data
+        await loadPortfolioData();
 
         setLoading(false);
       } catch (error) {
@@ -181,6 +178,59 @@ export function LeagueHome() {
 
     fetchData();
   }, [leagueId, user]);
+
+  const loadPortfolioData = async () => {
+    if (!leagueId) return;
+
+    try {
+      const portfolioDoc = await getDoc(doc(db, 'portfolios', leagueId));
+      if (!portfolioDoc.exists()) {
+        setPortfolio(null);
+        return;
+      }
+
+      const portfolioData = { id: portfolioDoc.id, ...portfolioDoc.data() } as Portfolio;
+
+      // Check if cache is older than 1 hour
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
+      const needsRefresh = !portfolioData.lastUpdated || portfolioData.lastUpdated < oneHourAgo;
+
+      if (needsRefresh && portfolioData.walletAddress) {
+        // Fetch fresh data from blockchain
+        await refreshPortfolioData(portfolioData);
+      } else {
+        // Use cached data
+        setPortfolio(portfolioData);
+      }
+    } catch (error) {
+      console.error('Error loading portfolio:', error);
+    }
+  };
+
+  const refreshPortfolioData = async (portfolioData: Portfolio) => {
+    setPortfolioLoading(true);
+    try {
+      const walletData = await fetchWalletData(portfolioData.walletAddress);
+
+      const updatedPortfolio: Portfolio = {
+        ...portfolioData,
+        cachedEthBalance: walletData.ethBalance,
+        cachedEthPrice: walletData.ethPrice,
+        cachedUsdValue: walletData.usdValue,
+        lastUpdated: walletData.timestamp,
+      };
+
+      // Save updated data to Firestore
+      await setDoc(doc(db, 'portfolios', leagueId!), updatedPortfolio);
+      setPortfolio(updatedPortfolio);
+    } catch (error) {
+      console.error('Error refreshing portfolio data:', error);
+      // Fallback to cached data
+      setPortfolio(portfolioData);
+    } finally {
+      setPortfolioLoading(false);
+    }
+  };
 
   const handleTeamClick = (teamId: string) => {
     navigate(`/league/${leagueId}/team/${teamId}`);
@@ -434,6 +484,82 @@ export function LeagueHome() {
                 </div>
               )}
             </div>
+
+            {/* Portfolio Section */}
+            {portfolio && portfolio.walletAddress && (
+              <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-white">Portfolio Tracker</h2>
+                  <button
+                    onClick={() => refreshPortfolioData(portfolio)}
+                    disabled={portfolioLoading}
+                    className="px-3 py-1 text-xs bg-green-400/20 text-green-400 border border-green-400/30 rounded hover:bg-green-400/30 disabled:opacity-50 transition-colors"
+                  >
+                    {portfolioLoading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
+
+                {portfolio.cachedUsdValue !== undefined ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                        <div className="text-xs text-gray-400 mb-1">Total Collected</div>
+                        <div className="text-2xl font-bold text-white">${teams.length * 50 + totalKeeperFees}</div>
+                      </div>
+                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                        <div className="text-xs text-gray-400 mb-1">USD Invested</div>
+                        <div className="text-2xl font-bold text-yellow-400">${portfolio.usdInvested}</div>
+                      </div>
+                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                        <div className="text-xs text-gray-400 mb-1">Cash on Hand</div>
+                        <div className="text-2xl font-bold text-blue-400">${teams.length * 50 + totalKeeperFees - portfolio.usdInvested}</div>
+                      </div>
+                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                        <div className="text-xs text-gray-400 mb-1">Wallet Value</div>
+                        <div className="text-2xl font-bold text-purple-400">${portfolio.cachedUsdValue.toFixed(2)}</div>
+                        <div className="text-xs text-gray-500 mt-1">{portfolio.cachedEthBalance?.toFixed(4)} ETH</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-green-400/10 to-purple-400/10 rounded-lg p-4 border border-green-400/30">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm text-gray-400">Total Prize Pool Value</div>
+                          <div className="text-3xl font-bold text-green-400">
+                            ${(portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)).toFixed(2)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-gray-400">Return</div>
+                          <div className={`text-2xl font-bold ${
+                            (portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) > (teams.length * 50 + totalKeeperFees)
+                              ? 'text-green-400'
+                              : 'text-red-400'
+                          }`}>
+                            {((portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) > (teams.length * 50 + totalKeeperFees) ? '+' : '')}
+                            ${((portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) - (teams.length * 50 + totalKeeperFees)).toFixed(2)}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            ({(((portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) / (teams.length * 50 + totalKeeperFees) - 1) * 100).toFixed(2)}%)
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-gray-500 text-center">
+                      Last updated: {portfolio.lastUpdated ? new Date(portfolio.lastUpdated).toLocaleString() : 'Never'}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    <div className="text-sm">Wallet configured. Click refresh to fetch balance.</div>
+                    <div className="text-xs text-gray-500 mt-2 font-mono">
+                      {portfolio.walletAddress.slice(0, 10)}...{portfolio.walletAddress.slice(-8)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* All Teams Section */}
             <div className="bg-[#121212] rounded-lg border border-gray-800">
