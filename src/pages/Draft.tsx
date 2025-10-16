@@ -271,6 +271,58 @@ export function Draft() {
     }
   };
 
+  const undoPick = async (pickNumber: number) => {
+    if (!draft || !leagueId || !currentLeague) return;
+
+    const pickToUndo = draft.picks.find(p => p.overallPick === pickNumber);
+    if (!pickToUndo || !pickToUndo.playerId) {
+      alert('This pick has no player to undo.');
+      return;
+    }
+
+    const confirmMsg = `Are you sure you want to undo pick #${pickNumber}?\n\nPlayer: ${pickToUndo.playerName}\nTeam: ${pickToUndo.teamName}\n\nThis will release the player back to the pool and reopen this pick.`;
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const draftId = `${leagueId}_${currentLeague.seasonYear}`;
+      const draftRef = doc(db, 'drafts', draftId);
+      const playerRef = doc(db, 'players', pickToUndo.playerId);
+
+      await runTransaction(db, async (transaction) => {
+        const draftSnap = await transaction.get(draftRef);
+        if (!draftSnap.exists()) throw new Error('Draft not found');
+
+        const currentDraft = draftSnap.data() as Draft;
+        const updatedPicks = currentDraft.picks.map(p => {
+          if (p.overallPick === pickNumber) {
+            return {
+              ...p,
+              playerId: null,
+              playerName: null,
+              pickedAt: null,
+            };
+          }
+          return p;
+        });
+
+        // Update draft with cleared pick
+        transaction.update(draftRef, { picks: updatedPicks });
+
+        // Release player back to pool
+        transaction.update(playerRef, {
+          'roster.teamId': null,
+          'roster.leagueId': null,
+        });
+      });
+
+      alert(`Pick #${pickNumber} has been undone. ${pickToUndo.playerName} is back in the player pool.`);
+    } catch (error: any) {
+      console.error('Error undoing pick:', error);
+      alert(`Failed to undo pick: ${error.message}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
@@ -889,16 +941,27 @@ export function Draft() {
                       </div>
                     </div>
 
-                    <div className="text-right flex-shrink-0 min-w-[80px]">
+                    <div className="text-right flex-shrink-0 min-w-[80px] flex items-center justify-end gap-2">
                       {pick.playerName ? (
-                        <div>
-                          <div className="text-sm font-semibold text-white">
-                            {pick.playerName}
+                        <>
+                          <div>
+                            <div className="text-sm font-semibold text-white">
+                              {pick.playerName}
+                            </div>
+                            <div className="text-[10px] text-gray-500">
+                              {pick.isKeeperSlot ? 'Keeper' : 'Drafted'}
+                            </div>
                           </div>
-                          <div className="text-[10px] text-gray-500">
-                            {pick.isKeeperSlot ? 'Keeper' : 'Drafted'}
-                          </div>
-                        </div>
+                          {isAdmin && !pick.isKeeperSlot && (
+                            <button
+                              onClick={() => undoPick(pick.overallPick)}
+                              className="px-2 py-1 text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded hover:bg-red-500/30 transition-colors"
+                              title="Undo this pick"
+                            >
+                              Undo
+                            </button>
+                          )}
+                        </>
                       ) : isOnClock ? (
                         <div className="text-xs text-purple-400 font-semibold animate-pulse">
                           Selecting...
