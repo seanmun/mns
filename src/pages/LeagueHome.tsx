@@ -80,7 +80,7 @@ export function LeagueHome() {
 
         await Promise.all(
           teamData.map(async (team) => {
-            const rosterDocId = `${leagueId}_${team.id}`;
+            const rosterDocId = `${leagueId}_${team.id}_${leagueData.seasonYear}`;
             const rosterDoc = await getDoc(doc(db, 'rosters', rosterDocId));
             if (rosterDoc.exists()) {
               const rosterData = { id: rosterDoc.id, ...rosterDoc.data() } as RosterDoc;
