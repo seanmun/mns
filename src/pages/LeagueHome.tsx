@@ -431,13 +431,8 @@ export function LeagueHome() {
                     >
                       <div className="flex-1">
                         <div className="font-semibold text-white">{team.name}</div>
-                        <div className="text-sm mt-1">
-                          <span className={isOverApron ? 'text-yellow-400' : 'text-green-400'}>
-                            Total Salary: ${(totalSalary / 1_000_000).toFixed(1)}M
-                          </span>
-                          <span className="text-gray-500 text-xs ml-2">
-                            (Keepers: ${(keeperCap / 1_000_000).toFixed(1)}M, Drafted: ${(draftedSalary / 1_000_000).toFixed(1)}M)
-                          </span>
+                        <div className="text-sm text-gray-400 mt-1">
+                          Total Salary: <span className={isOverApron ? 'text-yellow-400' : 'text-green-400'}>${(totalSalary / 1_000_000).toFixed(1)}M</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
