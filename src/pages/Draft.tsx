@@ -28,6 +28,8 @@ export function Draft() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
   const [userTeamId, setUserTeamId] = useState<string | null>(null);
+  const [showAddKeeperModal, setShowAddKeeperModal] = useState(false);
+  const [selectedPick, setSelectedPick] = useState<any | null>(null);
   const { projectedStats } = useProjectedStats();
   const { watchList, setWatchList } = useWatchList(
     user?.email || undefined,
@@ -378,6 +380,87 @@ export function Draft() {
     } catch (error: any) {
       console.error('Error undoing pick:', error);
       alert(`Failed to undo pick: ${error.message}`);
+    }
+  };
+
+  const openAddKeeperModal = (pick: any) => {
+    setSelectedPick(pick);
+    setShowAddKeeperModal(true);
+  };
+
+  const addKeeperToPick = async (player: Player) => {
+    if (!draft || !leagueId || !currentLeague || !selectedPick) return;
+
+    const confirmMsg = `Add ${player.name} as keeper to Pick #${selectedPick.overallPick}?\n\nRound ${selectedPick.round}, Pick ${selectedPick.pickInRound}\nTeam: ${selectedPick.teamName}`;
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const draftId = `${leagueId}_${currentLeague.seasonYear}`;
+      const draftRef = doc(db, 'drafts', draftId);
+
+      // Find roster document by querying teamId field
+      const rostersQuery = query(
+        collection(db, 'rosters'),
+        where('teamId', '==', selectedPick.teamId),
+        where('leagueId', '==', leagueId)
+      );
+      const rostersSnap = await getDocs(rostersQuery);
+
+      if (rostersSnap.empty) {
+        throw new Error('Roster not found for this team');
+      }
+
+      const rosterDoc = rostersSnap.docs[0];
+      const rosterRef = doc(db, 'rosters', rosterDoc.id);
+
+      await runTransaction(db, async (transaction) => {
+        // READS FIRST
+        const draftSnap = await transaction.get(draftRef);
+        const rosterSnap = await transaction.get(rosterRef);
+
+        if (!draftSnap.exists()) throw new Error('Draft not found');
+        if (!rosterSnap.exists()) throw new Error('Roster not found');
+
+        // WRITES
+        const currentDraft = draftSnap.data() as Draft;
+        const updatedPicks = currentDraft.picks.map(p => {
+          if (p.overallPick === selectedPick.overallPick) {
+            return {
+              ...p,
+              playerId: player.id,
+              playerName: player.name,
+              pickedAt: Date.now(),
+              pickedBy: 'keeper',
+              isKeeperSlot: true,
+            };
+          }
+          return p;
+        });
+
+        transaction.update(draftRef, { picks: updatedPicks });
+
+        // Update roster entry with the correct keeperRound
+        const rosterData = rosterSnap.data();
+        const updatedEntries = rosterData.entries.map((e: any) => {
+          if (e.playerId === player.id && e.decision === 'KEEP') {
+            return {
+              ...e,
+              keeperRound: selectedPick.round,
+            };
+          }
+          return e;
+        });
+
+        transaction.update(rosterRef, { entries: updatedEntries });
+      });
+
+      setShowAddKeeperModal(false);
+      setSelectedPick(null);
+      alert(`${player.name} has been added as keeper to Pick #${selectedPick.overallPick}`);
+    } catch (error: any) {
+      console.error('Error adding keeper:', error);
+      alert(`Failed to add keeper: ${error.message}`);
     }
   };
 
@@ -1024,6 +1107,14 @@ export function Draft() {
                         <div className="text-xs text-purple-400 font-semibold animate-pulse">
                           Selecting...
                         </div>
+                      ) : !pick.playerName && isAdmin ? (
+                        <button
+                          onClick={() => openAddKeeperModal(pick)}
+                          className="px-2 py-1 text-xs bg-green-500/20 text-green-400 border border-green-500/30 rounded hover:bg-green-500/30 transition-colors"
+                          title="Add keeper to this pick"
+                        >
+                          Add Keeper
+                        </button>
                       ) : pick.isKeeperSlot && isAdmin ? (
                         <button
                           onClick={() => convertKeeperToRegularPick(pick.overallPick)}
@@ -1069,6 +1160,73 @@ export function Draft() {
           </div>
         </div>
       </div>
+
+      {/* Add Keeper Modal */}
+      {showAddKeeperModal && selectedPick && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#121212] rounded-lg border border-gray-800 max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-gray-800">
+              <h2 className="text-xl font-bold text-white">Add Keeper to Pick #{selectedPick.overallPick}</h2>
+              <p className="text-sm text-gray-400 mt-1">
+                Round {selectedPick.round}, Pick {selectedPick.pickInRound} • {selectedPick.teamName}
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-2">
+                {(() => {
+                  // Get team's roster players
+                  const teamPlayers = players.filter(p =>
+                    p.roster.teamId === selectedPick.teamId &&
+                    p.roster.leagueId === leagueId
+                  );
+
+                  // Show all team players (admin can select any keeper-eligible player)
+                  const keeperPlayers = teamPlayers;
+
+                  if (keeperPlayers.length === 0) {
+                    return (
+                      <div className="text-center py-8 text-gray-400">
+                        No keeper-eligible players found for this team.
+                      </div>
+                    );
+                  }
+
+                  return keeperPlayers.map(player => (
+                    <button
+                      key={player.id}
+                      onClick={() => addKeeperToPick(player)}
+                      className="w-full flex items-center justify-between p-4 bg-[#0a0a0a] border border-gray-800 rounded-lg hover:border-green-400/50 hover:bg-green-400/5 transition-colors text-left"
+                    >
+                      <div className="flex-1">
+                        <div className="font-semibold text-white">{player.name}</div>
+                        <div className="text-sm text-gray-400 mt-1">
+                          {player.position} • {player.nbaTeam}
+                        </div>
+                      </div>
+                      <div className="text-green-400 font-bold">
+                        ${(player.salary / 1_000_000).toFixed(1)}M
+                      </div>
+                    </button>
+                  ));
+                })()}
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-800">
+              <button
+                onClick={() => {
+                  setShowAddKeeperModal(false);
+                  setSelectedPick(null);
+                }}
+                className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

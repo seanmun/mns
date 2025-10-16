@@ -43,6 +43,12 @@ exports.sendDraftPickNotification = onDocumentUpdated('drafts/{draftId}', async 
       return null;
     }
 
+    // Skip notification for admin keeper additions
+    if (latestPick.pickedBy === 'keeper') {
+      console.log('Pick is an admin keeper addition, skipping notification');
+      return null;
+    }
+
     // Get Telegram bot credentials from environment variables
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatIds = process.env.TELEGRAM_CHAT_ID;
