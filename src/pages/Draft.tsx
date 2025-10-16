@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
-import { sendTelegramMessage } from '../utils/telegram';
 import type { Draft, Team, Player } from '../types';
 
 export function Draft() {
@@ -246,41 +245,8 @@ export function Draft() {
         });
       });
 
-      // Send Telegram notification
-      // Get the actual owner of the current pick (accounting for trades)
-      const actualCurrentOwner = draft.currentPick
-        ? draftPickOwnership.get(draft.currentPick.overallPick) || draft.currentPick.teamId
-        : null;
-
-      console.log('[Draft] Sending Telegram for pick', draft.currentPick?.overallPick,
-        'Owner:', actualCurrentOwner, 'Team count:', teams.length);
-
-      const currentTeam = teams.find(t => t.id === actualCurrentOwner);
-
-      if (!currentTeam) {
-        console.error('[Draft] Could not find team for ID:', actualCurrentOwner,
-          'Available teams:', teams.map(t => ({ id: t.id, name: t.name })));
-      }
-
-      const nextTeam = teams.find(t => t.id === nextOpenPickTeamId);
-
-      if (currentTeam && draft.currentPick) {
-        const round = draft.currentPick.round;
-        const pick = draft.currentPick.pickInRound;
-        let message = `${currentTeam.name} selects ${player.name} round ${round} pick ${pick}.`;
-
-        if (nextTeam) {
-          const mention = nextTeam.telegramUsername || nextTeam.name;
-          message += `\n\n${mention} is on the clock`;
-        } else {
-          message += '\n\nDraft complete!';
-        }
-
-        // Send notification (async, don't wait)
-        sendTelegramMessage(message).catch(err =>
-          console.error('Failed to send Telegram notification:', err)
-        );
-      }
+      // Telegram notification is now handled server-side by Cloud Function
+      console.log('[Draft] Pick saved. Cloud Function will send Telegram notification.');
 
       // Success! Switch back to board view
       setView('board');
