@@ -289,7 +289,7 @@ export function FreeAgents() {
                 </tr>
               </thead>
               <tbody className="bg-[#121212] divide-y divide-gray-800">
-                {freeAgents.map((player, index) => {
+                {freeAgents && freeAgents.map((player, index) => {
                   const stats = projectedStats.get(player.fantraxId);
                   const isWatched = watchList?.playerIds.includes(player.fantraxId) || false;
 
