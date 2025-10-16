@@ -952,7 +952,7 @@ export function Draft() {
                               {pick.isKeeperSlot ? 'Keeper' : 'Drafted'}
                             </div>
                           </div>
-                          {isAdmin && !pick.isKeeperSlot && (
+                          {isAdmin && (
                             <button
                               onClick={() => undoPick(pick.overallPick)}
                               className="px-2 py-1 text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded hover:bg-red-500/30 transition-colors"
