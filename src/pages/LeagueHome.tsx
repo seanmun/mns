@@ -3,8 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { stackKeeperRounds, computeSummary } from '../lib/keeperAlgorithms';
-import type { Team, League, RosterDoc, Draft, Player, RosterSummary } from '../types';
+import type { Team, League, RosterDoc, Draft, Player } from '../types';
 
 export function LeagueHome() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -26,7 +25,7 @@ export function LeagueHome() {
   const [availableSeasons, setAvailableSeasons] = useState<number[]>([2025]);
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
   const seasonDropdownRef = useRef<HTMLDivElement>(null);
-  const [teamSummaries, setTeamSummaries] = useState<Map<string, RosterSummary>>(new Map());
+  const [teamSalaries, setTeamSalaries] = useState<Map<string, number>>(new Map());
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -107,54 +106,39 @@ export function LeagueHome() {
         setTotalKeeperFees(totalFees);
         setFeeBreakdown({ penaltyDues, franchiseTagDues, redshirtDues, firstApronFee });
 
-        // Fetch draft data and calculate team summaries using same logic as OwnerDashboard
-        if (league) {
-          const draftId = `${leagueId}_${league.seasonYear}`;
-          const draftDoc = await getDoc(doc(db, 'drafts', draftId));
+        // Simple approach: sum all player salaries from draft picks
+        const draftId = `${leagueId}_${leagueData.seasonYear}`;
+        const draftDoc = await getDoc(doc(db, 'drafts', draftId));
 
-          if (draftDoc.exists()) {
-            const draft = draftDoc.data() as Draft;
+        if (draftDoc.exists()) {
+          const draft = draftDoc.data() as Draft;
 
-            // Load all players
-            const playersSnap = await getDocs(collection(db, 'players'));
-            const playersMap = new Map<string, Player>();
-            playersSnap.docs.forEach(doc => {
-              const player = { id: doc.id, ...doc.data() } as Player;
-              playersMap.set(player.id, player);
-            });
+          // Load all players to get salaries
+          const playersSnap = await getDocs(collection(db, 'players'));
+          const playersMap = new Map<string, Player>();
+          playersSnap.docs.forEach(doc => {
+            const player = { id: doc.id, ...doc.data() } as Player;
+            playersMap.set(player.id, player);
+          });
 
-            // Calculate summary for each team using computeSummary
-            const summariesMap = new Map<string, RosterSummary>();
-            teamData.forEach(team => {
-              const roster = rostersMap.get(team.id);
-              const entries = roster?.entries || [];
+          // Calculate total salary per team from their draft picks
+          const salariesMap = new Map<string, number>();
+          teamData.forEach(team => {
+            // Get all picks for this team that have a player assigned
+            const teamPicks = draft.picks.filter(pick =>
+              pick.teamId === team.id && pick.playerId && pick.pickedAt
+            );
 
-              // Get drafted players for this team (non-keeper picks only)
-              const teamDraftedPicks = draft.picks?.filter((pick: any) => {
-                if (!pick.playerId || !pick.pickedAt || pick.isKeeperSlot) return false;
-                return pick.teamId === team.id;
-              }) || [];
+            // Sum up the salaries
+            const totalSalary = teamPicks.reduce((sum, pick) => {
+              const player = playersMap.get(pick.playerId!);
+              return sum + (player?.salary || 0);
+            }, 0);
 
-              const draftedPlayers = teamDraftedPicks
-                .map((pick: any) => playersMap.get(pick.playerId))
-                .filter((p): p is Player => !!p);
+            salariesMap.set(team.id, totalSalary);
+          });
 
-              // Use same calculation as OwnerDashboard
-              const entriesCopy = entries.map(e => ({ ...e }));
-              const { franchiseTags } = stackKeeperRounds(entriesCopy);
-              const summary = computeSummary({
-                entries: entriesCopy,
-                allPlayers: playersMap,
-                tradeDelta: team?.capAdjustments?.tradeDelta || 0,
-                franchiseTags,
-                draftedPlayers,
-              });
-
-              summariesMap.set(team.id, summary);
-            });
-
-            setTeamSummaries(summariesMap);
-          }
+          setTeamSalaries(salariesMap);
         }
 
         // Find user's team
@@ -434,10 +418,9 @@ export function LeagueHome() {
               </div>
               <div className="divide-y divide-gray-800">
                 {teams.map((team) => {
-                  const summary = teamSummaries.get(team.id);
-                  const capUsed = summary?.capUsed || 0;
+                  const totalSalary = teamSalaries.get(team.id) || 0;
                   const firstApron = 195_000_000;
-                  const isOverApron = capUsed > firstApron;
+                  const isOverApron = totalSalary > firstApron;
 
                   return (
                     <button
@@ -448,7 +431,7 @@ export function LeagueHome() {
                       <div className="flex-1">
                         <div className="font-semibold text-white">{team.name}</div>
                         <div className="text-sm text-gray-400 mt-1">
-                          Total Salary: <span className={isOverApron ? 'text-yellow-400' : 'text-green-400'}>${(capUsed / 1_000_000).toFixed(1)}M</span>
+                          Total Salary: <span className={isOverApron ? 'text-yellow-400' : 'text-green-400'}>${(totalSalary / 1_000_000).toFixed(1)}M</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
