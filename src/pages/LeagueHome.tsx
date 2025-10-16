@@ -80,6 +80,9 @@ export function LeagueHome() {
         let redshirtDues = 0;
         let firstApronFee = 0;
 
+        // NOTE: Roster document IDs are stored as {leagueId}_{teamId} WITHOUT year suffix
+        // For 2025-2026 season, IDs are like: "XPL9dJv8BTFNAMlrNBpJ_8RmmV46iLVXcRQ3ltJuW"
+        // If roster format changes in future seasons to include year, update this line
         await Promise.all(
           teamData.map(async (team) => {
             const rosterDocId = `${leagueId}_${team.id}`;
