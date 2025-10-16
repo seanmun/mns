@@ -290,9 +290,18 @@ export function Draft() {
       const playerRef = doc(db, 'players', pickToUndo.playerId);
 
       await runTransaction(db, async (transaction) => {
+        // ALL READS FIRST
         const draftSnap = await transaction.get(draftRef);
         if (!draftSnap.exists()) throw new Error('Draft not found');
 
+        let rosterSnap = null;
+        if (pickToUndo.isKeeperSlot) {
+          const rosterId = `${leagueId}_${pickToUndo.teamId}_${currentLeague.seasonYear}`;
+          const rosterRef = doc(db, 'rosters', rosterId);
+          rosterSnap = await transaction.get(rosterRef);
+        }
+
+        // NOW DO WRITES
         const currentDraft = draftSnap.data() as Draft;
         const updatedPicks = currentDraft.picks.map(p => {
           if (p.overallPick === pickNumber) {
@@ -316,16 +325,12 @@ export function Draft() {
         });
 
         // If it's a keeper, also remove from roster entries
-        if (pickToUndo.isKeeperSlot) {
+        if (pickToUndo.isKeeperSlot && rosterSnap && rosterSnap.exists()) {
           const rosterId = `${leagueId}_${pickToUndo.teamId}_${currentLeague.seasonYear}`;
           const rosterRef = doc(db, 'rosters', rosterId);
-          const rosterSnap = await transaction.get(rosterRef);
-
-          if (rosterSnap.exists()) {
-            const rosterData = rosterSnap.data();
-            const updatedEntries = rosterData.entries.filter((e: any) => e.playerId !== pickToUndo.playerId);
-            transaction.update(rosterRef, { entries: updatedEntries });
-          }
+          const rosterData = rosterSnap.data();
+          const updatedEntries = rosterData.entries.filter((e: any) => e.playerId !== pickToUndo.playerId);
+          transaction.update(rosterRef, { entries: updatedEntries });
         }
       });
 
