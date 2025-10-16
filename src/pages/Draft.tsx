@@ -310,6 +310,7 @@ export function Draft() {
               playerId: null,
               playerName: null,
               pickedAt: null,
+              isKeeperSlot: false, // Convert keeper slot to regular pick
             };
           }
           return p;
