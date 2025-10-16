@@ -13,7 +13,6 @@ export function LeagueHome() {
   const [league, setLeague] = useState<League | null>(null);
   const [myTeam, setMyTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
-  const [teamRosters, setTeamRosters] = useState<Map<string, RosterDoc>>(new Map());
   const [totalKeeperFees, setTotalKeeperFees] = useState<number>(0);
   const [feeBreakdown, setFeeBreakdown] = useState({
     penaltyDues: 0,
@@ -102,7 +101,6 @@ export function LeagueHome() {
             }
           })
         );
-        setTeamRosters(rostersMap);
         setTotalKeeperFees(totalFees);
         setFeeBreakdown({ penaltyDues, franchiseTagDues, redshirtDues, firstApronFee });
 

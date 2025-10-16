@@ -177,8 +177,6 @@ export function Draft() {
     try {
       const draftRef = doc(db, 'drafts', draft.id);
 
-      let nextOpenPickTeamId: string | undefined;
-
       await runTransaction(db, async (transaction) => {
         const draftSnap = await transaction.get(draftRef);
         if (!draftSnap.exists()) {
@@ -213,11 +211,6 @@ export function Draft() {
         const nextOpenPick = updatedPicks.find(
           p => p.overallPick > (currentDraft.currentPick?.overallPick || 0) && !p.isKeeperSlot
         );
-
-        // Store next team ID for Telegram notification (accounting for trades)
-        if (nextOpenPick) {
-          nextOpenPickTeamId = draftPickOwnership.get(nextOpenPick.overallPick) || nextOpenPick.teamId;
-        }
 
         const updatedDraft: any = {
           picks: updatedPicks,
