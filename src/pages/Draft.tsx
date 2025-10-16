@@ -271,6 +271,52 @@ export function Draft() {
     }
   };
 
+  const convertKeeperToRegularPick = async (pickNumber: number) => {
+    if (!draft || !leagueId || !currentLeague) return;
+
+    const pickToConvert = draft.picks.find(p => p.overallPick === pickNumber);
+    if (!pickToConvert) {
+      alert('Pick not found.');
+      return;
+    }
+
+    if (!pickToConvert.isKeeperSlot) {
+      alert('This is already a regular pick, not a keeper slot.');
+      return;
+    }
+
+    const confirmMsg = `Convert Round ${pickToConvert.round}, Pick ${pickToConvert.pickInRound} from keeper slot to regular draft pick?`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const draftId = `${leagueId}_${currentLeague.seasonYear}`;
+      const draftRef = doc(db, 'drafts', draftId);
+
+      await runTransaction(db, async (transaction) => {
+        const draftSnap = await transaction.get(draftRef);
+        if (!draftSnap.exists()) throw new Error('Draft not found');
+
+        const currentDraft = draftSnap.data() as Draft;
+        const updatedPicks = currentDraft.picks.map(p => {
+          if (p.overallPick === pickNumber) {
+            return {
+              ...p,
+              isKeeperSlot: false,
+            };
+          }
+          return p;
+        });
+
+        transaction.update(draftRef, { picks: updatedPicks });
+      });
+
+      alert(`Pick converted to regular draft pick!`);
+    } catch (error: any) {
+      console.error('Error converting pick:', error);
+      alert(`Failed to convert pick: ${error.message}`);
+    }
+  };
+
   const undoPick = async (pickNumber: number) => {
     if (!draft || !leagueId || !currentLeague) return;
 
@@ -985,6 +1031,14 @@ export function Draft() {
                         <div className="text-xs text-purple-400 font-semibold animate-pulse">
                           Selecting...
                         </div>
+                      ) : pick.isKeeperSlot && isAdmin ? (
+                        <button
+                          onClick={() => convertKeeperToRegularPick(pick.overallPick)}
+                          className="px-2 py-1 text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded hover:bg-yellow-500/30 transition-colors"
+                          title="Convert keeper slot to regular pick"
+                        >
+                          Convert to Pick
+                        </button>
                       ) : (
                         <div className="text-xs text-gray-500">-</div>
                       )}
