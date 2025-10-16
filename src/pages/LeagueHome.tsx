@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import type { Team, League, RosterDoc, Draft, Player } from '../types';
+import { stackKeeperRounds, computeSummary } from '../lib/keeperAlgorithms';
+import type { Team, League, RosterDoc, Draft, Player, RosterSummary } from '../types';
 
 export function LeagueHome() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -25,7 +26,7 @@ export function LeagueHome() {
   const [availableSeasons, setAvailableSeasons] = useState<number[]>([2025]);
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
   const seasonDropdownRef = useRef<HTMLDivElement>(null);
-  const [teamDraftedSalaries, setTeamDraftedSalaries] = useState<Map<string, number>>(new Map());
+  const [teamSummaries, setTeamSummaries] = useState<Map<string, RosterSummary>>(new Map());
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -102,7 +103,7 @@ export function LeagueHome() {
         setTotalKeeperFees(totalFees);
         setFeeBreakdown({ penaltyDues, franchiseTagDues, redshirtDues, firstApronFee });
 
-        // Fetch draft data and calculate drafted player salaries
+        // Fetch draft data and calculate team summaries using same logic as OwnerDashboard
         if (league) {
           const draftId = `${leagueId}_${league.seasonYear}`;
           const draftDoc = await getDoc(doc(db, 'drafts', draftId));
@@ -110,7 +111,7 @@ export function LeagueHome() {
           if (draftDoc.exists()) {
             const draft = draftDoc.data() as Draft;
 
-            // Load all players to get salaries
+            // Load all players
             const playersSnap = await getDocs(collection(db, 'players'));
             const playersMap = new Map<string, Player>();
             playersSnap.docs.forEach(doc => {
@@ -118,24 +119,37 @@ export function LeagueHome() {
               playersMap.set(player.id, player);
             });
 
-            // Calculate drafted salary per team
-            const draftedSalariesMap = new Map<string, number>();
+            // Calculate summary for each team using computeSummary
+            const summariesMap = new Map<string, RosterSummary>();
             teamData.forEach(team => {
+              const roster = rostersMap.get(team.id);
+              const entries = roster?.entries || [];
+
+              // Get drafted players for this team (non-keeper picks only)
               const teamDraftedPicks = draft.picks?.filter((pick: any) => {
-                // Only include drafted NON-KEEPER picks
                 if (!pick.playerId || !pick.pickedAt || pick.isKeeperSlot) return false;
                 return pick.teamId === team.id;
               }) || [];
 
-              const draftedSalary = teamDraftedPicks.reduce((sum, pick) => {
-                const player = playersMap.get(pick.playerId);
-                return sum + (player?.salary || 0);
-              }, 0);
+              const draftedPlayers = teamDraftedPicks
+                .map((pick: any) => playersMap.get(pick.playerId))
+                .filter((p): p is Player => !!p);
 
-              draftedSalariesMap.set(team.id, draftedSalary);
+              // Use same calculation as OwnerDashboard
+              const entriesCopy = entries.map(e => ({ ...e }));
+              const { franchiseTags } = stackKeeperRounds(entriesCopy);
+              const summary = computeSummary({
+                entries: entriesCopy,
+                allPlayers: playersMap,
+                tradeDelta: team?.capAdjustments?.tradeDelta || 0,
+                franchiseTags,
+                draftedPlayers,
+              });
+
+              summariesMap.set(team.id, summary);
             });
 
-            setTeamDraftedSalaries(draftedSalariesMap);
+            setTeamSummaries(summariesMap);
           }
         }
 
@@ -416,12 +430,10 @@ export function LeagueHome() {
               </div>
               <div className="divide-y divide-gray-800">
                 {teams.map((team) => {
-                  const roster = teamRosters.get(team.id);
-                  const keeperCap = roster?.summary?.capUsed || 0;
-                  const draftedSalary = teamDraftedSalaries.get(team.id) || 0;
-                  const totalSalary = keeperCap + draftedSalary;
+                  const summary = teamSummaries.get(team.id);
+                  const capUsed = summary?.capUsed || 0;
                   const firstApron = 195_000_000;
-                  const isOverApron = totalSalary > firstApron;
+                  const isOverApron = capUsed > firstApron;
 
                   return (
                     <button
@@ -432,7 +444,7 @@ export function LeagueHome() {
                       <div className="flex-1">
                         <div className="font-semibold text-white">{team.name}</div>
                         <div className="text-sm text-gray-400 mt-1">
-                          Total Salary: <span className={isOverApron ? 'text-yellow-400' : 'text-green-400'}>${(totalSalary / 1_000_000).toFixed(1)}M</span>
+                          Total Salary: <span className={isOverApron ? 'text-yellow-400' : 'text-green-400'}>${(capUsed / 1_000_000).toFixed(1)}M</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
