@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import type { Team, League, RosterDoc } from '../types';
+import type { Team, League, RosterDoc, Draft, Player } from '../types';
 
 export function LeagueHome() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -25,6 +25,7 @@ export function LeagueHome() {
   const [availableSeasons, setAvailableSeasons] = useState<number[]>([2025]);
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
   const seasonDropdownRef = useRef<HTMLDivElement>(null);
+  const [teamDraftedSalaries, setTeamDraftedSalaries] = useState<Map<string, number>>(new Map());
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -100,6 +101,43 @@ export function LeagueHome() {
         setTeamRosters(rostersMap);
         setTotalKeeperFees(totalFees);
         setFeeBreakdown({ penaltyDues, franchiseTagDues, redshirtDues, firstApronFee });
+
+        // Fetch draft data and calculate drafted player salaries
+        if (league) {
+          const draftId = `${leagueId}_${league.seasonYear}`;
+          const draftDoc = await getDoc(doc(db, 'drafts', draftId));
+
+          if (draftDoc.exists()) {
+            const draft = draftDoc.data() as Draft;
+
+            // Load all players to get salaries
+            const playersSnap = await getDocs(collection(db, 'players'));
+            const playersMap = new Map<string, Player>();
+            playersSnap.docs.forEach(doc => {
+              const player = { id: doc.id, ...doc.data() } as Player;
+              playersMap.set(player.id, player);
+            });
+
+            // Calculate drafted salary per team
+            const draftedSalariesMap = new Map<string, number>();
+            teamData.forEach(team => {
+              const teamDraftedPicks = draft.picks?.filter((pick: any) => {
+                // Only include drafted NON-KEEPER picks
+                if (!pick.playerId || !pick.pickedAt || pick.isKeeperSlot) return false;
+                return pick.teamId === team.id;
+              }) || [];
+
+              const draftedSalary = teamDraftedPicks.reduce((sum, pick) => {
+                const player = playersMap.get(pick.playerId);
+                return sum + (player?.salary || 0);
+              }, 0);
+
+              draftedSalariesMap.set(team.id, draftedSalary);
+            });
+
+            setTeamDraftedSalaries(draftedSalariesMap);
+          }
+        }
 
         // Find user's team
         const userTeam = teamData.find((team) => team.owners.includes(user.email || ''));
@@ -379,7 +417,11 @@ export function LeagueHome() {
               <div className="divide-y divide-gray-800">
                 {teams.map((team) => {
                   const roster = teamRosters.get(team.id);
-                  const capUsed = roster?.summary?.capUsed || 0;
+                  const keeperCap = roster?.summary?.capUsed || 0;
+                  const draftedSalary = teamDraftedSalaries.get(team.id) || 0;
+                  const totalSalary = keeperCap + draftedSalary;
+                  const firstApron = 195_000_000;
+                  const isOverApron = totalSalary > firstApron;
 
                   return (
                     <button
@@ -389,8 +431,13 @@ export function LeagueHome() {
                     >
                       <div className="flex-1">
                         <div className="font-semibold text-white">{team.name}</div>
-                        <div className="text-sm text-gray-400 mt-1">
-                          Current Salary: ${(capUsed / 1_000_000).toFixed(1)}M
+                        <div className="text-sm mt-1">
+                          <span className={isOverApron ? 'text-yellow-400' : 'text-green-400'}>
+                            Total Salary: ${(totalSalary / 1_000_000).toFixed(1)}M
+                          </span>
+                          <span className="text-gray-500 text-xs ml-2">
+                            (Keepers: ${(keeperCap / 1_000_000).toFixed(1)}M, Drafted: ${(draftedSalary / 1_000_000).toFixed(1)}M)
+                          </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
