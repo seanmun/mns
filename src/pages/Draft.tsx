@@ -280,7 +280,7 @@ export function Draft() {
       return;
     }
 
-    const confirmMsg = `Are you sure you want to undo pick #${pickNumber}?\n\nPlayer: ${pickToUndo.playerName}\nTeam: ${pickToUndo.teamName}\n\nThis will release the player back to the pool and reopen this pick.`;
+    const confirmMsg = `Are you sure you want to undo pick #${pickNumber}?\n\nPlayer: ${pickToUndo.playerName}\nTeam: ${pickToUndo.teamName}\n\nThis will release the player back to the pool${pickToUndo.isKeeperSlot ? ' and remove from team roster' : ''}.`;
 
     if (!confirm(confirmMsg)) return;
 
@@ -314,9 +314,22 @@ export function Draft() {
           'roster.teamId': null,
           'roster.leagueId': null,
         });
+
+        // If it's a keeper, also remove from roster entries
+        if (pickToUndo.isKeeperSlot) {
+          const rosterId = `${leagueId}_${pickToUndo.teamId}_${currentLeague.seasonYear}`;
+          const rosterRef = doc(db, 'rosters', rosterId);
+          const rosterSnap = await transaction.get(rosterRef);
+
+          if (rosterSnap.exists()) {
+            const rosterData = rosterSnap.data();
+            const updatedEntries = rosterData.entries.filter((e: any) => e.playerId !== pickToUndo.playerId);
+            transaction.update(rosterRef, { entries: updatedEntries });
+          }
+        }
       });
 
-      alert(`Pick #${pickNumber} has been undone. ${pickToUndo.playerName} is back in the player pool.`);
+      alert(`Pick #${pickNumber} has been undone. ${pickToUndo.playerName} is back in the player pool${pickToUndo.isKeeperSlot ? ' and removed from team roster' : ''}.`);
     } catch (error: any) {
       console.error('Error undoing pick:', error);
       alert(`Failed to undo pick: ${error.message}`);
