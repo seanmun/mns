@@ -77,10 +77,9 @@ exports.sendDraftPickNotification = onDocumentUpdated('drafts/{draftId}', async 
 
     const teams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Determine next pick owner
-    const currentPickNum = afterData.currentPick?.overallPick || 0;
-    const nextPickNum = currentPickNum + 1;
-    const nextPick = afterPicks.find(p => p.overallPick === nextPickNum);
+    // Determine next pick owner - find the first unpicked slot
+    // (the first pick without a playerId set)
+    const nextPick = afterPicks.find(p => !p.playerId && !p.isKeeperSlot);
 
     let nextTeamName = 'TBD';
     let nextTeamMention = '';
