@@ -39,14 +39,24 @@ export const hinkieQuotes: HinkieQuote[] = [
     id: 7,
     quote: "The first step in a process is to understand the end goal.",
     image: "/hinkie/understandTheGoal.png"
+  },
+  {
+    id: 8,
+    quote: "Give me six hours to chop down a tree and I will spend the first four sharpening the axe. - Abe Lincoln",
+    image: "/hinkie/hinkieAxe.png"
   }
 ];
 
-// Get quote based on day of week (0 = Sunday, 6 = Saturday)
-// Using 7 quotes, one for each day of the week
+// Get quote based on day of year
+// Rotates through all quotes cyclically
 export function getDailyQuote(): HinkieQuote {
   const today = new Date();
-  const dayOfWeek = today.getDay(); // 0-6
+  // Get day of year (1-365/366)
+  const start = new Date(today.getFullYear(), 0, 0);
+  const diff = today.getTime() - start.getTime();
+  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-  return hinkieQuotes[dayOfWeek];
+  // Cycle through all quotes
+  const quoteIndex = dayOfYear % hinkieQuotes.length;
+  return hinkieQuotes[quoteIndex];
 }
