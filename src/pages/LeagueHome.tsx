@@ -282,7 +282,7 @@ export function LeagueHome() {
               <img src="/icons/draft-icon.png" alt="Draft" className="w-5 h-5 rounded-full" />
               <h3 className="text-sm font-bold text-white">Draft</h3>
             </div>
-            <p className="text-xs text-gray-400 mb-3">Coming Soon</p>
+            <p className="text-xs text-gray-400 mb-3">In Progress</p>
             <button
               onClick={() => navigate(`/league/${leagueId}/draft`)}
               className="w-full border-2 border-purple-400 text-purple-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)] transition-all cursor-pointer"
@@ -492,7 +492,7 @@ export function LeagueHome() {
                 <h3 className="text-lg font-bold text-white">Draft</h3>
               </div>
               <p className="text-sm text-gray-400 mb-4">
-                Coming Soon
+                In Progress
               </p>
               <button
                 onClick={() => navigate(`/league/${leagueId}/draft`)}

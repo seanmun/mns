@@ -40,6 +40,9 @@ export function OwnerDashboard() {
   const [rookiePicks, setRookiePicks] = useState<RookieDraftPick[]>([]);
   const [draftedPlayers, setDraftedPlayers] = useState<Player[]>([]);
   const [teamDraftPicks, setTeamDraftPicks] = useState<any[]>([]);
+  const [draftStatus, setDraftStatus] = useState<string>('setup');
+  const [showTradeModal, setShowTradeModal] = useState(false);
+  const [showWagerModal, setShowWagerModal] = useState(false);
 
   // Check if current user is the owner of this team
   const isOwner = team?.owners.includes(user?.email || '') || false;
@@ -197,6 +200,7 @@ export function OwnerDashboard() {
 
         if (!draftSnap.empty) {
           const draft = draftSnap.docs[0].data();
+          setDraftStatus(draft.status || 'setup');
 
           // Load draft pick ownership to check for traded picks
           const draftPicksRef = collection(db, 'draftPicks');
@@ -532,7 +536,7 @@ export function OwnerDashboard() {
           <p className="text-gray-400 mt-1">
             {team?.ownerNames && team.ownerNames.length > 0 ? team.ownerNames.join(', ') : team?.owners.join(', ')}
           </p>
-          {isLocked && (
+          {isLocked && draftStatus === 'setup' && (
             <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-400/20 text-yellow-400 border border-yellow-400/30">
               🔒 Roster Locked
             </div>
@@ -542,6 +546,22 @@ export function OwnerDashboard() {
               👁️ Keeper decisions are private until the league admin locks keepers
             </div>
           )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 mb-6">
+          <button
+            onClick={() => setShowTradeModal(true)}
+            className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg"
+          >
+            🔄 Propose Trade
+          </button>
+          <button
+            onClick={() => setShowWagerModal(true)}
+            className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all shadow-lg"
+          >
+            💰 Propose Wager
+          </button>
         </div>
 
         {/* Desktop: Side by side layout */}
@@ -911,6 +931,46 @@ export function OwnerDashboard() {
           </div>
         )}
       </div>
+
+      {/* Trade Modal */}
+      {showTradeModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowTradeModal(false)}>
+          <div className="bg-[#121212] border border-gray-800 rounded-lg max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-white">Propose Trade</h2>
+              <button onClick={() => setShowTradeModal(false)} className="text-gray-400 hover:text-white">
+                ✕
+              </button>
+            </div>
+            <div className="text-center">
+              <img src="/icons/stayTuned.png" alt="Stay Tuned" className="w-full max-w-sm mx-auto mb-4 rounded-lg" />
+              <p className="text-gray-400 text-lg">
+                The chefs are hard at work on this feature! 👨‍🍳
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Wager Modal */}
+      {showWagerModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowWagerModal(false)}>
+          <div className="bg-[#121212] border border-gray-800 rounded-lg max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-white">Propose Wager</h2>
+              <button onClick={() => setShowWagerModal(false)} className="text-gray-400 hover:text-white">
+                ✕
+              </button>
+            </div>
+            <div className="text-center">
+              <img src="/icons/stayTuned.png" alt="Stay Tuned" className="w-full max-w-sm mx-auto mb-4 rounded-lg" />
+              <p className="text-gray-400 text-lg">
+                The chefs are hard at work on this feature! 👨‍🍳
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

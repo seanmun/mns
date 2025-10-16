@@ -16,17 +16,27 @@ exports.sendDraftPickNotification = onDocumentUpdated('drafts/{draftId}', async 
     const beforeData = change.before.data();
     const afterData = change.after.data();
 
-    // Check if a new pick was made (picks array changed)
+    // Check if a new pick was made by comparing picks with pickedAt timestamps
     const beforePicks = beforeData.picks || [];
     const afterPicks = afterData.picks || [];
 
-    if (afterPicks.length <= beforePicks.length) {
+    // Find the pick that was just made (has pickedAt in after but not before)
+    let latestPick = null;
+    for (let i = 0; i < afterPicks.length; i++) {
+      const afterPick = afterPicks[i];
+      const beforePick = beforePicks[i];
+
+      // Check if this pick just got filled (has pickedAt now but didn't before)
+      if (afterPick.pickedAt && (!beforePick || !beforePick.pickedAt)) {
+        latestPick = afterPick;
+        break;
+      }
+    }
+
+    if (!latestPick) {
       console.log('No new pick detected, skipping notification');
       return null;
     }
-
-    // Get the latest pick
-    const latestPick = afterPicks[afterPicks.length - 1];
 
     if (!latestPick.playerId || !latestPick.pickedAt) {
       console.log('Latest pick has no player or timestamp, skipping');
