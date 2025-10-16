@@ -84,13 +84,20 @@ export function LeagueHome() {
           teamData.map(async (team) => {
             const rosterDocId = `${leagueId}_${team.id}_${leagueData.seasonYear}`;
             const rosterDoc = await getDoc(doc(db, 'rosters', rosterDocId));
+            console.log('[LeagueHome] Looking for roster:', rosterDocId, 'exists:', rosterDoc.exists());
             if (rosterDoc.exists()) {
               const rosterData = { id: rosterDoc.id, ...rosterDoc.data() } as RosterDoc;
               rostersMap.set(team.id, rosterData);
+              console.log('[LeagueHome] Roster status:', rosterData.status, 'summary exists:', !!rosterData.summary);
 
               if (rosterData.status === 'submitted') {
                 // Add team's total fees to prize pool
                 if (rosterData.summary) {
+                  console.log('[LeagueHome] Adding fees from', team.name, ':', {
+                    totalFees: rosterData.summary.totalFees,
+                    franchiseTagDues: rosterData.summary.franchiseTagDues,
+                    redshirtDues: rosterData.summary.redshirtDues
+                  });
                   totalFees += rosterData.summary.totalFees || 0;
                   penaltyDues += rosterData.summary.penaltyDues || 0;
                   franchiseTagDues += rosterData.summary.franchiseTagDues || 0;
@@ -101,6 +108,7 @@ export function LeagueHome() {
             }
           })
         );
+        console.log('[LeagueHome] Total keeper fees:', totalFees, 'Breakdown:', { penaltyDues, franchiseTagDues, redshirtDues, firstApronFee });
         setTotalKeeperFees(totalFees);
         setFeeBreakdown({ penaltyDues, franchiseTagDues, redshirtDues, firstApronFee });
 
