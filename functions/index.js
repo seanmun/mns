@@ -83,14 +83,24 @@ exports.sendDraftPickNotification = onDocumentUpdated('drafts/{draftId}', async 
     const nextPick = afterPicks.find(p => p.overallPick === nextPickNum);
 
     let nextTeamName = 'TBD';
+    let nextTeamMention = '';
     if (nextPick) {
       const nextTeam = teams.find(t => t.id === nextPick.teamId);
       nextTeamName = nextTeam?.name || 'Unknown Team';
+
+      // If team has Telegram username, create a mention tag
+      if (nextTeam?.telegramUsername) {
+        // Format: @username (ensures it starts with @)
+        const username = nextTeam.telegramUsername.startsWith('@')
+          ? nextTeam.telegramUsername
+          : `@${nextTeam.telegramUsername}`;
+        nextTeamMention = ` ${username}`;
+      }
     }
 
     // Build Telegram message
     const message = `
-🏀 *DRAFT PICK*
+*DRAFT PICK*
 
 *Pick ${latestPick.overallPick}* (Round ${latestPick.round}, Pick ${latestPick.pickInRound})
 
@@ -98,7 +108,7 @@ exports.sendDraftPickNotification = onDocumentUpdated('drafts/{draftId}', async 
 *${player.name}* - ${player.position}
 ${player.nbaTeam} | $${player.salary}M
 
-📢 *Up Next:* ${nextTeamName}
+*Up Next:* ${nextTeamName}${nextTeamMention}
     `.trim();
 
     // Send to all chat IDs
