@@ -95,6 +95,22 @@ export function Draft() {
     return () => unsubscribe();
   }, [leagueId, currentLeague, view]);
 
+  useEffect(() => {
+    if (!leagueId) return;
+
+    // Real-time listener for player updates (to remove drafted players from pool)
+    const playersRef = collection(db, 'players');
+    const unsubscribe = onSnapshot(playersRef, (snapshot) => {
+      const playersData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Player[];
+      setPlayers(playersData);
+    });
+
+    return () => unsubscribe();
+  }, [leagueId]);
+
   const loadInitialData = async () => {
     if (!leagueId || !currentLeague) return;
 
@@ -110,13 +126,7 @@ export function Draft() {
       })) as Team[];
       setTeams(teamsData);
 
-      // Load all players
-      const playersSnap = await getDocs(collection(db, 'players'));
-      const playersData = playersSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Player[];
-      setPlayers(playersData);
+      // Players are loaded via real-time listener
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
