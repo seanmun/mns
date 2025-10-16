@@ -49,14 +49,18 @@ export function LeagueHome() {
         const leagueDoc = await getDocs(
           query(collection(db, 'leagues'), where('__name__', '==', leagueId))
         );
-        if (!leagueDoc.empty) {
-          const leagueData = { id: leagueDoc.docs[0].id, ...leagueDoc.docs[0].data() } as League;
-          setLeague(leagueData);
-          setCurrentSeason(leagueData.seasonYear);
 
-          // For now, just show current season. TODO: Query Firestore for all available seasons
-          setAvailableSeasons([leagueData.seasonYear]);
+        if (leagueDoc.empty) {
+          setLoading(false);
+          return;
         }
+
+        const leagueData = { id: leagueDoc.docs[0].id, ...leagueDoc.docs[0].data() } as League;
+        setLeague(leagueData);
+        setCurrentSeason(leagueData.seasonYear);
+
+        // For now, just show current season. TODO: Query Firestore for all available seasons
+        setAvailableSeasons([leagueData.seasonYear]);
 
         // Fetch all teams in this league
         const teamsRef = collection(db, 'teams');
