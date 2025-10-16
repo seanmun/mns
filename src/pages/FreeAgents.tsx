@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjectedStats } from '../hooks/useProjectedStats';
@@ -91,35 +91,43 @@ export function FreeAgents() {
   }, [leagueId, user]);
 
   useEffect(() => {
-    const fetchPlayers = async () => {
-      if (!leagueId) return;
+    if (!leagueId) return;
 
-      try {
-        // Fetch all players where roster.leagueId matches
-        const playersRef = collection(db, 'players');
-        const q = query(playersRef, where('roster.leagueId', '==', leagueId));
-        const snapshot = await getDocs(q);
+    // Set up real-time listener for players
+    const playersRef = collection(db, 'players');
+    const q = query(playersRef, where('roster.leagueId', '==', leagueId));
 
-        const playerData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Player[];
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const playerData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Player[];
 
-        console.log('All players fetched:', playerData.length);
-        setAllPlayers(playerData);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching players:', error);
-        setLoading(false);
-      }
-    };
+      console.log('Players updated:', playerData.length);
+      setAllPlayers(playerData);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching players:', error);
+      setLoading(false);
+    });
 
-    fetchPlayers();
+    return () => unsubscribe();
   }, [leagueId]);
 
   // Filter out players that are on teams (have a teamId) and apply search
   const freeAgents = useMemo(() => {
-    let agents = allPlayers.filter(player => !player.roster.teamId);
+    console.log('[FreeAgents] Total players:', allPlayers.length);
+    console.log('[FreeAgents] Sample player roster:', allPlayers[0]?.roster);
+
+    let agents = allPlayers.filter(player => {
+      const hasTeam = !!player.roster?.teamId;
+      if (hasTeam) {
+        console.log('[FreeAgents] Filtering out', player.name, 'teamId:', player.roster.teamId);
+      }
+      return !hasTeam;
+    });
+
+    console.log('[FreeAgents] Free agents after filter:', agents.length);
 
     // Apply search filter
     if (searchTerm.trim()) {

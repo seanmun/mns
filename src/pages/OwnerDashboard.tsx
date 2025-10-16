@@ -552,15 +552,15 @@ export function OwnerDashboard() {
         <div className="flex gap-3 mb-6">
           <button
             onClick={() => setShowTradeModal(true)}
-            className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg"
+            className="flex-1 px-4 py-3 border-2 border-purple-400 text-purple-400 rounded-lg font-semibold hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)] transition-all"
           >
-            🔄 Propose Trade
+            Propose Trade
           </button>
           <button
             onClick={() => setShowWagerModal(true)}
-            className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all shadow-lg"
+            className="flex-1 px-4 py-3 border-2 border-pink-400 text-pink-400 rounded-lg font-semibold hover:bg-pink-400/10 hover:shadow-[0_0_15px_rgba(244,114,182,0.5)] transition-all"
           >
-            💰 Propose Wager
+            Propose Wager
           </button>
         </div>
 
