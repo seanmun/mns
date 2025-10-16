@@ -148,6 +148,24 @@ export function LeagueHome() {
           });
 
           setTeamSalaries(salariesMap);
+
+          // Recalculate first apron fees based on total roster salaries (keepers + drafted)
+          let actualFirstApronFees = 0;
+          salariesMap.forEach((totalSalary) => {
+            if (totalSalary > 195_000_000) {
+              actualFirstApronFees += 50;
+            }
+          });
+
+          // Update fee breakdown with recalculated first apron fees
+          const updatedTotalFees = totalFees - firstApronFee + actualFirstApronFees;
+          setTotalKeeperFees(updatedTotalFees);
+          setFeeBreakdown({
+            penaltyDues,
+            franchiseTagDues,
+            redshirtDues,
+            firstApronFee: actualFirstApronFees
+          });
         }
 
         // Find user's team
