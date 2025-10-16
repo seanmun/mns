@@ -437,7 +437,7 @@ export function AdminTeams() {
                     </div>
                     <div className="text-sm text-gray-500">
                       Created: {new Date(backup.timestamp).toLocaleString()} •
-                      {backup.players.length} players • {backup.rosters.length} rosters
+                      {backup.players?.length || 0} players • {backup.rosters?.length || 0} rosters
                     </div>
                   </div>
                   <button
@@ -454,6 +454,12 @@ export function AdminTeams() {
                       if (!confirmed) return;
 
                       try {
+                        // Validate backup has data
+                        if (!backup.players || !backup.rosters) {
+                          alert('This backup is missing player or roster data and cannot be restored.');
+                          return;
+                        }
+
                         // Restore all players
                         for (const player of backup.players) {
                           await updateDoc(doc(db, 'players', player.id), player);
