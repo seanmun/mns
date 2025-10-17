@@ -259,6 +259,69 @@ export interface Draft {
   completedAt?: number;
 }
 
+// Pick Assignment (new schema - each pick is independent document)
+export interface PickAssignment {
+  id: string;                    // e.g., "mns2026_2026_pick_4"
+  leagueId: string;
+  seasonYear: number;
+
+  // Pick position
+  round: number;
+  pickInRound: number;
+  overallPick: number;
+
+  // Ownership (can change via trade)
+  currentTeamId: string;
+  originalTeamId: string;
+  originalTeamName: string;
+  originalTeamAbbrev: string;
+
+  // Player assignment (can change during draft)
+  playerId: string | null;
+  playerName: string | null;
+
+  // Metadata
+  isKeeperSlot: boolean;
+  pickedAt: number | null;
+  pickedBy: string | null;
+
+  // Trade tracking
+  wasTraded: boolean;
+  tradeHistory: Array<{
+    from: string;
+    to: string;
+    tradedAt: number | null;
+  }>;
+
+  // Timestamps
+  createdAt: number;
+  updatedAt: number;
+}
+
+// Keeper Fees (locked in after keeper submission - one-time fees)
+export interface KeeperFees {
+  id: string;                    // e.g., "mns2026_woods_2026"
+  leagueId: string;
+  teamId: string;
+  seasonYear: number;
+
+  // One-time keeper-phase fees (locked in when keepers submitted)
+  franchiseTagFees: number;      // $15 per extra Round 1 keeper
+  redshirtFees: number;          // $10 per redshirted rookie
+
+  // Breakdown
+  franchiseTagCount: number;     // Number of franchise tags used
+  redshirtCount: number;         // Number of redshirts
+
+  // Metadata
+  lockedAt: number;              // Timestamp when fees were locked
+  lockedBy: string;              // Admin who locked keepers
+
+  // Timestamps
+  createdAt: number;
+  updatedAt: number;
+}
+
 // User roles
 export type UserRole = "owner" | "admin";
 

@@ -1,35 +1,23 @@
-import type { Player, RosterEntry, DraftPick } from '../types';
+import type { Player, RosterEntry, PickAssignment } from '../types';
 
 interface DraftBoardViewProps {
   players: Player[];
   entries: RosterEntry[];
-  draftedPicks?: DraftPick[];  // Draft picks with round info
+  pickAssignments?: PickAssignment[];  // NEW: Pick assignments from pickAssignments collection
 }
 
-export function DraftBoardView({ players, entries, draftedPicks = [] }: DraftBoardViewProps) {
+export function DraftBoardView({ players, entries, pickAssignments = [] }: DraftBoardViewProps) {
   const playersMap = new Map(players.map(p => [p.id, p]));
 
-  // Group keepers by their assigned keeper round
-  const keepersByRound = new Map<number, RosterEntry[]>();
-  entries
-    .filter(e => e.decision === 'KEEP' && e.keeperRound)
-    .forEach(entry => {
-      const round = entry.keeperRound!;
-      if (!keepersByRound.has(round)) {
-        keepersByRound.set(round, []);
-      }
-      keepersByRound.get(round)!.push(entry);
-    });
-
-  // Group drafted players by round (only non-keeper picks)
-  const draftedByRound = new Map<number, DraftPick[]>();
-  draftedPicks
-    .filter(pick => pick.playerId && !pick.isKeeperSlot)
+  // Group ALL picks by round from pickAssignments (source of truth)
+  const picksByRound = new Map<number, PickAssignment[]>();
+  pickAssignments
+    .filter(pick => pick.playerId)  // Only show picks with players assigned
     .forEach(pick => {
-      if (!draftedByRound.has(pick.round)) {
-        draftedByRound.set(pick.round, []);
+      if (!picksByRound.has(pick.round)) {
+        picksByRound.set(pick.round, []);
       }
-      draftedByRound.get(pick.round)!.push(pick);
+      picksByRound.get(pick.round)!.push(pick);
     });
 
   // Get redshirts and int stash players
@@ -48,93 +36,98 @@ export function DraftBoardView({ players, entries, draftedPicks = [] }: DraftBoa
 
       <div className="space-y-3">
         {rounds.map(round => {
-          const keeper = keepersByRound.get(round)?.[0];
-          const drafted = draftedByRound.get(round)?.[0];
-
-          // Determine which takes priority (keeper over drafted)
-          const hasKeeper = !!keeper;
-          const hasDrafted = !!drafted;
-
-          const keeperPlayer = keeper ? playersMap.get(keeper.playerId) : null;
-          const draftedPlayer = drafted ? playersMap.get(drafted.playerId!) : null;
+          const roundPicks = picksByRound.get(round) || [];
+          const hasPicks = roundPicks.length > 0;
 
           return (
-            <div
-              key={round}
-              className={`flex items-center gap-4 p-4 rounded-lg border ${
-                hasKeeper
-                  ? 'bg-green-400/5 border-green-400/30'
-                  : hasDrafted
-                  ? 'bg-purple-400/5 border-purple-400/30'
-                  : 'bg-[#0a0a0a] border-gray-800'
-              }`}
-            >
-              {/* Round Number */}
-              <div className="flex-shrink-0 w-16">
-                <div className={`text-center font-bold ${
-                  hasKeeper ? 'text-green-400' : hasDrafted ? 'text-purple-400' : 'text-gray-500'
-                }`}>
-                  <div className="text-xs opacity-70">RD</div>
-                  <div className="text-2xl">{round}</div>
-                </div>
-              </div>
-
-              {/* Player Info or Empty Slot */}
-              {hasKeeper && keeperPlayer ? (
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <div className="font-semibold text-white truncate">
-                          {keeperPlayer.name}
-                        </div>
-                        <span className="text-xs px-1.5 py-0.5 bg-green-400/20 text-green-400 rounded">
-                          Keeper
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-gray-400">
-                          {keeperPlayer.position} • {keeperPlayer.nbaTeam}
-                        </span>
-                        <span className="text-xs font-semibold text-green-400">
-                          ${(keeperPlayer.salary / 1_000_000).toFixed(1)}M
-                        </span>
-                        {keeper.baseRound && keeper.baseRound !== round && (
-                          <span className="text-xs text-gray-500">
-                            (from R{keeper.baseRound})
-                          </span>
-                        )}
-                      </div>
+            <div key={round} className="space-y-2">
+              {roundPicks.length === 0 ? (
+                // Empty round - show "Available"
+                <div className="flex items-center gap-4 p-4 rounded-lg border bg-[#0a0a0a] border-gray-800">
+                  <div className="flex-shrink-0 w-16">
+                    <div className="text-center font-bold text-gray-500">
+                      <div className="text-xs opacity-70">RD</div>
+                      <div className="text-2xl">{round}</div>
                     </div>
                   </div>
-                </div>
-              ) : hasDrafted && draftedPlayer ? (
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <div className="font-semibold text-white truncate">
-                          {draftedPlayer.name}
-                        </div>
-                        <span className="text-xs px-1.5 py-0.5 bg-purple-400/20 text-purple-400 rounded">
-                          Drafted
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-gray-400">
-                          {draftedPlayer.position} • {draftedPlayer.nbaTeam}
-                        </span>
-                        <span className="text-xs font-semibold text-purple-400">
-                          ${(draftedPlayer.salary / 1_000_000).toFixed(1)}M
-                        </span>
-                      </div>
-                    </div>
+                  <div className="flex-1 text-gray-500 text-sm">
+                    Available
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 text-gray-500 text-sm">
-                  Available
-                </div>
+                // Show ALL picks in this round
+                roundPicks.map((pick, index) => {
+                  const player = playersMap.get(pick.playerId!);
+                  const isKeeper = pick.isKeeperSlot;
+
+                  return (
+                    <div
+                      key={`${round}-${index}`}
+                      className={`flex items-center gap-4 p-4 rounded-lg border ${
+                        isKeeper
+                          ? 'bg-green-400/5 border-green-400/30'
+                          : 'bg-purple-400/5 border-purple-400/30'
+                      }`}
+                    >
+                      {/* Round Number (only show for first pick in round) */}
+                      <div className="flex-shrink-0 w-16">
+                        {index === 0 ? (
+                          <div className={`text-center font-bold ${
+                            isKeeper ? 'text-green-400' : 'text-purple-400'
+                          }`}>
+                            <div className="text-xs opacity-70">RD</div>
+                            <div className="text-2xl">{round}</div>
+                          </div>
+                        ) : (
+                          <div className="text-center text-gray-600 text-xs">
+                            {roundPicks.length > 1 && `+${index}`}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Player Info */}
+                      {player ? (
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <div className="font-semibold text-white truncate">
+                                  {player.name}
+                                </div>
+                                <span className={`text-xs px-1.5 py-0.5 ${
+                                  isKeeper
+                                    ? 'bg-green-400/20 text-green-400'
+                                    : 'bg-purple-400/20 text-purple-400'
+                                } rounded`}>
+                                  {isKeeper ? 'Keeper' : 'Drafted'}
+                                </span>
+                                {pick.wasTraded && (
+                                  <span className="text-xs text-gray-500">
+                                    (from {pick.originalTeamName})
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-gray-400">
+                                  {player.position} • {player.nbaTeam}
+                                </span>
+                                <span className={`text-xs font-semibold ${
+                                  isKeeper ? 'text-green-400' : 'text-purple-400'
+                                }`}>
+                                  ${(player.salary / 1_000_000).toFixed(1)}M
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 text-gray-500 text-sm">
+                          Unknown Player
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
           );
@@ -221,19 +214,19 @@ export function DraftBoardView({ players, entries, draftedPicks = [] }: DraftBoa
           <div>
             <div className="text-gray-400">Keepers</div>
             <div className="text-2xl font-bold text-green-400">
-              {keepersByRound.size}
+              {pickAssignments.filter(p => p.isKeeperSlot && p.playerId).length}
             </div>
           </div>
           <div>
             <div className="text-gray-400">Drafted</div>
             <div className="text-2xl font-bold text-purple-400">
-              {draftedByRound.size}
+              {pickAssignments.filter(p => !p.isKeeperSlot && p.playerId).length}
             </div>
           </div>
           <div>
             <div className="text-gray-400">Available</div>
             <div className="text-2xl font-bold text-white">
-              {13 - keepersByRound.size - draftedByRound.size}
+              {13 - picksByRound.size}
             </div>
           </div>
         </div>

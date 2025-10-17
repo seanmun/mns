@@ -192,70 +192,57 @@ export function OwnerDashboard() {
     const fetchDraftedPlayers = async () => {
       if (!leagueId || !teamId || !league) return;
       try {
-        // Load current draft
-        const draftId = `${leagueId}_${league.seasonYear}`;
-        const draftRef = collection(db, 'drafts');
-        const draftQuery = query(draftRef, where('__name__', '==', draftId));
-        const draftSnap = await getDocs(draftQuery);
+        // NEW: Load picks from pickAssignments collection
+        const pickAssignmentsRef = collection(db, 'pickAssignments');
+        const pickAssignmentsQuery = query(
+          pickAssignmentsRef,
+          where('leagueId', '==', leagueId),
+          where('currentTeamId', '==', teamId),
+          where('seasonYear', '==', league.seasonYear)
+        );
+        const pickAssignmentsSnap = await getDocs(pickAssignmentsQuery);
 
-        if (!draftSnap.empty) {
-          const draft = draftSnap.docs[0].data();
-          setDraftStatus(draft.status || 'setup');
+        const teamPickAssignments = pickAssignmentsSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as any[];
 
-          // Load draft pick ownership to check for traded picks
-          const draftPicksRef = collection(db, 'draftPicks');
-          const draftPicksQuery = query(draftPicksRef, where('leagueId', '==', leagueId));
-          const draftPicksSnap = await getDocs(draftPicksQuery);
+        console.log('[OwnerDashboard] Team:', teamId);
+        console.log('[OwnerDashboard] Pick assignments for this team:', teamPickAssignments.length);
 
-          const pickOwnership = new Map<number, string>();
-          draftPicksSnap.docs.forEach(doc => {
-            const pick = doc.data();
-            pickOwnership.set(pick.pickNumber, pick.currentOwner);
-          });
+        // Load player data for picks with players assigned
+        const playerIds = teamPickAssignments
+          .filter(pick => pick.playerId)
+          .map(pick => pick.playerId);
 
-          // Get picks for this team that have been drafted (accounting for trades)
-          const teamDraftedPicks = draft.picks?.filter((pick: any) => {
-            // ONLY include NON-KEEPER picks (keeper slots are already in roster entries)
-            if (!pick.playerId || !pick.pickedAt || pick.isKeeperSlot) return false;
+        if (playerIds.length > 0) {
+          console.log('[OwnerDashboard] Looking for player IDs:', playerIds);
 
-            // Check actual owner (accounting for trades)
-            const actualOwner = pickOwnership.get(pick.overallPick) || pick.teamId;
-            return actualOwner === teamId;
-          }) || [];
+          const playersRef = collection(db, 'players');
+          const playersSnap = await getDocs(playersRef);
 
-          console.log('[OwnerDashboard] Team:', teamId);
-          console.log('[OwnerDashboard] Total draft picks:', draft.picks?.length);
-          console.log('[OwnerDashboard] Drafted picks for this team:', teamDraftedPicks.length);
-          if (teamDraftedPicks.length > 0) {
-            console.log('[OwnerDashboard] First pick details:', teamDraftedPicks[0]);
-          }
+          const draftedPlayerData = playersSnap.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }) as Player)
+            .filter(p => playerIds.includes(p.id));
 
-          // Load player data for drafted picks
-          if (teamDraftedPicks.length > 0) {
-            const playerIds = teamDraftedPicks.map((pick: any) => pick.playerId);
-            console.log('[OwnerDashboard] Looking for player IDs:', playerIds);
+          console.log('[OwnerDashboard] Matched players:', draftedPlayerData.length);
 
-            const playersRef = collection(db, 'players');
-            const playersSnap = await getDocs(playersRef);
-
-            console.log('[OwnerDashboard] Total players in DB:', playersSnap.docs.length);
-
-            const draftedPlayerData = playersSnap.docs
-              .map(doc => ({ id: doc.id, ...doc.data() }) as Player)
-              .filter(p => playerIds.includes(p.id));
-
-            console.log('[OwnerDashboard] Matched players:', draftedPlayerData.length);
-            console.log('[OwnerDashboard] Player data:', draftedPlayerData.map(p => ({ id: p.id, name: p.name })));
-
-            setDraftedPlayers(draftedPlayerData);
-            setTeamDraftPicks(teamDraftedPicks);
-          } else {
-            setDraftedPlayers([]);
-            setTeamDraftPicks([]);
-          }
+          setDraftedPlayers(draftedPlayerData);
+        } else {
+          setDraftedPlayers([]);
         }
+
+        setTeamDraftPicks(teamPickAssignments);
+
+        // Check draft status
+        const draftId = `${leagueId}_${league.seasonYear}`;
+        const draftDoc = await getDocs(query(collection(db, 'drafts'), where('__name__', '==', draftId)));
+        if (!draftDoc.empty) {
+          setDraftStatus(draftDoc.docs[0].data().status || 'setup');
+        }
+
       } catch (error) {
-        console.error('Error loading drafted players:', error);
+        console.error('Error loading pick assignments:', error);
       }
     };
 
@@ -690,12 +677,12 @@ export function OwnerDashboard() {
             {/* Desktop: 2-column layout for owners, single column for others */}
             {isOwner ? (
               <div className="hidden lg:grid lg:grid-cols-2 gap-6 mb-6">
-                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} draftedPicks={teamDraftPicks} />
+                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} pickAssignments={teamDraftPicks} />
                 <WatchListView watchList={watchList} allPlayers={allLeaguePlayers} projectedStats={projectedStats} />
               </div>
             ) : (
               <div className="hidden lg:block mb-6">
-                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} draftedPicks={teamDraftPicks} />
+                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} pickAssignments={teamDraftPicks} />
               </div>
             )}
 
@@ -740,7 +727,7 @@ export function OwnerDashboard() {
                     >
                       {/* Slide 1: Draft Board */}
                       <div className="w-full flex-shrink-0 px-2">
-                        <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} draftedPicks={teamDraftPicks} />
+                        <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} pickAssignments={teamDraftPicks} />
                       </div>
                       {/* Slide 2: Watch List */}
                       <div className="w-full flex-shrink-0 px-2">
@@ -768,7 +755,7 @@ export function OwnerDashboard() {
                   </div>
                 </>
               ) : (
-                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} draftedPicks={teamDraftPicks} />
+                <DraftBoardView players={allLeaguePlayers} entries={stackedEntries} pickAssignments={teamDraftPicks} />
               )}
             </div>
           </>
