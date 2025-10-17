@@ -3,8 +3,8 @@
  * Uses Alchemy API for ETH balance and CoinGecko for ETH/USD price
  */
 
-// Alchemy API (free tier) - you'll need to add your API key
-const ALCHEMY_API_KEY = 'demo'; // Replace with actual key: https://www.alchemy.com/
+// Alchemy API (free tier) - loaded from environment variables
+const ALCHEMY_API_KEY = import.meta.env.VITE_ALCHEMY_API_KEY || 'demo';
 const ALCHEMY_URL = `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
 
 // CoinGecko API (free, no key needed)
