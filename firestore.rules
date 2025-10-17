@@ -153,5 +153,13 @@ service cloud.firestore {
       // Only admins can create/update/delete draft picks
       allow write: if isAdmin();
     }
+
+    // Portfolios collection (prize pool tracking)
+    match /portfolios/{portfolioId} {
+      // All signed-in users can read portfolio data
+      allow read: if isSignedIn();
+      // Only admins can create/update/delete portfolio data
+      allow write: if isAdmin();
+    }
   }
 }
