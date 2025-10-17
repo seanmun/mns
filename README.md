@@ -68,8 +68,10 @@ The league fee ($50 per team) plus all penalties and fines create a prize pool t
 ### League Pages
 - **📖 Record Book**: Championship history and owner accomplishments
 - **📜 Rules**: Complete league rules with current cap structure
-- **🎯 Draft Board**: Live draft interface (coming soon)
+- **🎯 Draft Board**: Live snake draft with real-time updates and keeper integration
 - **🆓 Free Agent Pool**: Sortable list of available players
+- **💰 Portfolio Tracker**: Live prize pool valuation with blockchain integration
+- **📱 Telegram Notifications**: Real-time draft pick announcements with @mentions
 
 ## 💻 Tech Stack
 
@@ -77,11 +79,12 @@ Built with modern, production-ready technologies:
 
 - **Frontend**: React 19 + TypeScript + Vite
 - **Styling**: Tailwind CSS 4 with custom dark theme (#0a0a0a)
-- **State Management**: TanStack Query (React Query)
-- **Backend**: Firebase (Auth, Firestore, Storage)
+- **Backend**: Firebase (Auth, Firestore, Storage, Cloud Functions)
 - **Routing**: React Router v7
 - **Deployment**: Vercel with automatic GitHub deployments
 - **CSV Parsing**: Papaparse for robust data imports
+- **Blockchain**: Alchemy API (ETH balance) + CoinGecko (price data)
+- **Notifications**: Telegram Bot API for draft updates
 
 ## 🎮 How It Works
 
@@ -96,8 +99,11 @@ Built with modern, production-ready technologies:
 ### 2. Draft
 - 13 rounds, snake format
 - Keepers occupy their assigned rounds
+- Live draft board with real-time updates
 - Fill remaining roster spots with new talent
 - Draft order randomized after keepers locked
+- Telegram notifications with @username tagging
+- Admin tools to manually add keepers if needed
 
 ### 3. Regular Season
 - Weekly head-to-head matchups
@@ -108,7 +114,9 @@ Built with modern, production-ready technologies:
 
 ### 4. Playoffs & Prize Pool
 - Top 6 teams make playoffs
-- Prize pool valued and paid out
+- Prize pool tracked in real-time via EVM wallet
+- Live portfolio valuation (ETH balance + USD invested)
+- Returns calculated and displayed on League Home
 - Championship immortalized in Record Book
 - Start planning next year's keepers!
 
@@ -184,12 +192,16 @@ npm run dev
 ### Environment Variables
 
 ```env
+# Firebase Configuration
 VITE_FIREBASE_API_KEY=your_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your-project-id
 VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
+
+# Blockchain Integration (Optional - for portfolio tracking)
+VITE_ALCHEMY_API_KEY=your_alchemy_api_key
 ```
 
 ## 📂 Project Structure
@@ -214,9 +226,12 @@ mns/
 │   │   └── Admin*.tsx              # Admin management pages
 │   ├── lib/
 │   │   ├── firebase.ts             # Firebase configuration
-│   │   └── keeperAlgorithms.ts     # Core business logic
+│   │   ├── keeperAlgorithms.ts     # Core business logic
+│   │   └── blockchain.ts           # Alchemy/CoinGecko integration
 │   ├── hooks/
 │   │   └── useRoster.ts            # Firestore data hooks
+│   ├── data/
+│   │   └── hinkieQuotes.ts         # Daily motivational quotes
 │   ├── contexts/
 │   │   └── AuthContext.tsx         # Auth state management
 │   └── types/
