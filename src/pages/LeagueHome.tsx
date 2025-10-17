@@ -28,6 +28,7 @@ export function LeagueHome() {
   const [teamSalaries, setTeamSalaries] = useState<Map<string, number>>(new Map());
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const [showPortfolioDetails, setShowPortfolioDetails] = useState(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -468,34 +469,54 @@ export function LeagueHome() {
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Portfolio Details Grid */}
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
-                      <div className="text-xs text-gray-400 mb-1">Total Collected</div>
-                      <div className="text-2xl font-bold text-white">${teams.length * 50 + totalKeeperFees}</div>
-                    </div>
-                    <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
-                      <div className="text-xs text-gray-400 mb-1">USD Invested</div>
-                      <div className="text-2xl font-bold text-yellow-400">${portfolio.usdInvested}</div>
-                    </div>
-                    <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
-                      <div className="text-xs text-gray-400 mb-1">Cash on Hand</div>
-                      <div className="text-2xl font-bold text-blue-400">${teams.length * 50 + totalKeeperFees - portfolio.usdInvested}</div>
-                    </div>
-                    <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
-                      <div className="text-xs text-gray-400 mb-1">Wallet Value</div>
-                      <div className="text-2xl font-bold text-purple-400">${portfolio.cachedUsdValue.toFixed(2)}</div>
-                      <div className="text-xs text-gray-500 mt-1">{portfolio.cachedEthBalance?.toFixed(4)} ETH</div>
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-gray-500 text-center">
-                    Last updated: {portfolio.lastUpdated ? new Date(portfolio.lastUpdated).toLocaleString() : 'Never'}
+                  {/* Show Details Toggle */}
+                  <div className="mt-4 text-center">
+                    <button
+                      onClick={() => setShowPortfolioDetails(!showPortfolioDetails)}
+                      className="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-2 mx-auto"
+                    >
+                      <span>{showPortfolioDetails ? 'Hide' : 'Show'} Details</span>
+                      <svg
+                        className={`w-4 h-4 transition-transform ${showPortfolioDetails ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
+
+                {/* Portfolio Details Dropdown */}
+                {showPortfolioDetails && (
+                  <div className="space-y-3 pt-4 border-t border-gray-800">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                        <div className="text-xs text-gray-400 mb-1">Total Collected</div>
+                        <div className="text-2xl font-bold text-white">${teams.length * 50 + totalKeeperFees}</div>
+                      </div>
+                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                        <div className="text-xs text-gray-400 mb-1">USD Invested</div>
+                        <div className="text-2xl font-bold text-yellow-400">${portfolio.usdInvested}</div>
+                      </div>
+                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                        <div className="text-xs text-gray-400 mb-1">Cash on Hand</div>
+                        <div className="text-2xl font-bold text-blue-400">${teams.length * 50 + totalKeeperFees - portfolio.usdInvested}</div>
+                      </div>
+                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                        <div className="text-xs text-gray-400 mb-1">Wallet Value</div>
+                        <div className="text-2xl font-bold text-purple-400">${portfolio.cachedUsdValue.toFixed(2)}</div>
+                        <div className="text-xs text-gray-500 mt-1">{portfolio.cachedEthBalance?.toFixed(4)} ETH</div>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-gray-500 text-center">
+                      Last updated: {portfolio.lastUpdated ? new Date(portfolio.lastUpdated).toLocaleString() : 'Never'}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
