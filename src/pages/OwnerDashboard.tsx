@@ -192,8 +192,6 @@ export function OwnerDashboard() {
     const fetchDraftedPlayers = async () => {
       if (!leagueId || !teamId || !league) return;
       try {
-        console.log('[fetchDraftedPlayers] Query params:', { leagueId, teamId, seasonYear: league.seasonYear });
-
         // NEW: Load picks from pickAssignments collection
         const pickAssignmentsRef = collection(db, 'pickAssignments');
         const pickAssignmentsQuery = query(
@@ -203,15 +201,11 @@ export function OwnerDashboard() {
           where('seasonYear', '==', league.seasonYear)
         );
         const pickAssignmentsSnap = await getDocs(pickAssignmentsQuery);
-        console.log('[fetchDraftedPlayers] Found pickAssignments:', pickAssignmentsSnap.docs.length);
 
         const teamPickAssignments = pickAssignmentsSnap.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         })) as any[];
-
-        console.log('[OwnerDashboard] Team:', teamId);
-        console.log('[OwnerDashboard] Pick assignments for this team:', teamPickAssignments.length);
 
         // Load player data for picks with players assigned
         const playerIds = teamPickAssignments
@@ -219,16 +213,12 @@ export function OwnerDashboard() {
           .map(pick => pick.playerId);
 
         if (playerIds.length > 0) {
-          console.log('[OwnerDashboard] Looking for player IDs:', playerIds);
-
           const playersRef = collection(db, 'players');
           const playersSnap = await getDocs(playersRef);
 
           const draftedPlayerData = playersSnap.docs
             .map(doc => ({ id: doc.id, ...doc.data() }) as Player)
             .filter(p => playerIds.includes(p.fantraxId));
-
-          console.log('[OwnerDashboard] Matched players:', draftedPlayerData.length);
 
           setDraftedPlayers(draftedPlayerData);
         } else {
@@ -430,15 +420,8 @@ export function OwnerDashboard() {
     // NEW: Calculate summary ONLY from pickAssignments (source of truth)
     const picksWithPlayers = teamDraftPicks.filter((pick: any) => pick.playerId);
 
-    console.log('[SALARY DEBUG] teamDraftPicks:', teamDraftPicks.length);
-    console.log('[SALARY DEBUG] picksWithPlayers:', picksWithPlayers.length);
-    console.log('[SALARY DEBUG] Player IDs:', picksWithPlayers.map((p: any) => p.playerId));
-
     // SIMPLIFIED APPROACH: Use draftedPlayers which was already loaded from pickAssignments
     const players = draftedPlayers;
-
-    console.log('[SALARY DEBUG] draftedPlayers count:', players.length);
-    console.log('[SALARY DEBUG] Player names:', players.map(p => `${p.name}: $${(p.salary / 1_000_000).toFixed(1)}M`));
 
     // Count keepers vs drafted
     const keepersCount = picksWithPlayers.filter((pick: any) => pick.isKeeperSlot === true).length;
@@ -446,8 +429,6 @@ export function OwnerDashboard() {
 
     // Calculate salary cap from ALL players in draftedPlayers
     const capUsed = players.reduce((sum, player) => sum + (player.salary || 0), 0);
-
-    console.log('[SALARY DEBUG] Total capUsed:', capUsed, `($${(capUsed / 1_000_000).toFixed(1)}M)`);
 
     // Calculate effective cap
     const baseCap = 225_000_000;
