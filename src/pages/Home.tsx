@@ -10,7 +10,7 @@ export function Home() {
         {/* Gradient Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 via-purple-400/10 to-pink-400/10" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
           <div className="text-center">
             {/* Logo/Icon */}
             <div className="flex justify-center mb-8">
@@ -73,17 +73,17 @@ export function Home() {
             <p className="text-gray-400 mb-4">
               Navigate first apron ($195M) and second apron ($225M) thresholds with real financial penalties. Every dollar counts.
             </p>
-            <ul className="space-y-2 text-sm text-gray-500">
+            <ul className="space-y-2 text-sm text-gray-400">
               <li className="flex items-start gap-2">
-                <span className="text-green-400 mt-1">•</span>
+                <span className="text-green-400 flex-shrink-0">•</span>
                 <span>$50 one-time fee for crossing first apron</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-green-400 mt-1">•</span>
+                <span className="text-green-400 flex-shrink-0">•</span>
                 <span>$2 per $1M over second apron</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-green-400 mt-1">•</span>
+                <span className="text-green-400 flex-shrink-0">•</span>
                 <span>Trade cap adjustments (±$30M)</span>
               </li>
             </ul>
@@ -98,17 +98,17 @@ export function Home() {
             <p className="text-gray-400 mb-4">
               Keep up to 8 players season-over-season, building a true dynasty with strategic round management.
             </p>
-            <ul className="space-y-2 text-sm text-gray-500">
+            <ul className="space-y-2 text-sm text-gray-400">
               <li className="flex items-start gap-2">
-                <span className="text-purple-400 mt-1">•</span>
+                <span className="text-purple-400 flex-shrink-0">•</span>
                 <span>Keepers advance one round each year</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-purple-400 mt-1">•</span>
+                <span className="text-purple-400 flex-shrink-0">•</span>
                 <span>Franchise tags for multiple superstars</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-purple-400 mt-1">•</span>
+                <span className="text-purple-400 flex-shrink-0">•</span>
                 <span>Smart stacking algorithm resolves conflicts</span>
               </li>
             </ul>
@@ -123,17 +123,17 @@ export function Home() {
             <p className="text-gray-400 mb-4">
               Stash rookies for $10, activate mid-season for $25. Build your future with the annual rookie draft.
             </p>
-            <ul className="space-y-2 text-sm text-gray-500">
+            <ul className="space-y-2 text-sm text-gray-400">
               <li className="flex items-start gap-2">
-                <span className="text-pink-400 mt-1">•</span>
+                <span className="text-pink-400 flex-shrink-0">•</span>
                 <span>Redshirt system mirrors college basketball</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-pink-400 mt-1">•</span>
+                <span className="text-pink-400 flex-shrink-0">•</span>
                 <span>Annual rookie draft with lottery system</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-pink-400 mt-1">•</span>
+                <span className="text-pink-400 flex-shrink-0">•</span>
                 <span>International stash for future prospects</span>
               </li>
             </ul>
@@ -148,17 +148,17 @@ export function Home() {
             <p className="text-gray-400 mb-4">
               13-round snake draft with real-time updates and Telegram notifications with @username tagging.
             </p>
-            <ul className="space-y-2 text-sm text-gray-500">
+            <ul className="space-y-2 text-sm text-gray-400">
               <li className="flex items-start gap-2">
-                <span className="text-blue-400 mt-1">•</span>
+                <span className="text-blue-400 flex-shrink-0">•</span>
                 <span>Keepers automatically occupy rounds</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-blue-400 mt-1">•</span>
+                <span className="text-blue-400 flex-shrink-0">•</span>
                 <span>Real-time Telegram notifications</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-blue-400 mt-1">•</span>
+                <span className="text-blue-400 flex-shrink-0">•</span>
                 <span>Admin tools for keeper management</span>
               </li>
             </ul>
@@ -173,17 +173,17 @@ export function Home() {
             <p className="text-gray-400 mb-4">
               All fees invested in voted-upon assets. Pool could be $600, $2,000, or $150,000 by playoffs!
             </p>
-            <ul className="space-y-2 text-sm text-gray-500">
+            <ul className="space-y-2 text-sm text-gray-400">
               <li className="flex items-start gap-2">
-                <span className="text-yellow-400 mt-1">•</span>
+                <span className="text-yellow-400 flex-shrink-0">•</span>
                 <span>Live portfolio tracking via blockchain</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-yellow-400 mt-1">•</span>
+                <span className="text-yellow-400 flex-shrink-0">•</span>
                 <span>Dynamic payout rules based on returns</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-yellow-400 mt-1">•</span>
+                <span className="text-yellow-400 flex-shrink-0">•</span>
                 <span>Real-time ETH balance updates</span>
               </li>
             </ul>
@@ -198,17 +198,17 @@ export function Home() {
             <p className="text-gray-400 mb-4">
               Visual cap thermometer, scenario planning, and smart metrics for strategic decision-making.
             </p>
-            <ul className="space-y-2 text-sm text-gray-500">
+            <ul className="space-y-2 text-sm text-gray-400">
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-1">•</span>
+                <span className="text-emerald-400 flex-shrink-0">•</span>
                 <span>Real-time cap usage tracking</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-1">•</span>
+                <span className="text-emerald-400 flex-shrink-0">•</span>
                 <span>Save and compare multiple scenarios</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-1">•</span>
+                <span className="text-emerald-400 flex-shrink-0">•</span>
                 <span>Player projections and stats</span>
               </li>
             </ul>

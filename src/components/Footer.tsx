@@ -60,11 +60,11 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-8 pt-8 border-t border-gray-800">
           <div className="flex flex-col items-center gap-4 text-center">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col items-center gap-3">
               <img
                 src="/icons/mnsBall-icon.png"
                 alt="MNS"
-                className="w-8 h-8 rounded-full opacity-70"
+                className="w-12 h-12 rounded-full opacity-70"
               />
               <p className="text-gray-400 text-sm">
                 Money Never Sleeps - Where Fantasy Basketball Meets Wall Street
