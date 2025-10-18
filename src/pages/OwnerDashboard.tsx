@@ -426,9 +426,17 @@ export function OwnerDashboard() {
   const { stackedEntries, currentSummary } = useMemo(() => {
     // NEW: Calculate summary ONLY from pickAssignments (source of truth)
     const picksWithPlayers = teamDraftPicks.filter((pick: any) => pick.playerId);
+
+    console.log('[SALARY DEBUG] teamDraftPicks:', teamDraftPicks.length);
+    console.log('[SALARY DEBUG] picksWithPlayers:', picksWithPlayers.length);
+    console.log('[SALARY DEBUG] Player IDs:', picksWithPlayers.map((p: any) => p.playerId));
+
     const players = picksWithPlayers
       .map((pick: any) => playersMap.get(pick.playerId))
       .filter((p): p is Player => p !== undefined);
+
+    console.log('[SALARY DEBUG] Players found:', players.length);
+    console.log('[SALARY DEBUG] Player names:', players.map(p => `${p.name}: $${(p.salary / 1_000_000).toFixed(1)}M`));
 
     // Count keepers vs drafted
     const keepersCount = picksWithPlayers.filter((pick: any) => pick.isKeeperSlot).length;
@@ -436,6 +444,8 @@ export function OwnerDashboard() {
 
     // Calculate salary cap from picks only
     const capUsed = players.reduce((sum, player) => sum + player.salary, 0);
+
+    console.log('[SALARY DEBUG] Total capUsed:', capUsed, `($${(capUsed / 1_000_000).toFixed(1)}M)`);
 
     // Calculate effective cap
     const baseCap = 225_000_000;
