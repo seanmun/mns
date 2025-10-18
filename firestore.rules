@@ -161,5 +161,13 @@ service cloud.firestore {
       // Only admins can create/update/delete portfolio data
       allow write: if isAdmin();
     }
+
+    // Pick Assignments collection (new independent pick tracking)
+    match /pickAssignments/{pickId} {
+      // All signed-in users can read pick assignments
+      allow read: if isSignedIn();
+      // Only admins can create/update/delete pick assignments
+      allow write: if isAdmin();
+    }
   }
 }

@@ -24,6 +24,8 @@ import { AdminRookiePicks } from './pages/AdminRookiePicks';
 import { AdminDraftPicks } from './pages/AdminDraftPicks';
 import { AdminTradeManager } from './pages/AdminTradeManager';
 import { AdminPortfolio } from './pages/AdminPortfolio';
+import { AdminMigration } from './pages/AdminMigration';
+import { AdminPicksView } from './pages/AdminPicksView';
 import { Inbox } from './pages/Inbox';
 import { Profile } from './pages/Profile';
 
@@ -197,6 +199,26 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <AdminTradeManager />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/migration"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminMigration />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/picks"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminPicksView />
                 </AppLayout>
               </PrivateRoute>
             }

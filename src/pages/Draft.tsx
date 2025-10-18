@@ -248,6 +248,18 @@ export function Draft() {
           'roster.teamId': actualPickOwner,
           'roster.leagueId': currentDraft.leagueId
         });
+
+        // ALSO update pickAssignments collection to keep team pages in sync
+        const pickAssignmentId = `${currentDraft.leagueId}_${currentDraft.seasonYear}_pick_${currentDraft.currentPick?.overallPick}`;
+        const pickAssignmentRef = doc(db, 'pickAssignments', pickAssignmentId);
+        transaction.update(pickAssignmentRef, {
+          playerId,
+          playerName: player.name,
+          pickedAt: Date.now(),
+          pickedBy: user.email,
+          updatedAt: Date.now()
+        });
+        console.log('[Draft] Also updated pickAssignments:', pickAssignmentId);
       });
 
       // Telegram notification is now handled server-side by Cloud Function

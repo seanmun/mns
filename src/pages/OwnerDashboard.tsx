@@ -424,31 +424,63 @@ export function OwnerDashboard() {
 
   // Calculate stacked entries and current summary for display
   const { stackedEntries, currentSummary } = useMemo(() => {
-    // If user can't view decisions, show all as DROP
-    if (!canViewDecisions) {
-      const dropEntries = entries.map(e => ({ ...e, decision: 'DROP' as Decision }));
-      const summary = computeSummary({
-        entries: dropEntries,
-        allPlayers: playersMap,
-        tradeDelta: team?.capAdjustments.tradeDelta || 0,
-        franchiseTags: 0,
-        draftedPlayers,
-      });
-      return { stackedEntries: dropEntries, currentSummary: summary };
-    }
+    // NEW: Calculate summary ONLY from pickAssignments (source of truth)
+    const picksWithPlayers = teamDraftPicks.filter((pick: any) => pick.playerId);
+    const players = picksWithPlayers
+      .map((pick: any) => playersMap.get(pick.playerId))
+      .filter((p): p is Player => p !== undefined);
 
-    // Deep copy entries so stacking doesn't mutate original state
+    // Count keepers vs drafted
+    const keepersCount = picksWithPlayers.filter((pick: any) => pick.isKeeperSlot).length;
+    const draftedCount = picksWithPlayers.filter((pick: any) => !pick.isKeeperSlot).length;
+
+    // Calculate salary cap from picks only
+    const capUsed = players.reduce((sum, player) => sum + player.salary, 0);
+
+    // Calculate effective cap
+    const baseCap = 225_000_000;
+    const tradeDelta = team?.capAdjustments.tradeDelta || 0;
+    const capEffective = Math.max(170_000_000, Math.min(255_000_000, baseCap + tradeDelta));
+
+    // Calculate penalties
+    const overBy = Math.max(0, capUsed - 225_000_000);
+    const overByM = Math.ceil(overBy / 1_000_000);
+    const penaltyDues = overByM * 2;
+    const firstApronFee = capUsed > 195_000_000 ? 50 : 0;
+
+    // Get redshirts/stash from old entries (these aren't in picks yet)
+    const redshirtIds = entries.filter(e => e.decision === 'REDSHIRT').map(e => e.playerId);
+    const intStashIds = entries.filter(e => e.decision === 'INT_STASH').map(e => e.playerId);
+    const redshirtDues = redshirtIds.length * 10;
+
+    // Franchise tags from stacking
     const entriesCopy = entries.map(e => ({ ...e }));
     const { franchiseTags } = stackKeeperRounds(entriesCopy);
-    const summary = computeSummary({
-      entries: entriesCopy,
-      allPlayers: playersMap,
-      tradeDelta: team?.capAdjustments.tradeDelta || 0,
+    const franchiseTagDues = franchiseTags * 15;
+
+    const totalFees = penaltyDues + franchiseTagDues + redshirtDues + firstApronFee;
+
+    const summary = {
+      keepersCount,
+      draftedCount,
+      redshirtsCount: redshirtIds.length,
+      intStashCount: intStashIds.length,
+      capUsed,
+      capBase: baseCap,
+      capTradeDelta: tradeDelta,
+      capEffective,
+      overSecondApronByM: overByM,
+      penaltyDues,
       franchiseTags,
-      draftedPlayers,
-    });
+      franchiseTagDues,
+      redshirtDues,
+      firstApronFee,
+      activationDues: 0,
+      totalFees,
+    };
+
     return { stackedEntries: entriesCopy, currentSummary: summary };
-  }, [entries, playersMap, team, canViewDecisions, draftedPlayers]);
+  }, [entries, playersMap, team, teamDraftPicks]);
 
 
   const sortedPlayers = useMemo(() => {
