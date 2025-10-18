@@ -192,6 +192,8 @@ export function OwnerDashboard() {
     const fetchDraftedPlayers = async () => {
       if (!leagueId || !teamId || !league) return;
       try {
+        console.log('[fetchDraftedPlayers] Query params:', { leagueId, teamId, seasonYear: league.seasonYear });
+
         // NEW: Load picks from pickAssignments collection
         const pickAssignmentsRef = collection(db, 'pickAssignments');
         const pickAssignmentsQuery = query(
@@ -201,6 +203,7 @@ export function OwnerDashboard() {
           where('seasonYear', '==', league.seasonYear)
         );
         const pickAssignmentsSnap = await getDocs(pickAssignmentsQuery);
+        console.log('[fetchDraftedPlayers] Found pickAssignments:', pickAssignmentsSnap.docs.length);
 
         const teamPickAssignments = pickAssignmentsSnap.docs.map(doc => ({
           id: doc.id,
@@ -223,7 +226,7 @@ export function OwnerDashboard() {
 
           const draftedPlayerData = playersSnap.docs
             .map(doc => ({ id: doc.id, ...doc.data() }) as Player)
-            .filter(p => playerIds.includes(p.id));
+            .filter(p => playerIds.includes(p.fantraxId));
 
           console.log('[OwnerDashboard] Matched players:', draftedPlayerData.length);
 
@@ -431,19 +434,18 @@ export function OwnerDashboard() {
     console.log('[SALARY DEBUG] picksWithPlayers:', picksWithPlayers.length);
     console.log('[SALARY DEBUG] Player IDs:', picksWithPlayers.map((p: any) => p.playerId));
 
-    const players = picksWithPlayers
-      .map((pick: any) => playersMap.get(pick.playerId))
-      .filter((p): p is Player => p !== undefined);
+    // SIMPLIFIED APPROACH: Use draftedPlayers which was already loaded from pickAssignments
+    const players = draftedPlayers;
 
-    console.log('[SALARY DEBUG] Players found:', players.length);
+    console.log('[SALARY DEBUG] draftedPlayers count:', players.length);
     console.log('[SALARY DEBUG] Player names:', players.map(p => `${p.name}: $${(p.salary / 1_000_000).toFixed(1)}M`));
 
     // Count keepers vs drafted
-    const keepersCount = picksWithPlayers.filter((pick: any) => pick.isKeeperSlot).length;
-    const draftedCount = picksWithPlayers.filter((pick: any) => !pick.isKeeperSlot).length;
+    const keepersCount = picksWithPlayers.filter((pick: any) => pick.isKeeperSlot === true).length;
+    const draftedCount = picksWithPlayers.filter((pick: any) => pick.isKeeperSlot === false).length;
 
-    // Calculate salary cap from picks only
-    const capUsed = players.reduce((sum, player) => sum + player.salary, 0);
+    // Calculate salary cap from ALL players in draftedPlayers
+    const capUsed = players.reduce((sum, player) => sum + (player.salary || 0), 0);
 
     console.log('[SALARY DEBUG] Total capUsed:', capUsed, `($${(capUsed / 1_000_000).toFixed(1)}M)`);
 

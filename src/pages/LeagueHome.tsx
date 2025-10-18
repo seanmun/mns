@@ -4,7 +4,7 @@ import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWalletData } from '../lib/blockchain';
-import type { Team, League, RosterDoc, Draft, Player, Portfolio } from '../types';
+import type { Team, League, RosterDoc, Player, Portfolio } from '../types';
 
 export function LeagueHome() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -106,27 +106,39 @@ export function LeagueHome() {
         const draftDoc = await getDoc(doc(db, 'drafts', draftId));
 
         if (draftDoc.exists()) {
-          const draft = draftDoc.data() as Draft;
-
           // Load all players to get salaries
           const playersSnap = await getDocs(collection(db, 'players'));
           const playersMap = new Map<string, Player>();
           playersSnap.docs.forEach(doc => {
             const player = { id: doc.id, ...doc.data() } as Player;
-            playersMap.set(player.id, player);
+            playersMap.set(player.fantraxId, player); // Index by fantraxId instead of document id
           });
 
-          // Calculate total salary per team from their draft picks
+          // Load pickAssignments to get current team ownership (includes trades)
+          const pickAssignmentsSnap = await getDocs(
+            query(
+              collection(db, 'pickAssignments'),
+              where('leagueId', '==', leagueId),
+              where('seasonYear', '==', leagueData.seasonYear)
+            )
+          );
+
+          const allPickAssignments = pickAssignmentsSnap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as any[];
+
+          // Calculate total salary per team from their current picks (after trades)
           const salariesMap = new Map<string, number>();
           teamData.forEach(team => {
-            // Get all picks for this team that have a player assigned
-            const teamPicks = draft.picks.filter(pick =>
-              pick.teamId === team.id && pick.playerId && pick.pickedAt
+            // Get all picks currently owned by this team
+            const teamPicks = allPickAssignments.filter(pick =>
+              pick.currentTeamId === team.id && pick.playerId
             );
 
             // Sum up the salaries
             const totalSalary = teamPicks.reduce((sum, pick) => {
-              const player = playersMap.get(pick.playerId!);
+              const player = playersMap.get(pick.playerId); // playerId is fantraxId
               return sum + (player?.salary || 0);
             }, 0);
 
