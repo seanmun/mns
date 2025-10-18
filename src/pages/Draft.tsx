@@ -249,8 +249,19 @@ export function Draft() {
           'roster.leagueId': currentDraft.leagueId
         });
 
-        // TODO: Update pickAssignments after fixing security rules
-        // For now, we'll sync pickAssignments manually after each pick via admin migration tool
+        // ALSO update pickAssignments collection to keep team pages in sync
+        const pickAssignmentId = `${currentDraft.leagueId}_${currentDraft.seasonYear}_pick_${currentDraft.currentPick?.overallPick}`;
+        const pickAssignmentRef = doc(db, 'pickAssignments', pickAssignmentId);
+
+        // Use set with merge to handle both existing and new documents
+        transaction.set(pickAssignmentRef, {
+          playerId,
+          playerName: player.name,
+          pickedAt: Date.now(),
+          pickedBy: user.email,
+          updatedAt: Date.now()
+        }, { merge: true });
+        console.log('[Draft] Also updated pickAssignments:', pickAssignmentId);
       });
 
       // Telegram notification is now handled server-side by Cloud Function

@@ -166,8 +166,10 @@ service cloud.firestore {
     match /pickAssignments/{pickId} {
       // All signed-in users can read pick assignments
       allow read: if isSignedIn();
-      // Only admins can create/update/delete pick assignments
+      // Admins can do anything
       allow write: if isAdmin();
+      // During draft, allow signed-in users to update picks (for draft picks)
+      allow update: if isSignedIn();
     }
   }
 }
