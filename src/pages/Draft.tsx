@@ -252,13 +252,15 @@ export function Draft() {
         // ALSO update pickAssignments collection to keep team pages in sync
         const pickAssignmentId = `${currentDraft.leagueId}_${currentDraft.seasonYear}_pick_${currentDraft.currentPick?.overallPick}`;
         const pickAssignmentRef = doc(db, 'pickAssignments', pickAssignmentId);
-        transaction.update(pickAssignmentRef, {
+
+        // Use set with merge instead of update (in case document doesn't exist yet)
+        transaction.set(pickAssignmentRef, {
           playerId,
           playerName: player.name,
           pickedAt: Date.now(),
           pickedBy: user.email,
           updatedAt: Date.now()
-        });
+        }, { merge: true });
         console.log('[Draft] Also updated pickAssignments:', pickAssignmentId);
       });
 
