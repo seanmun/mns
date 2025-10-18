@@ -360,7 +360,7 @@ export function LeagueHome() {
           {/* Draft Card */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
             <div className="flex items-center gap-2 mb-1">
-              <img src="/icons/draft-icon.png" alt="Draft" className="w-5 h-5 rounded-full" />
+              <img src="/icons/draft-icon.webp" alt="Draft" className="w-5 h-5 rounded-full" />
               <h3 className="text-sm font-bold text-white">Draft</h3>
             </div>
             <p className="text-xs text-gray-400 mb-3">In Progress</p>
@@ -375,7 +375,7 @@ export function LeagueHome() {
           {/* Free Agent Pool Card */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
             <div className="flex items-center gap-2 mb-1">
-              <img src="/icons/baseketball-icon.png" alt="Basketball" className="w-5 h-5 rounded-full" />
+              <img src="/icons/baseketball-icon.webp" alt="Basketball" className="w-5 h-5 rounded-full" />
               <h3 className="text-sm font-bold text-white">Free Agent Pool</h3>
             </div>
             <p className="text-xs text-gray-400 mb-3">Browse available players</p>
@@ -390,7 +390,7 @@ export function LeagueHome() {
           {/* Rookie Draft Card */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
             <div className="flex items-center gap-2 mb-1">
-              <img src="/icons/rookie-icon.png" alt="Rookie Draft" className="w-5 h-5 rounded-full" />
+              <img src="/icons/rookie-icon.webp" alt="Rookie Draft" className="w-5 h-5 rounded-full" />
               <h3 className="text-sm font-bold text-white">Rookie Draft</h3>
             </div>
             <p className="text-xs text-gray-400 mb-3">June 25, 2025</p>
@@ -405,7 +405,7 @@ export function LeagueHome() {
           {/* Rules Card */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
             <div className="flex items-center gap-2 mb-1">
-              <img src="/icons/rules-icon.png" alt="Rules" className="w-5 h-5 rounded-full" />
+              <img src="/icons/rules-icon.webp" alt="Rules" className="w-5 h-5 rounded-full" />
               <h3 className="text-sm font-bold text-white">Rules</h3>
             </div>
             <p className="text-xs text-gray-400 mb-3">League guidelines</p>
@@ -420,7 +420,7 @@ export function LeagueHome() {
           {/* Reigning Champion Card */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
             <div className="flex items-center gap-2 mb-1">
-              <img src="/icons/trophy-icon.png" alt="Trophy" className="w-5 h-5 rounded-full" />
+              <img src="/icons/trophy-icon.webp" alt="Trophy" className="w-5 h-5 rounded-full" />
               <h3 className="text-sm font-bold text-white">Champion</h3>
             </div>
             <p className="text-base font-semibold text-yellow-400 mb-3">Kirbiak</p>
@@ -535,7 +535,7 @@ export function LeagueHome() {
             {/* Prize Pool Section */}
             <div className="bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 rounded-lg shadow-lg p-6 text-black border border-green-300">
               <div className="flex items-center gap-3 mb-2">
-                <img src="/icons/money-icon.png" alt="Money" className="w-8 h-8 rounded-full" />
+                <img src="/icons/money-icon.webp" alt="Money" className="w-8 h-8 rounded-full" />
                 <h2 className="text-xl font-bold">Prize Pool</h2>
               </div>
               <div className="text-4xl font-bold mb-4">${teams.length * 50 + totalKeeperFees}</div>
@@ -664,7 +664,7 @@ export function LeagueHome() {
             {/* Draft Card */}
             <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/draft-icon.png" alt="Draft" className="w-6 h-6 rounded-full" />
+                <img src="/icons/draft-icon.webp" alt="Draft" className="w-6 h-6 rounded-full" />
                 <h3 className="text-lg font-bold text-white">Draft</h3>
               </div>
               <p className="text-sm text-gray-400 mb-4">
@@ -681,7 +681,7 @@ export function LeagueHome() {
             {/* Free Agent Pool Card */}
             <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/baseketball-icon.png" alt="Basketball" className="w-6 h-6 rounded-full" />
+                <img src="/icons/baseketball-icon.webp" alt="Basketball" className="w-6 h-6 rounded-full" />
                 <h3 className="text-lg font-bold text-white">Free Agent Pool</h3>
               </div>
               <p className="text-sm text-gray-400 mb-4">
@@ -698,7 +698,7 @@ export function LeagueHome() {
             {/* Rookie Draft Card */}
             <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/rookie-icon.png" alt="Rookie Draft" className="w-6 h-6 rounded-full" />
+                <img src="/icons/rookie-icon.webp" alt="Rookie Draft" className="w-6 h-6 rounded-full" />
                 <h3 className="text-lg font-bold text-white">Rookie Draft</h3>
               </div>
               <p className="text-sm text-gray-400 mb-4">
@@ -715,7 +715,7 @@ export function LeagueHome() {
             {/* Rules Card */}
             <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/rules-icon.png" alt="Rules" className="w-6 h-6 rounded-full" />
+                <img src="/icons/rules-icon.webp" alt="Rules" className="w-6 h-6 rounded-full" />
                 <h3 className="text-lg font-bold text-white">Rules</h3>
               </div>
               <p className="text-sm text-gray-400 mb-4">
@@ -732,7 +732,7 @@ export function LeagueHome() {
             {/* Reigning Champion Card */}
             <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/trophy-icon.png" alt="Trophy" className="w-6 h-6 rounded-full" />
+                <img src="/icons/trophy-icon.webp" alt="Trophy" className="w-6 h-6 rounded-full" />
                 <h3 className="text-lg font-bold text-white">Reigning Champion</h3>
               </div>
               <p className="text-xl font-semibold text-yellow-400 mb-4">Kirbiak</p>

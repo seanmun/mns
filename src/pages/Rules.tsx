@@ -5,7 +5,7 @@ export function Rules() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-            <img src="/icons/rules-icon.png" alt="Rules" className="w-8 h-8 rounded-full" />
+            <img src="/icons/rules-icon.webp" alt="Rules" className="w-8 h-8 rounded-full" />
             Money Never Sleeps
           </h1>
           <p className="text-gray-400 mt-1">League Rules • 2025-26 Season</p>
@@ -26,7 +26,7 @@ export function Rules() {
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <img src="/icons/money-icon.png" alt="Money" className="w-6 h-6 rounded-full" />
+                <img src="/icons/money-icon.webp" alt="Money" className="w-6 h-6 rounded-full" />
                 Salary Cap
               </h2>
             </div>
@@ -61,7 +61,7 @@ export function Rules() {
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <img src="/icons/settings-icon.png" alt="Settings" className="w-6 h-6 rounded-full" />
+                <img src="/icons/settings-icon.webp" alt="Settings" className="w-6 h-6 rounded-full" />
                 League Settings
               </h2>
             </div>
@@ -112,7 +112,7 @@ export function Rules() {
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <img src="/icons/draft-icon.png" alt="Draft" className="w-6 h-6 rounded-full" />
+                <img src="/icons/draft-icon.webp" alt="Draft" className="w-6 h-6 rounded-full" />
                 Draft Rules
               </h2>
             </div>
@@ -150,7 +150,7 @@ export function Rules() {
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <img src="/icons/lock-icon.png" alt="Lock" className="w-6 h-6 rounded-full" />
+                <img src="/icons/lock-icon.webp" alt="Lock" className="w-6 h-6 rounded-full" />
                 Keeper Rules
               </h2>
             </div>
@@ -201,7 +201,7 @@ export function Rules() {
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <img src="/icons/rookie-icon.png" alt="Rookie" className="w-6 h-6 rounded-full" />
+                <img src="/icons/rookie-icon.webp" alt="Rookie" className="w-6 h-6 rounded-full" />
                 Redshirt Rules
               </h2>
             </div>
@@ -224,7 +224,7 @@ export function Rules() {
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <img src="/icons/planet-icon.png" alt="International" className="w-6 h-6 rounded-full" />
+                <img src="/icons/planet-icon.webp" alt="International" className="w-6 h-6 rounded-full" />
                 International Stash
               </h2>
             </div>
@@ -245,7 +245,7 @@ export function Rules() {
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <img src="/icons/money-icon.png" alt="Money" className="w-6 h-6 rounded-full" />
+                <img src="/icons/money-icon.webp" alt="Money" className="w-6 h-6 rounded-full" />
                 League Fees & Dues
               </h2>
             </div>
@@ -267,7 +267,7 @@ export function Rules() {
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <img src="/icons/trophy-icon.png" alt="Trophy" className="w-6 h-6 rounded-full" />
+                <img src="/icons/trophy-icon.webp" alt="Trophy" className="w-6 h-6 rounded-full" />
                 Prize Pool Rules
               </h2>
             </div>
@@ -320,7 +320,7 @@ export function Rules() {
           <div className="bg-[#121212] rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <img src="/icons/note-icon.png" alt="Notes" className="w-6 h-6 rounded-full" />
+                <img src="/icons/note-icon.webp" alt="Notes" className="w-6 h-6 rounded-full" />
                 Additional Notes
               </h2>
             </div>

@@ -1,8 +1,46 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useLeague } from '../contexts/LeagueContext';
 
 export function Home() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { userLeagues, loading: leaguesLoading } = useLeague();
 
+  // Redirect authenticated users to their league
+  useEffect(() => {
+    // Wait for auth and leagues to load
+    if (authLoading || leaguesLoading) return;
+
+    // If user is authenticated, redirect them
+    if (user) {
+      if (userLeagues.length === 0) {
+        // User has no leagues - redirect to teams page (where they can create/join)
+        navigate('/teams');
+      } else if (userLeagues.length === 1) {
+        // User has exactly one league - go directly to that league's home page
+        navigate(`/league/${userLeagues[0].id}`);
+      } else {
+        // User has multiple leagues - go to teams page to select
+        navigate('/teams');
+      }
+    }
+  }, [user, userLeagues, authLoading, leaguesLoading, navigate]);
+
+  // Show loading while checking auth status
+  if (authLoading || (user && leaguesLoading)) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-500 border-r-transparent" />
+          <div className="mt-4 text-gray-400">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Only show home page to unauthenticated users
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Hero Section */}
@@ -15,7 +53,7 @@ export function Home() {
             {/* Logo/Icon */}
             <div className="flex justify-center mb-8">
               <img
-                src="/icons/mnsBall-icon.png"
+                src="/icons/mnsBall-icon.webp"
                 alt="Money Never Sleeps"
                 className="w-32 h-32 sm:w-40 sm:h-40 rounded-full shadow-2xl ring-4 ring-green-400/30"
               />
@@ -67,7 +105,7 @@ export function Home() {
           {/* Feature 1: Salary Cap */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 hover:border-green-400/50 transition-all hover:shadow-[0_0_20px_rgba(74,222,128,0.2)]">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/icons/money-icon.png" alt="Salary Cap" className="w-12 h-12 rounded-full" />
+              <img src="/icons/money-icon.webp" alt="Salary Cap" className="w-12 h-12 rounded-full" />
               <h3 className="text-xl font-bold">Real NBA Salary Cap</h3>
             </div>
             <p className="text-gray-400 mb-4">
@@ -92,7 +130,7 @@ export function Home() {
           {/* Feature 2: Dynasty Keepers */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 hover:border-purple-400/50 transition-all hover:shadow-[0_0_20px_rgba(192,132,252,0.2)]">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/icons/lock-icon.png" alt="Keepers" className="w-12 h-12 rounded-full" />
+              <img src="/icons/lock-icon.webp" alt="Keepers" className="w-12 h-12 rounded-full" />
               <h3 className="text-xl font-bold">Dynasty Keeper System</h3>
             </div>
             <p className="text-gray-400 mb-4">
@@ -117,7 +155,7 @@ export function Home() {
           {/* Feature 3: Rookie Development */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 hover:border-pink-400/50 transition-all hover:shadow-[0_0_20px_rgba(244,114,182,0.2)]">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/icons/rookie-icon.png" alt="Rookies" className="w-12 h-12 rounded-full" />
+              <img src="/icons/rookie-icon.webp" alt="Rookies" className="w-12 h-12 rounded-full" />
               <h3 className="text-xl font-bold">Rookie Pipeline</h3>
             </div>
             <p className="text-gray-400 mb-4">
@@ -142,7 +180,7 @@ export function Home() {
           {/* Feature 4: Live Draft */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 hover:border-blue-400/50 transition-all hover:shadow-[0_0_20px_rgba(96,165,250,0.2)]">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/icons/draft-icon.png" alt="Draft" className="w-12 h-12 rounded-full" />
+              <img src="/icons/draft-icon.webp" alt="Draft" className="w-12 h-12 rounded-full" />
               <h3 className="text-xl font-bold">Live Draft Board</h3>
             </div>
             <p className="text-gray-400 mb-4">
@@ -167,7 +205,7 @@ export function Home() {
           {/* Feature 5: Prize Pool */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 hover:border-yellow-400/50 transition-all hover:shadow-[0_0_20px_rgba(250,204,21,0.2)]">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/icons/trophy-icon.png" alt="Prize Pool" className="w-12 h-12 rounded-full" />
+              <img src="/icons/trophy-icon.webp" alt="Prize Pool" className="w-12 h-12 rounded-full" />
               <h3 className="text-xl font-bold">Prize Pool Investment</h3>
             </div>
             <p className="text-gray-400 mb-4">
@@ -192,7 +230,7 @@ export function Home() {
           {/* Feature 6: Analytics */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 hover:border-emerald-400/50 transition-all hover:shadow-[0_0_20px_rgba(52,211,153,0.2)]">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/icons/settings-icon.png" alt="Analytics" className="w-12 h-12 rounded-full" />
+              <img src="/icons/settings-icon.webp" alt="Analytics" className="w-12 h-12 rounded-full" />
               <h3 className="text-xl font-bold">Advanced Analytics</h3>
             </div>
             <p className="text-gray-400 mb-4">

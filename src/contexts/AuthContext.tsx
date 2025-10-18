@@ -37,11 +37,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const idTokenResult = await firebaseUser.getIdTokenResult();
 
         // Temporary: Hardcode admin for specific email
-        if (firebaseUser.email === 'smunley13@gmail.com') {
-          setRole('admin');
-        } else {
-          setRole((idTokenResult.claims.role as UserRole) || 'owner');
-        }
+        const userRole = firebaseUser.email === 'smunley13@gmail.com'
+          ? 'admin'
+          : (idTokenResult.claims.role as UserRole) || 'owner';
+
+        setRole(userRole);
+
+        // Preload critical routes for authenticated users
+        // These are loaded during idle time to make navigation instant
+        setTimeout(() => {
+          // High priority - most users visit these immediately after login
+          import('../pages/TeamSelect');
+
+          // Medium priority - common navigation paths
+          setTimeout(() => {
+            import('../pages/LeagueHome');
+            import('../pages/OwnerDashboard');
+          }, 500);
+
+          // Admin-specific preloading
+          if (userRole === 'admin') {
+            setTimeout(() => {
+              // Preload admin chunk by importing any admin page
+              import('../pages/AdminTeams');
+            }, 1000);
+          }
+        }, 100); // Small delay to not interfere with initial auth flow
       } else {
         setRole(null);
       }

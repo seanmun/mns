@@ -40,7 +40,7 @@ export function RecordBook() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-            <img src="/icons/rules-icon.png" alt="Record Book" className="w-8 h-8 rounded-full" />
+            <img src="/icons/rules-icon.webp" alt="Record Book" className="w-8 h-8 rounded-full" />
             Record Book
           </h1>
           <p className="text-gray-400 mt-1">League history and championship records</p>

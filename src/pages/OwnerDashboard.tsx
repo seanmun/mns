@@ -244,6 +244,22 @@ export function OwnerDashboard() {
     fetchDraftedPlayers();
   }, [leagueId, teamId, league]);
 
+  // Preload related pages that users are likely to navigate to from dashboard
+  useEffect(() => {
+    // Wait for component to stabilize before preloading
+    const preloadTimer = setTimeout(() => {
+      // Users commonly check draft board, free agents, and rules from dashboard
+      import('./Draft').catch(() => {}); // Draft board (especially during draft season)
+
+      setTimeout(() => {
+        import('./FreeAgents').catch(() => {}); // Free agents for research
+        import('./Rules').catch(() => {}); // Rules for reference
+      }, 1000);
+    }, 2000); // Delay to prioritize dashboard rendering
+
+    return () => clearTimeout(preloadTimer);
+  }, []); // Only run once on mount
+
   const handleDecisionChange = (playerId: string, decision: Decision) => {
     setEntries((prev) =>
       prev.map((entry) => {
@@ -955,7 +971,7 @@ export function OwnerDashboard() {
               </button>
             </div>
             <div className="text-center">
-              <img src="/icons/stayTuned.png" alt="Stay Tuned" className="w-full max-w-sm mx-auto mb-4 rounded-lg" />
+              <img src="/icons/stayTuned.webp" alt="Stay Tuned" className="w-full max-w-sm mx-auto mb-4 rounded-lg" />
               <p className="text-gray-400 text-lg">
                 The chefs are hard at work on this feature! 👨‍🍳
               </p>
@@ -975,7 +991,7 @@ export function OwnerDashboard() {
               </button>
             </div>
             <div className="text-center">
-              <img src="/icons/stayTuned.png" alt="Stay Tuned" className="w-full max-w-sm mx-auto mb-4 rounded-lg" />
+              <img src="/icons/stayTuned.webp" alt="Stay Tuned" className="w-full max-w-sm mx-auto mb-4 rounded-lg" />
               <p className="text-gray-400 text-lg">
                 The chefs are hard at work on this feature! 👨‍🍳
               </p>

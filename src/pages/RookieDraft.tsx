@@ -98,7 +98,7 @@ export function RookieDraft() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-            <img src="/icons/rookie-icon.png" alt="Rookie" className="w-8 h-8 rounded-full" />
+            <img src="/icons/rookie-icon.webp" alt="Rookie" className="w-8 h-8 rounded-full" />
             Rookie Draft Results
           </h1>
           <p className="text-gray-400 mt-1">June 25, 2025</p>

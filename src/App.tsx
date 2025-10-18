@@ -1,44 +1,60 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LeagueProvider } from './contexts/LeagueContext';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { ScrollToTop } from './components/ScrollToTop';
+
+// Eagerly loaded (critical for initial render)
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
-import { FinishSignIn } from './pages/FinishSignIn';
-import { TeamSelect } from './pages/TeamSelect';
-import { LeagueHome } from './pages/LeagueHome';
-import { OwnerDashboard } from './pages/OwnerDashboard';
-import { Draft } from './pages/Draft';
-import { FreeAgents } from './pages/FreeAgents';
-import { RecordBook } from './pages/RecordBook';
-import { RookieDraft } from './pages/RookieDraft';
-import { Rules } from './pages/Rules';
-import { AdminUpload } from './pages/AdminUpload';
-import { AdminTeams } from './pages/AdminTeams';
-import { AdminPlayers } from './pages/AdminPlayers';
-import { AdminLeague } from './pages/AdminLeague';
-import { AdminDraftTest } from './pages/AdminDraftTest';
-import { AdminDraftSetup } from './pages/AdminDraftSetup';
-import { AdminViewRosters } from './pages/AdminViewRosters';
-import { AdminRookiePicks } from './pages/AdminRookiePicks';
-import { AdminDraftPicks } from './pages/AdminDraftPicks';
-import { AdminTradeManager } from './pages/AdminTradeManager';
-import { AdminPortfolio } from './pages/AdminPortfolio';
-import { AdminMigration } from './pages/AdminMigration';
-import { AdminPicksView } from './pages/AdminPicksView';
-import { Inbox } from './pages/Inbox';
-import { Profile } from './pages/Profile';
+
+// Lazy loaded route components (using named imports)
+const FinishSignIn = lazy(() => import('./pages/FinishSignIn').then(m => ({ default: m.FinishSignIn })));
+const TeamSelect = lazy(() => import('./pages/TeamSelect').then(m => ({ default: m.TeamSelect })));
+const LeagueHome = lazy(() => import('./pages/LeagueHome').then(m => ({ default: m.LeagueHome })));
+const OwnerDashboard = lazy(() => import('./pages/OwnerDashboard').then(m => ({ default: m.OwnerDashboard })));
+const Draft = lazy(() => import('./pages/Draft').then(m => ({ default: m.Draft })));
+const FreeAgents = lazy(() => import('./pages/FreeAgents').then(m => ({ default: m.FreeAgents })));
+const RecordBook = lazy(() => import('./pages/RecordBook').then(m => ({ default: m.RecordBook })));
+const RookieDraft = lazy(() => import('./pages/RookieDraft').then(m => ({ default: m.RookieDraft })));
+const Rules = lazy(() => import('./pages/Rules').then(m => ({ default: m.Rules })));
+const Inbox = lazy(() => import('./pages/Inbox').then(m => ({ default: m.Inbox })));
+const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
+
+// Admin pages (lazy loaded - not needed for most users)
+const AdminUpload = lazy(() => import('./pages/AdminUpload').then(m => ({ default: m.AdminUpload })));
+const AdminTeams = lazy(() => import('./pages/AdminTeams').then(m => ({ default: m.AdminTeams })));
+const AdminPlayers = lazy(() => import('./pages/AdminPlayers').then(m => ({ default: m.AdminPlayers })));
+const AdminLeague = lazy(() => import('./pages/AdminLeague').then(m => ({ default: m.AdminLeague })));
+const AdminDraftTest = lazy(() => import('./pages/AdminDraftTest').then(m => ({ default: m.AdminDraftTest })));
+const AdminDraftSetup = lazy(() => import('./pages/AdminDraftSetup').then(m => ({ default: m.AdminDraftSetup })));
+const AdminViewRosters = lazy(() => import('./pages/AdminViewRosters').then(m => ({ default: m.AdminViewRosters })));
+const AdminRookiePicks = lazy(() => import('./pages/AdminRookiePicks').then(m => ({ default: m.AdminRookiePicks })));
+const AdminDraftPicks = lazy(() => import('./pages/AdminDraftPicks').then(m => ({ default: m.AdminDraftPicks })));
+const AdminTradeManager = lazy(() => import('./pages/AdminTradeManager').then(m => ({ default: m.AdminTradeManager })));
+const AdminPortfolio = lazy(() => import('./pages/AdminPortfolio').then(m => ({ default: m.AdminPortfolio })));
+const AdminMigration = lazy(() => import('./pages/AdminMigration').then(m => ({ default: m.AdminMigration })));
+const AdminPicksView = lazy(() => import('./pages/AdminPicksView').then(m => ({ default: m.AdminPicksView })));
+
+// Loading fallback component
+function LoadingFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="text-center">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-500 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+        <div className="mt-4 text-gray-400">Loading...</div>
+      </div>
+    </div>
+  );
+}
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    );
+    return <LoadingFallback />;
   }
 
   return user ? <>{children}</> : <Navigate to="/" />;
@@ -59,9 +75,11 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <LeagueProvider>
-          <Routes>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
           <Route
             path="/"
             element={
@@ -302,7 +320,8 @@ function App() {
               </PrivateRoute>
             }
           />
-        </Routes>
+            </Routes>
+          </Suspense>
         </LeagueProvider>
       </AuthProvider>
     </BrowserRouter>

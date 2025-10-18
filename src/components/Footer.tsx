@@ -62,7 +62,7 @@ export function Footer() {
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="flex flex-col items-center gap-3">
               <img
-                src="/icons/mnsBall-icon.png"
+                src="/icons/mnsBall-icon.webp"
                 alt="MNS"
                 className="w-12 h-12 rounded-full opacity-70"
               />

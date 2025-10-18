@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import { getDailyQuote } from '../data/hinkieQuotes';
@@ -13,6 +15,38 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const leagueDropdownRef = useRef<HTMLDivElement>(null);
   const [hasNotifications, setHasNotifications] = useState(false);
+  const [userTeamId, setUserTeamId] = useState<string | null>(null);
+
+  // Fetch user's team for current league
+  useEffect(() => {
+    const fetchUserTeam = async () => {
+      if (!user?.email || !currentLeague?.id) {
+        setUserTeamId(null);
+        return;
+      }
+
+      try {
+        const teamsRef = collection(db, 'teams');
+        const teamsQuery = query(
+          teamsRef,
+          where('leagueId', '==', currentLeague.id),
+          where('owners', 'array-contains', user.email)
+        );
+        const teamsSnapshot = await getDocs(teamsQuery);
+
+        if (!teamsSnapshot.empty) {
+          setUserTeamId(teamsSnapshot.docs[0].id);
+        } else {
+          setUserTeamId(null);
+        }
+      } catch (error) {
+        console.error('Error fetching user team:', error);
+        setUserTeamId(null);
+      }
+    };
+
+    fetchUserTeam();
+  }, [user?.email, currentLeague?.id]);
 
   // Check if today's quote has been read
   const checkNotifications = () => {
@@ -60,11 +94,11 @@ export function Header() {
   // If no user, show simple header with logo and login button
   if (!user) {
     return (
-      <header className="bg-[#0a0a0a] shadow-sm border-b border-gray-800">
+      <header className="sticky top-0 z-50 bg-[#0a0a0a] shadow-sm border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center gap-2">
-              <img src="/icons/mnsBall-icon.png" alt="MNS" className="h-10 w-10 rounded-full" />
+              <img src="/icons/mnsBall-icon.webp" alt="MNS" className="h-10 w-10 rounded-full" />
               <span className="text-lg font-bold text-white hidden sm:block">Money Never Sleeps</span>
             </Link>
             <button
@@ -80,13 +114,13 @@ export function Header() {
   }
 
   return (
-    <header className="bg-[#0a0a0a] shadow-sm border-b border-gray-800">
+    <header className="sticky top-0 z-50 bg-[#0a0a0a] shadow-sm border-b border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo / League Switcher */}
           <div className="flex items-center gap-4">
             <Link to="/teams" className="flex items-center gap-2">
-              <img src="/icons/mnsBall-icon.png" alt="MNS" className="h-10 w-10 rounded-full" />
+              <img src="/icons/mnsBall-icon.webp" alt="MNS" className="h-10 w-10 rounded-full" />
             </Link>
 
             {/* League Switcher */}
@@ -216,6 +250,24 @@ export function Header() {
               {/* Dropdown Menu */}
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-[#121212] rounded-lg shadow-lg border border-gray-800 py-1 z-50">
+                  {/* My Team Link - only show if user has a team in current league */}
+                  {userTeamId && currentLeague && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          navigate(`/league/${currentLeague.id}/team/${userTeamId}`);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        My Team
+                      </button>
+                      <div className="border-t border-gray-800 my-1"></div>
+                    </>
+                  )}
                   <button
                     onClick={() => {
                       setIsDropdownOpen(false);

@@ -8,42 +8,42 @@ export const hinkieQuotes: HinkieQuote[] = [
   {
     id: 1,
     quote: "The goal is not to be the richest guy in the cemetery.",
-    image: "/hinkie/grave.png"
+    image: "/hinkie/grave.webp"
   },
   {
     id: 2,
     quote: "We focus on process rather than outcome.",
-    image: "/hinkie/focusOnProcess.png"
+    image: "/hinkie/focusOnProcess.webp"
   },
   {
     id: 3,
     quote: "You don't get to the moon by climbing a tree.",
-    image: "/hinkie/treeMoon.png"
+    image: "/hinkie/treeMoon.webp"
   },
   {
     id: 4,
     quote: "The longest view in the room.",
-    image: "/hinkie/longestView.png"
+    image: "/hinkie/longestView.webp"
   },
   {
     id: 5,
     quote: "Progress isn't linear.",
-    image: "/hinkie/progress.png"
+    image: "/hinkie/progress.webp"
   },
   {
     id: 6,
     quote: "Trust the Process.",
-    image: "/hinkie/TrustTheProcess.png"
+    image: "/hinkie/TrustTheProcess.webp"
   },
   {
     id: 7,
     quote: "The first step in a process is to understand the end goal.",
-    image: "/hinkie/understandTheGoal.png"
+    image: "/hinkie/understandTheGoal.webp"
   },
   {
     id: 8,
     quote: "Give me six hours to chop down a tree and I will spend the first four sharpening the axe. - Abe Lincoln",
-    image: "/hinkie/hinkieAxe.png"
+    image: "/hinkie/hinkieAxe.webp"
   }
 ];
 
