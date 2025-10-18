@@ -24,7 +24,7 @@ export function Header() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate('/login');
   };
 
   // Check notifications on mount and listen for changes
@@ -55,9 +55,29 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!user) return null;
-
   const isAdmin = role === 'admin';
+
+  // If no user, show simple header with logo and login button
+  if (!user) {
+    return (
+      <header className="bg-[#0a0a0a] shadow-sm border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link to="/" className="flex items-center gap-2">
+              <img src="/icons/mnsBall-icon.png" alt="MNS" className="h-10 w-10 rounded-full" />
+              <span className="text-lg font-bold text-white hidden sm:block">Money Never Sleeps</span>
+            </Link>
+            <button
+              onClick={() => navigate('/login')}
+              className="px-4 py-2 bg-gradient-to-r from-green-400 to-emerald-500 text-black font-semibold rounded-lg hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all"
+            >
+              Sign In
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="bg-[#0a0a0a] shadow-sm border-b border-gray-800">
@@ -66,7 +86,7 @@ export function Header() {
           {/* Logo / League Switcher */}
           <div className="flex items-center gap-4">
             <Link to="/teams" className="flex items-center gap-2">
-              <img src="/icons/mns-icon.png" alt="MNS" className="h-10 w-10 rounded-full" />
+              <img src="/icons/mnsBall-icon.png" alt="MNS" className="h-10 w-10 rounded-full" />
             </Link>
 
             {/* League Switcher */}
