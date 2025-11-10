@@ -691,10 +691,7 @@ export function LeagueHome() {
                       {/* Rule Info and Payouts - 50% width */}
                       <div className="w-1/2 flex flex-col">
                         <div className="mb-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-3xl">{prizeInfo.emoji}</span>
-                            <h2 className="text-xl font-bold text-white">{prizeInfo.ruleName}</h2>
-                          </div>
+                          <h2 className="text-xl font-bold text-white mb-2">{prizeInfo.ruleName}</h2>
                           <p className="text-sm text-gray-400">{prizeInfo.ruleDescription}</p>
                         </div>
 
