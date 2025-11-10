@@ -1,7 +1,11 @@
 const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const admin = require('firebase-admin');
+const { getPortfolioData } = require('./getPortfolioData');
 
 admin.initializeApp();
+
+// Export portfolio data function
+exports.getPortfolioData = getPortfolioData;
 
 /**
  * Cloud Function that sends Telegram notification when a draft pick is made
