@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "optimize-images": "npx sharp-cli -i 'public/icons/*.png' -o 'public/icons/' -f webp -q 90 && npx sharp-cli -i 'public/hinkie/*.png' -o 'public/hinkie/' -f webp -q 90 && echo '✓ Images optimized! Remember to update code references to .webp'"
+    "optimize-images": "npx sharp-cli -i 'public/icons/*.png' -o 'public/icons/' -f webp -q 90 && npx sharp-cli -i 'public/hinkie/*.png' -o 'public/hinkie/' -f webp -q 90 && npx sharp-cli -i 'public/prizePool/*.png' -o 'public/prizePool/' -f webp -q 90 && echo '✓ Images optimized! Remember to update code references to .webp'"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.2",

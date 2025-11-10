@@ -6,6 +6,72 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchWalletData } from '../lib/blockchain';
 import type { Team, League, RosterDoc, Player, Portfolio } from '../types';
 
+// Helper function to determine prize pool rule and calculate payouts
+function calculatePrizePayouts(totalPrizePool: number, totalCollected: number) {
+  // Boiler Room Rule - prize pool declined
+  if (totalPrizePool < totalCollected) {
+    if (totalPrizePool < 300) {
+      return {
+        rule: 'boilerRoom',
+        ruleName: 'Boiler Room Rule',
+        ruleDescription: 'Prize pool below $300',
+        emoji: '📉',
+        image: '/prizePool/boilerRoom.webp',
+        bgGradient: 'from-gray-700 via-gray-800 to-gray-900',
+        payouts: [
+          { place: '1st', percentage: 100, amount: totalPrizePool }
+        ]
+      };
+    } else {
+      return {
+        rule: 'boilerRoom',
+        ruleName: 'Boiler Room Rule',
+        ruleDescription: 'Prize pool declined below initial investment',
+        emoji: '📉',
+        image: '/prizePool/boilerRoom.webp',
+        bgGradient: 'from-gray-700 via-gray-800 to-gray-900',
+        payouts: [
+          { place: '1st', percentage: 80, amount: totalPrizePool * 0.8 },
+          { place: '2nd', percentage: 20, amount: totalPrizePool * 0.2 }
+        ]
+      };
+    }
+  }
+
+  // Bernie Sanders Rule - prize pool $10,000+
+  if (totalPrizePool >= 10000) {
+    return {
+      rule: 'bernieSanders',
+      ruleName: 'Bernie Sanders Rule',
+      ruleDescription: 'Prize pool $10,000+',
+      emoji: '🚀',
+      image: '/prizePool/bernieOnceAgain.webp',
+      bgGradient: 'from-purple-400 via-purple-500 to-purple-600',
+      payouts: [
+        { place: '1st', percentage: 40, amount: totalPrizePool * 0.40 },
+        { place: '2nd', percentage: 15, amount: totalPrizePool * 0.15 },
+        { place: '3rd', percentage: 9, amount: totalPrizePool * 0.09 },
+        { place: '4th-12th', percentage: 36, amount: totalPrizePool * 0.36, note: '(4% each)' }
+      ]
+    };
+  }
+
+  // Gordon Gekko Rule - prize pool grew
+  return {
+    rule: 'gordonGekko',
+    ruleName: 'Gordon Gekko Rule',
+    ruleDescription: 'Prize pool grew above initial investment',
+    emoji: '💹',
+    image: '/icons/mnsPal.webp',
+    bgGradient: 'from-green-400 via-green-500 to-emerald-600',
+    payouts: [
+      { place: '1st', percentage: 70, amount: totalPrizePool * 0.70 },
+      { place: '2nd', percentage: 20, amount: totalPrizePool * 0.20 },
+      { place: '3rd', percentage: 10, amount: totalPrizePool * 0.10 }
+    ]
+  };
+}
+
 export function LeagueHome() {
   const { leagueId } = useParams<{ leagueId: string }>();
   const { user } = useAuth();
@@ -29,6 +95,7 @@ export function LeagueHome() {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
   const [showPortfolioDetails, setShowPortfolioDetails] = useState(false);
+  const [showFeeBreakdown, setShowFeeBreakdown] = useState(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -527,71 +594,142 @@ export function LeagueHome() {
                     <div className="text-xs text-gray-500 text-center">
                       Last updated: {portfolio.lastUpdated ? new Date(portfolio.lastUpdated).toLocaleString() : 'Never'}
                     </div>
+
+                    {/* Fee Breakdown Accordion */}
+                    <div className="mt-4 pt-4 border-t border-gray-800">
+                      <button
+                        onClick={() => setShowFeeBreakdown(!showFeeBreakdown)}
+                        className="w-full flex items-center justify-between text-left hover:opacity-80 transition-opacity text-gray-400 hover:text-white"
+                      >
+                        <span className="text-sm font-semibold">Fee & Penalty Breakdown</span>
+                        <svg
+                          className={`w-5 h-5 transition-transform ${showFeeBreakdown ? 'rotate-180' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {showFeeBreakdown && (
+                        <div className="mt-3 text-xs space-y-2 text-gray-400">
+                          <div className="flex justify-between">
+                            <span>Base Entry Fees ({teams.length} × $50)</span>
+                            <span className="font-semibold text-white">${teams.length * 50}</span>
+                          </div>
+                          {feeBreakdown.firstApronFee > 0 && (
+                            <div className="flex justify-between">
+                              <span>First Apron Fees ($50 over $195M)</span>
+                              <span className="font-semibold text-white">${feeBreakdown.firstApronFee}</span>
+                            </div>
+                          )}
+                          {feeBreakdown.penaltyDues > 0 && (
+                            <div className="flex justify-between">
+                              <span>Second Apron Penalties ($2/M over $225M)</span>
+                              <span className="font-semibold text-white">${feeBreakdown.penaltyDues}</span>
+                            </div>
+                          )}
+                          {feeBreakdown.franchiseTagDues > 0 && (
+                            <div className="flex justify-between">
+                              <span>Franchise Tag Fees ($15 each)</span>
+                              <span className="font-semibold text-white">${feeBreakdown.franchiseTagDues}</span>
+                            </div>
+                          )}
+                          {feeBreakdown.redshirtDues > 0 && (
+                            <div className="flex justify-between">
+                              <span>Redshirt Fees ($10 each)</span>
+                              <span className="font-semibold text-white">${feeBreakdown.redshirtDues}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between pt-2 mt-2 border-t border-gray-700 font-bold text-white">
+                            <span>Total Collected</span>
+                            <span>${teams.length * 50 + totalKeeperFees}</span>
+                          </div>
+                          {portfolio && (
+                            <div className={`flex justify-between font-semibold ${
+                              (portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) > (teams.length * 50 + totalKeeperFees)
+                                ? 'text-green-400'
+                                : 'text-red-400'
+                            }`}>
+                              <span>Gain/Loss</span>
+                              <span>
+                                {(portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) > (teams.length * 50 + totalKeeperFees) ? '+' : ''}
+                                ${((portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) - (teams.length * 50 + totalKeeperFees)).toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
             {/* Prize Pool Section */}
-            <div className="bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 rounded-lg shadow-lg p-6 text-black border border-green-300">
-              <div className="flex items-center gap-3 mb-2">
-                <img src="/icons/money-icon.webp" alt="Money" className="w-8 h-8 rounded-full" />
-                <h2 className="text-xl font-bold">Prize Pool</h2>
-              </div>
-              <div className="text-4xl font-bold mb-4">${teams.length * 50 + totalKeeperFees}</div>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div className="bg-[#0a0a0a] rounded p-3 border border-green-400/30">
-                  <div className="font-semibold text-green-400">1st Place</div>
-                  <div className="text-2xl font-bold text-green-400">${((teams.length * 50 + totalKeeperFees) * 0.5).toFixed(0)}</div>
-                </div>
-                <div className="bg-[#0a0a0a] rounded p-3 border border-purple-400/30">
-                  <div className="font-semibold text-purple-400">2nd Place</div>
-                  <div className="text-2xl font-bold text-purple-400">${((teams.length * 50 + totalKeeperFees) * 0.3).toFixed(0)}</div>
-                </div>
-                <div className="bg-[#0a0a0a] rounded p-3 border border-pink-400/30">
-                  <div className="font-semibold text-pink-400">3rd Place</div>
-                  <div className="text-2xl font-bold text-pink-400">${((teams.length * 50 + totalKeeperFees) * 0.2).toFixed(0)}</div>
-                </div>
-              </div>
-              {totalKeeperFees > 0 && (
-                <div className="mt-4 pt-4 border-t border-black/20">
-                  <div className="text-xs space-y-1 text-black/70">
-                    <div className="flex justify-between">
-                      <span>Base Entry Fees (12 × $50)</span>
-                      <span className="font-semibold">${teams.length * 50}</span>
-                    </div>
-                    {feeBreakdown.firstApronFee > 0 && (
-                      <div className="flex justify-between">
-                        <span>First Apron Fees ($50 over $195M)</span>
-                        <span className="font-semibold">${feeBreakdown.firstApronFee}</span>
+            {(() => {
+              const totalCollected = teams.length * 50 + totalKeeperFees;
+              const totalPrizePool = portfolio?.cachedUsdValue
+                ? portfolio.cachedUsdValue + (totalCollected - portfolio.usdInvested)
+                : totalCollected;
+              const prizeInfo = calculatePrizePayouts(totalPrizePool, totalCollected);
+
+              return (
+                <div className="bg-[#121212] rounded-lg border border-gray-800">
+                  <div className="p-6">
+                    {/* Header with Image and Payouts */}
+                    <div className="flex items-start gap-6">
+                      {/* Image - 50% width */}
+                      <div className="w-1/2">
+                        <img
+                          src={prizeInfo.image}
+                          alt={prizeInfo.ruleName}
+                          className="w-full h-auto rounded-lg object-contain bg-[#0a0a0a]"
+                        />
                       </div>
-                    )}
-                    {feeBreakdown.penaltyDues > 0 && (
-                      <div className="flex justify-between">
-                        <span>Second Apron Penalties ($2/M over $225M)</span>
-                        <span className="font-semibold">${feeBreakdown.penaltyDues}</span>
+                      {/* Rule Info and Payouts - 50% width */}
+                      <div className="w-1/2 flex flex-col">
+                        <div className="mb-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-3xl">{prizeInfo.emoji}</span>
+                            <h2 className="text-xl font-bold text-white">{prizeInfo.ruleName}</h2>
+                          </div>
+                          <p className="text-sm text-gray-400">{prizeInfo.ruleDescription}</p>
+                        </div>
+
+                        {/* Payout Breakdown in right column */}
+                        <div className="space-y-3 flex-1">
+                          {prizeInfo.payouts.map((payout, idx) => (
+                            <div
+                              key={idx}
+                              className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="text-sm font-semibold text-white">
+                                    {payout.place} {payout.note || ''}
+                                  </div>
+                                  <div className="text-xs text-gray-500 mt-1">{payout.percentage}%</div>
+                                </div>
+                                <div className={`text-2xl md:text-3xl font-bold ${
+                                  idx === 0 ? 'text-green-400' :
+                                  idx === 1 ? 'text-purple-400' :
+                                  idx === 2 ? 'text-pink-400' :
+                                  'text-blue-400'
+                                }`}>
+                                  ${payout.amount.toFixed(0)}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    )}
-                    {feeBreakdown.franchiseTagDues > 0 && (
-                      <div className="flex justify-between">
-                        <span>Franchise Tag Fees ($15 each)</span>
-                        <span className="font-semibold">${feeBreakdown.franchiseTagDues}</span>
-                      </div>
-                    )}
-                    {feeBreakdown.redshirtDues > 0 && (
-                      <div className="flex justify-between">
-                        <span>Redshirt Fees ($10 each)</span>
-                        <span className="font-semibold">${feeBreakdown.redshirtDues}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between pt-1 border-t border-black/20 font-bold text-black">
-                      <span>Total Prize Pool</span>
-                      <span>${teams.length * 50 + totalKeeperFees}</span>
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
+              );
+            })()}
 
             {/* All Teams Section */}
             <div className="bg-[#121212] rounded-lg border border-gray-800">
