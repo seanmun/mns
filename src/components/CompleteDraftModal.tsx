@@ -320,8 +320,8 @@ export function CompleteDraftModal({
         <div className="bg-[#121212] rounded-lg border border-gray-800 p-8">
           <div className="text-white text-center">
             <div className="text-2xl mb-4">🏀</div>
-            <div className="text-xl font-bold mb-2">Completing Draft...</div>
-            <div className="text-sm text-gray-400">Please wait, this may take a moment.</div>
+            <div className="text-xl font-bold mb-2">Archiving Draft...</div>
+            <div className="text-sm text-gray-400">Creating draft history and regular season rosters...</div>
           </div>
         </div>
       </div>
@@ -334,7 +334,7 @@ export function CompleteDraftModal({
         <div className="bg-[#121212] rounded-lg border border-gray-800 p-8">
           <div className="text-white text-center">
             <div className="text-4xl mb-4">✓</div>
-            <div className="text-xl font-bold mb-2 text-green-400">Draft Completed!</div>
+            <div className="text-xl font-bold mb-2 text-green-400">Draft Archived!</div>
             <div className="text-sm text-gray-400">Regular season rosters have been created.</div>
           </div>
         </div>
@@ -357,9 +357,9 @@ export function CompleteDraftModal({
       <div className="bg-[#121212] rounded-lg border border-gray-800 max-w-4xl w-full my-8">
         {/* Header */}
         <div className="p-6 border-b border-gray-800">
-          <h2 className="text-2xl font-bold text-white">Complete Draft</h2>
+          <h2 className="text-2xl font-bold text-white">Archive Draft</h2>
           <p className="text-sm text-gray-400 mt-1">
-            This will finalize the draft and create regular season rosters
+            This will archive the draft and create regular season rosters for all teams
           </p>
         </div>
 
@@ -430,9 +430,9 @@ export function CompleteDraftModal({
           <button
             onClick={completeDraft}
             disabled={processing}
-            className="flex-1 px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-6 py-3 bg-purple-500 text-white font-semibold rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {processing ? 'Processing...' : 'Complete Draft'}
+            {processing ? 'Archiving...' : 'Archive Draft'}
           </button>
         </div>
       </div>

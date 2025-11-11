@@ -171,5 +171,31 @@ service cloud.firestore {
       // During draft, allow signed-in users to update picks (for draft picks)
       allow update: if isSignedIn();
     }
+
+    // Draft History collection (archived draft records)
+    match /draftHistory/{historyId} {
+      // All signed-in users can read draft history
+      allow read: if isSignedIn();
+      // Only admins can create/update/delete draft history
+      allow write: if isAdmin();
+    }
+
+    // Regular Season Rosters collection
+    match /regularSeasonRosters/{rosterId} {
+      // All signed-in users can read regular season rosters
+      allow read: if isSignedIn();
+      // Admins can create/update/delete rosters
+      allow write: if isAdmin();
+      // Team owners can update their own roster
+      allow update: if isSignedIn() && isTeamOwner(resource.data.teamId);
+    }
+
+    // Team Fees collection
+    match /teamFees/{feesId} {
+      // All signed-in users can read team fees
+      allow read: if isSignedIn();
+      // Only admins can create/update/delete fees
+      allow write: if isAdmin();
+    }
   }
 }

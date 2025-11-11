@@ -946,12 +946,12 @@ export function Draft() {
               {draft.status === 'paused' && 'Draft paused'}
             </p>
           </div>
-          {isAdmin && draft.status !== 'completed' && draft.picks.filter(p => !p.isKeeperSlot && !p.pickedAt).length === 0 && (
+          {isAdmin && draft.status === 'completed' && (
             <button
               onClick={() => setShowCompleteDraftModal(true)}
-              className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"
+              className="px-6 py-3 bg-purple-500 text-white font-semibold rounded-lg hover:bg-purple-600 transition-colors"
             >
-              Complete Draft
+              Archive Draft
             </button>
           )}
         </div>
@@ -1254,7 +1254,7 @@ export function Draft() {
         </div>
       )}
 
-      {/* Complete Draft Modal */}
+      {/* Archive Draft Modal */}
       {showCompleteDraftModal && leagueId && currentLeague && user?.email && (
         <CompleteDraftModal
           draft={draft}
@@ -1263,7 +1263,7 @@ export function Draft() {
           onClose={() => setShowCompleteDraftModal(false)}
           onComplete={() => {
             setShowCompleteDraftModal(false);
-            // Refresh page to show completed state
+            // Refresh page to show archived state
             window.location.reload();
           }}
           currentUserEmail={user.email}
