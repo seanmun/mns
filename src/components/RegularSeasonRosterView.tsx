@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { doc, updateDoc, arrayRemove, arrayUnion } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import type { RegularSeasonRoster, Player, Team, RosterSummary, TeamFees } from '../types';
 import { CapThermometer } from './CapThermometer';
 import { SummaryCard } from './SummaryCard';
@@ -8,9 +10,14 @@ interface RegularSeasonRosterViewProps {
   allPlayers: Player[];
   team: Team;
   teamFees: TeamFees | null;
+  isOwner: boolean;
 }
 
-export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team, teamFees }: RegularSeasonRosterViewProps) {
+export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team, teamFees, isOwner }: RegularSeasonRosterViewProps) {
+  const [processing, setProcessing] = useState(false);
+  const [swappingIR, setSwappingIR] = useState(false);
+  const [playerToMoveToIR, setPlayerToMoveToIR] = useState<string | null>(null);
+
   // Create player map for quick lookups
   const playersMap = useMemo(() => {
     return new Map(allPlayers.map(p => [p.id, p]));
@@ -93,6 +100,209 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
     };
   }, [activePlayers, irPlayers, redshirtPlayers, internationalPlayers, totalSalary, team, teamFees]);
 
+  // Handler functions for roster management
+  const handleActivateRedshirt = async (playerId: string) => {
+    if (!isOwner || processing) return;
+
+    const player = playersMap.get(playerId);
+    if (!player) return;
+
+    const confirmed = confirm(
+      `Activate ${player.name} from redshirt?\n\n` +
+      `This will:\n` +
+      `- Add $25 activation fee\n` +
+      `- Move player to active roster\n\n` +
+      `Continue?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setProcessing(true);
+
+      // Update roster
+      const rosterRef = doc(db, 'regularSeasonRosters', regularSeasonRoster.id);
+      await updateDoc(rosterRef, {
+        redshirtPlayers: arrayRemove(playerId),
+        activeRoster: arrayUnion(playerId),
+        lastUpdated: Date.now(),
+      });
+
+      // Update fees
+      const feesId = `${regularSeasonRoster.leagueId}_${regularSeasonRoster.teamId}_${regularSeasonRoster.seasonYear}`;
+      const feesRef = doc(db, 'teamFees', feesId);
+      const currentRedshirtFees = teamFees?.redshirtFees || 0;
+      const currentTotalFees = teamFees?.totalFees || 0;
+
+      await updateDoc(feesRef, {
+        redshirtFees: currentRedshirtFees + 25,
+        totalFees: currentTotalFees + 25,
+      });
+
+      setProcessing(false);
+    } catch (error) {
+      console.error('Error activating redshirt:', error);
+      alert(`Error activating player: ${error}`);
+      setProcessing(false);
+    }
+  };
+
+  const handleDropPlayer = async (playerId: string, location: 'active' | 'ir') => {
+    if (!isOwner || processing) return;
+
+    const player = playersMap.get(playerId);
+    if (!player) return;
+
+    const confirmed = confirm(
+      `Drop ${player.name} from ${location === 'active' ? 'active roster' : 'IR'}?\n\n` +
+      `This will remove the player from your roster.\n\n` +
+      `Continue?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setProcessing(true);
+
+      const rosterRef = doc(db, 'regularSeasonRosters', regularSeasonRoster.id);
+      const updates: any = {
+        lastUpdated: Date.now(),
+      };
+
+      if (location === 'active') {
+        updates.activeRoster = arrayRemove(playerId);
+      } else {
+        updates.irSlots = arrayRemove(playerId);
+      }
+
+      await updateDoc(rosterRef, updates);
+      setProcessing(false);
+    } catch (error) {
+      console.error('Error dropping player:', error);
+      alert(`Error dropping player: ${error}`);
+      setProcessing(false);
+    }
+  };
+
+  const handleMoveToIR = async (playerId: string) => {
+    if (!isOwner || processing) return;
+
+    const player = playersMap.get(playerId);
+    if (!player) return;
+
+    // Check if IR is full (max 2 players)
+    if (irPlayers.length >= 2) {
+      setPlayerToMoveToIR(playerId);
+      setSwappingIR(true);
+      return;
+    }
+
+    const confirmed = confirm(
+      `Move ${player.name} to IR?\n\n` +
+      `This will move the player from active roster to IR.\n\n` +
+      `Continue?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setProcessing(true);
+
+      const rosterRef = doc(db, 'regularSeasonRosters', regularSeasonRoster.id);
+      await updateDoc(rosterRef, {
+        activeRoster: arrayRemove(playerId),
+        irSlots: arrayUnion(playerId),
+        lastUpdated: Date.now(),
+      });
+
+      setProcessing(false);
+    } catch (error) {
+      console.error('Error moving to IR:', error);
+      alert(`Error moving player to IR: ${error}`);
+      setProcessing(false);
+    }
+  };
+
+  const handleMoveToActive = async (playerId: string) => {
+    if (!isOwner || processing) return;
+
+    const player = playersMap.get(playerId);
+    if (!player) return;
+
+    const confirmed = confirm(
+      `Move ${player.name} to active roster?\n\n` +
+      `This will move the player from IR to active roster.\n\n` +
+      `Continue?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setProcessing(true);
+
+      const rosterRef = doc(db, 'regularSeasonRosters', regularSeasonRoster.id);
+      await updateDoc(rosterRef, {
+        irSlots: arrayRemove(playerId),
+        activeRoster: arrayUnion(playerId),
+        lastUpdated: Date.now(),
+      });
+
+      setProcessing(false);
+    } catch (error) {
+      console.error('Error moving to active:', error);
+      alert(`Error moving player to active: ${error}`);
+      setProcessing(false);
+    }
+  };
+
+  const handleSwapIRPlayer = async (playerToRemove: string, playerToAdd: string) => {
+    if (!isOwner || processing) return;
+
+    const removedPlayer = playersMap.get(playerToRemove);
+    const addedPlayer = playersMap.get(playerToAdd);
+
+    const confirmed = confirm(
+      `Swap IR players?\n\n` +
+      `Remove from IR: ${removedPlayer?.name}\n` +
+      `Add to IR: ${addedPlayer?.name}\n\n` +
+      `Continue?`
+    );
+
+    if (!confirmed) {
+      setSwappingIR(false);
+      setPlayerToMoveToIR(null);
+      return;
+    }
+
+    try {
+      setProcessing(true);
+
+      const rosterRef = doc(db, 'regularSeasonRosters', regularSeasonRoster.id);
+
+      // First, remove playerToRemove from IR and add to active
+      await updateDoc(rosterRef, {
+        irSlots: arrayRemove(playerToRemove),
+        activeRoster: arrayUnion(playerToRemove),
+        lastUpdated: Date.now(),
+      });
+
+      // Then, remove playerToAdd from active and add to IR
+      await updateDoc(rosterRef, {
+        activeRoster: arrayRemove(playerToAdd),
+        irSlots: arrayUnion(playerToAdd),
+        lastUpdated: Date.now(),
+      });
+
+      setSwappingIR(false);
+      setPlayerToMoveToIR(null);
+      setProcessing(false);
+    } catch (error) {
+      console.error('Error swapping IR player:', error);
+      alert(`Error swapping players: ${error}`);
+      setProcessing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Roster Status Banner */}
@@ -106,6 +316,32 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
                 Active roster has {activePlayers.length} players. Maximum is 13.
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* IR Swap Mode Banner */}
+      {swappingIR && playerToMoveToIR && (
+        <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🔄</span>
+              <div>
+                <div className="font-semibold text-blue-400">IR Swap Mode</div>
+                <div className="text-sm text-gray-300">
+                  IR is full (2/2). Select a player below to remove from IR and replace with {playersMap.get(playerToMoveToIR)?.name}.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setSwappingIR(false);
+                setPlayerToMoveToIR(null);
+              }}
+              className="px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
@@ -144,12 +380,13 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Pos</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Team</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Salary</th>
+                {isOwner && <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
               {activePlayers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={isOwner ? 5 : 4} className="px-4 py-8 text-center text-gray-500">
                     No active players
                   </td>
                 </tr>
@@ -162,6 +399,26 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
                     <td className="px-4 py-3 text-right text-white">
                       ${(player.salary / 1_000_000).toFixed(1)}M
                     </td>
+                    {isOwner && (
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => handleMoveToIR(player.id)}
+                            disabled={processing}
+                            className="px-3 py-1 text-xs border border-purple-500 text-purple-400 rounded hover:bg-purple-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Move to IR
+                          </button>
+                          <button
+                            onClick={() => handleDropPlayer(player.id, 'active')}
+                            disabled={processing}
+                            className="px-3 py-1 text-xs border border-pink-500 text-pink-400 rounded hover:bg-pink-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Drop
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -186,12 +443,13 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Pos</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Team</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Salary</th>
+                {isOwner && <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
               {irPlayers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={isOwner ? 5 : 4} className="px-4 py-8 text-center text-gray-500">
                     No IR players
                   </td>
                 </tr>
@@ -204,6 +462,38 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
                     <td className="px-4 py-3 text-right text-white">
                       ${(player.salary / 1_000_000).toFixed(1)}M
                     </td>
+                    {isOwner && (
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex gap-2 justify-end">
+                          {swappingIR ? (
+                            <button
+                              onClick={() => handleSwapIRPlayer(player.id, playerToMoveToIR!)}
+                              disabled={processing}
+                              className="px-3 py-1 text-xs border border-green-500 text-green-400 rounded hover:bg-green-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Select to Remove
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleMoveToActive(player.id)}
+                                disabled={processing}
+                                className="px-3 py-1 text-xs border border-green-500 text-green-400 rounded hover:bg-green-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Activate
+                              </button>
+                              <button
+                                onClick={() => handleDropPlayer(player.id, 'ir')}
+                                disabled={processing}
+                                className="px-3 py-1 text-xs border border-pink-500 text-pink-400 rounded hover:bg-pink-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Drop
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -230,6 +520,7 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Pos</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Team</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Salary</th>
+                  {isOwner && <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
@@ -241,6 +532,17 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
                     <td className="px-4 py-3 text-right text-yellow-400">
                       ${(player.salary / 1_000_000).toFixed(1)}M
                     </td>
+                    {isOwner && (
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => handleActivateRedshirt(player.id)}
+                          disabled={processing}
+                          className="px-3 py-1 text-xs border border-green-500 text-green-400 rounded hover:bg-green-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Activate ($25)
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

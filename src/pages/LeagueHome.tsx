@@ -4,7 +4,7 @@ import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWalletData } from '../lib/blockchain';
-import type { Team, League, RosterDoc, Player, Portfolio, RegularSeasonRoster, TeamFees } from '../types';
+import type { Team, League, Player, Portfolio, RegularSeasonRoster, TeamFees } from '../types';
 
 // Helper function to determine prize pool rule and calculate payouts
 function calculatePrizePayouts(totalPrizePool: number, totalCollected: number) {

@@ -11,12 +11,6 @@ interface AdminRosterManagementProps {
 
 type ActionType = 'add_to_ir' | 'move_to_active' | 'drop_player' | 'add_free_agent';
 
-interface RosterAction {
-  type: ActionType;
-  teamId: string;
-  playerId: string;
-}
-
 export function AdminRosterManagement({ leagueId, seasonYear, onClose }: AdminRosterManagementProps) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -81,7 +75,6 @@ export function AdminRosterManagement({ leagueId, seasonYear, onClose }: AdminRo
   const availablePlayers = useMemo(() => {
     if (!currentRoster) return [];
 
-    const allPlayerIds = new Set(players.map(p => p.id));
     const ownedPlayerIds = new Set([
       ...currentRoster.activeRoster,
       ...currentRoster.irSlots,
