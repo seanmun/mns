@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, collection, getDocs, query, where, runTransaction } from 'firebase/firestore';
+import { doc, onSnapshot, collection, getDocs, query, where, runTransaction, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
@@ -32,6 +32,7 @@ export function Draft() {
   const [showAddKeeperModal, setShowAddKeeperModal] = useState(false);
   const [selectedPick, setSelectedPick] = useState<any | null>(null);
   const [showCompleteDraftModal, setShowCompleteDraftModal] = useState(false);
+  const [isDraftArchived, setIsDraftArchived] = useState(false);
   const { projectedStats } = useProjectedStats();
   const { watchList, setWatchList } = useWatchList(
     user?.email || undefined,
@@ -129,6 +130,12 @@ export function Draft() {
         ...doc.data(),
       })) as Team[];
       setTeams(teamsData);
+
+      // Check if draft has been archived
+      const draftHistoryId = `${leagueId}_${currentLeague.seasonYear}`;
+      const draftHistoryRef = doc(db, 'draftHistory', draftHistoryId);
+      const draftHistorySnap = await getDoc(draftHistoryRef);
+      setIsDraftArchived(draftHistorySnap.exists());
 
       // Players are loaded via real-time listener
     } catch (error) {
@@ -931,6 +938,144 @@ export function Draft() {
     );
   }
 
+  // Static Draft Archive View (when completed)
+  if (draft.status === 'completed') {
+    const allPicks = draft.picks
+      .filter(p => p.playerId)
+      .sort((a, b) => a.overallPick - b.overallPick);
+
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="mb-6 flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-white">Draft Results</h1>
+              <p className="text-gray-400 mt-1">
+                Complete draft history for {currentLeague?.name} {currentLeague?.seasonYear}
+              </p>
+            </div>
+            {isAdmin && (
+              isDraftArchived ? (
+                <div className="px-6 py-3 bg-gray-800 text-gray-400 font-semibold rounded-lg border border-gray-700 cursor-not-allowed">
+                  Draft Archived ✓
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowCompleteDraftModal(true)}
+                  className="px-6 py-3 bg-purple-500 text-white font-semibold rounded-lg hover:bg-purple-600 transition-colors"
+                >
+                  Archive Draft
+                </button>
+              )
+            )}
+          </div>
+
+          {/* Draft Summary Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+              <div className="text-xs text-gray-400 mb-1">Total Picks</div>
+              <div className="text-2xl font-bold text-white">{allPicks.length}</div>
+            </div>
+            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+              <div className="text-xs text-gray-400 mb-1">Keeper Slots</div>
+              <div className="text-2xl font-bold text-blue-400">
+                {draft.picks.filter(p => p.isKeeperSlot).length}
+              </div>
+            </div>
+            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+              <div className="text-xs text-gray-400 mb-1">Drafted Players</div>
+              <div className="text-2xl font-bold text-green-400">
+                {allPicks.filter(p => !p.isKeeperSlot).length}
+              </div>
+            </div>
+            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+              <div className="text-xs text-gray-400 mb-1">Teams</div>
+              <div className="text-2xl font-bold text-purple-400">{teams.length}</div>
+            </div>
+          </div>
+
+          {/* All Picks Table */}
+          <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+            <div className="p-4 border-b border-gray-800">
+              <h2 className="text-xl font-bold text-white">Complete Draft Order</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#0a0a0a] border-b border-gray-800">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Pick</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Round</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Team</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Player</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Salary</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Type</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  {allPicks.map((pick) => {
+                    const player = players.find(p => p.id === pick.playerId);
+                    return (
+                      <tr key={pick.overallPick} className="hover:bg-[#0a0a0a] transition-colors">
+                        <td className="px-4 py-3 text-sm text-white font-semibold">
+                          #{pick.overallPick}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-400">
+                          {pick.round}.{pick.pickInRound}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="font-semibold text-white">{pick.teamAbbrev}</div>
+                          <div className="text-xs text-gray-400">{pick.teamName}</div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="font-semibold text-white">{pick.playerName}</div>
+                          {player && (
+                            <div className="text-xs text-gray-400">
+                              {player.position} - {player.nbaTeam}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-300">
+                          {player ? `$${(player.salary / 1_000_000).toFixed(1)}M` : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {pick.isKeeperSlot ? (
+                            <span className="px-2 py-1 bg-blue-500/10 text-blue-400 text-xs font-semibold rounded">
+                              Keeper
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 bg-green-500/10 text-green-400 text-xs font-semibold rounded">
+                              Drafted
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Archive Draft Modal */}
+        {showCompleteDraftModal && leagueId && currentLeague && user?.email && (
+          <CompleteDraftModal
+            draft={draft}
+            leagueId={leagueId}
+            seasonYear={currentLeague.seasonYear}
+            onClose={() => setShowCompleteDraftModal(false)}
+            onComplete={() => {
+              setShowCompleteDraftModal(false);
+              window.location.reload();
+            }}
+            currentUserEmail={user.email}
+          />
+        )}
+      </div>
+    );
+  }
+
   // Draft Board View
   return (
     <div className="min-h-screen bg-[#0a0a0a] py-8">
@@ -942,18 +1087,9 @@ export function Draft() {
             <p className="text-gray-400 mt-1">
               {draft.status === 'setup' && 'Draft not started yet'}
               {draft.status === 'in_progress' && 'Draft in progress'}
-              {draft.status === 'completed' && 'Draft completed'}
               {draft.status === 'paused' && 'Draft paused'}
             </p>
           </div>
-          {isAdmin && draft.status === 'completed' && (
-            <button
-              onClick={() => setShowCompleteDraftModal(true)}
-              className="px-6 py-3 bg-purple-500 text-white font-semibold rounded-lg hover:bg-purple-600 transition-colors"
-            >
-              Archive Draft
-            </button>
-          )}
         </div>
 
         {/* Current Pick Banner */}
@@ -1254,21 +1390,6 @@ export function Draft() {
         </div>
       )}
 
-      {/* Archive Draft Modal */}
-      {showCompleteDraftModal && leagueId && currentLeague && user?.email && (
-        <CompleteDraftModal
-          draft={draft}
-          leagueId={leagueId}
-          seasonYear={currentLeague.seasonYear}
-          onClose={() => setShowCompleteDraftModal(false)}
-          onComplete={() => {
-            setShowCompleteDraftModal(false);
-            // Refresh page to show archived state
-            window.location.reload();
-          }}
-          currentUserEmail={user.email}
-        />
-      )}
     </div>
   );
 }
