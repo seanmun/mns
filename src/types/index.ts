@@ -27,6 +27,10 @@ export interface League {
   deadlines: LeagueDeadlines;
   cap: LeagueCapSettings;
   keepersLocked?: boolean;  // When true, rosters are locked and visible to all
+  draftStatus?: DraftStatus;  // Status of the draft
+  seasonStatus?: SeasonStatus;  // Status of the regular season
+  seasonStartedAt?: number;  // Timestamp when season was started
+  seasonStartedBy?: string;  // Admin who started the season
 }
 
 // Team
@@ -216,6 +220,7 @@ export interface PreviousStats {
 
 // Draft types
 export type DraftStatus = "setup" | "in_progress" | "paused" | "completed";
+export type SeasonStatus = "pre_season" | "active" | "completed";
 
 export interface DraftPick {
   round: number;
@@ -341,4 +346,100 @@ export interface Portfolio {
   cachedEthBalance?: number;     // Cached ETH balance
   cachedUsdValue?: number;       // Cached USD value of wallet
   cachedEthPrice?: number;       // Cached ETH/USD price
+}
+
+// Draft History (archive of completed draft)
+export interface DraftHistoryPick {
+  overallPick: number;
+  round: number;
+  pickInRound: number;
+  teamId: string;
+  teamName: string;
+  teamAbbrev: string;
+  playerId: string;
+  playerName: string;
+  salary: number;
+  nextYearKeeperRound: number;  // round - 1, minimum 1
+}
+
+export interface DraftHistoryKeeper {
+  teamId: string;
+  teamName: string;
+  teamAbbrev: string;
+  playerId: string;
+  playerName: string;
+  salary: number;
+  baseRound: number;
+  keeperRound: number;  // Round they were kept in this draft
+  nextYearKeeperRound: number;  // keeperRound - 1, minimum 1
+}
+
+export interface DraftHistoryPlayer {
+  teamId: string;
+  teamName: string;
+  teamAbbrev: string;
+  playerId: string;
+  playerName: string;
+}
+
+export interface DraftHistory {
+  id: string;  // {leagueId}_{year}
+  leagueId: string;
+  seasonYear: number;
+  picks: DraftHistoryPick[];
+  keepers: DraftHistoryKeeper[];
+  redshirtPlayers: DraftHistoryPlayer[];
+  internationalPlayers: DraftHistoryPlayer[];
+  completedAt: number;
+  completedBy: string;  // Admin email
+}
+
+// Regular Season Roster
+export interface RegularSeasonRoster {
+  id: string;  // {leagueId}_{teamId}
+  leagueId: string;
+  teamId: string;
+  seasonYear: number;
+  activeRoster: string[];  // Player IDs - no max, but warn if > 13
+  irSlots: string[];  // Player IDs - max 2
+  redshirtPlayers: string[];  // Player IDs - unlimited, doesn't count toward salary
+  internationalPlayers: string[];  // Player IDs - unlimited, doesn't count toward salary
+  isLegalRoster: boolean;  // false if activeRoster.length > 13
+  lastUpdated: number;
+  updatedBy: string;  // Email of user who made last update
+}
+
+// Team Fees (tracked per season)
+export interface FeeTransaction {
+  type: 'franchise' | 'redshirt' | 'firstApron' | 'secondApron' | 'unredshirt';
+  amount: number;
+  timestamp: number;
+  triggeredBy: string;  // User email
+  note?: string;
+}
+
+export interface TeamFees {
+  id: string;  // {leagueId}_{teamId}_{seasonYear}
+  leagueId: string;
+  teamId: string;
+  seasonYear: number;
+
+  // Pre-draft fees (locked at draft completion)
+  franchiseTagFees: number;  // $15 per franchise tag
+  redshirtFees: number;  // $10 per redshirt
+
+  // Season fees (locked when admin clicks "Start Season")
+  firstApronFee: number;  // $50 if salary > 195M
+  secondApronPenalty: number;  // $2/M over 225M
+  unredshirtFees: number;  // $25 per unredshirt action (cumulative)
+
+  // Status
+  feesLocked: boolean;  // false until "Start Season" clicked
+  lockedAt?: number;
+
+  totalFees: number;
+  feeTransactions: FeeTransaction[];
+
+  createdAt: number;
+  updatedAt: number;
 }

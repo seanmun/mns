@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
+import { CompleteDraftModal } from '../components/CompleteDraftModal';
 import type { Draft, Team, Player } from '../types';
 
 export function Draft() {
@@ -30,6 +31,7 @@ export function Draft() {
   const [userTeamId, setUserTeamId] = useState<string | null>(null);
   const [showAddKeeperModal, setShowAddKeeperModal] = useState(false);
   const [selectedPick, setSelectedPick] = useState<any | null>(null);
+  const [showCompleteDraftModal, setShowCompleteDraftModal] = useState(false);
   const { projectedStats } = useProjectedStats();
   const { watchList, setWatchList } = useWatchList(
     user?.email || undefined,
@@ -934,14 +936,24 @@ export function Draft() {
     <div className="min-h-screen bg-[#0a0a0a] py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-white">Draft Board</h1>
-          <p className="text-gray-400 mt-1">
-            {draft.status === 'setup' && 'Draft not started yet'}
-            {draft.status === 'in_progress' && 'Draft in progress'}
-            {draft.status === 'completed' && 'Draft completed'}
-            {draft.status === 'paused' && 'Draft paused'}
-          </p>
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Draft Board</h1>
+            <p className="text-gray-400 mt-1">
+              {draft.status === 'setup' && 'Draft not started yet'}
+              {draft.status === 'in_progress' && 'Draft in progress'}
+              {draft.status === 'completed' && 'Draft completed'}
+              {draft.status === 'paused' && 'Draft paused'}
+            </p>
+          </div>
+          {isAdmin && draft.status !== 'completed' && draft.picks.filter(p => !p.isKeeperSlot && !p.pickedAt).length === 0 && (
+            <button
+              onClick={() => setShowCompleteDraftModal(true)}
+              className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"
+            >
+              Complete Draft
+            </button>
+          )}
         </div>
 
         {/* Current Pick Banner */}
@@ -1240,6 +1252,22 @@ export function Draft() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Complete Draft Modal */}
+      {showCompleteDraftModal && leagueId && currentLeague && user?.email && (
+        <CompleteDraftModal
+          draft={draft}
+          leagueId={leagueId}
+          seasonYear={currentLeague.seasonYear}
+          onClose={() => setShowCompleteDraftModal(false)}
+          onComplete={() => {
+            setShowCompleteDraftModal(false);
+            // Refresh page to show completed state
+            window.location.reload();
+          }}
+          currentUserEmail={user.email}
+        />
       )}
     </div>
   );
