@@ -424,21 +424,6 @@ export function LeagueHome() {
             </div>
           )}
 
-          {/* Draft Card */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <img src="/icons/draft-icon.webp" alt="Draft" className="w-5 h-5 rounded-full" />
-              <h3 className="text-sm font-bold text-white">Draft</h3>
-            </div>
-            <p className="text-xs text-gray-400 mb-3">In Progress</p>
-            <button
-              onClick={() => navigate(`/league/${leagueId}/draft`)}
-              className="w-full border-2 border-purple-400 text-purple-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)] transition-all cursor-pointer"
-            >
-              View Draft
-            </button>
-          </div>
-
           {/* Free Agent Pool Card */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -451,6 +436,27 @@ export function LeagueHome() {
               className="w-full border-2 border-pink-400 text-pink-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-pink-400/10 hover:shadow-[0_0_15px_rgba(244,114,182,0.5)] transition-all cursor-pointer"
             >
               View Pool
+            </button>
+          </div>
+
+          {/* Draft Card */}
+          <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <img src="/icons/draft-icon.webp" alt="Draft" className="w-5 h-5 rounded-full" />
+              <h3 className="text-sm font-bold text-white">Draft</h3>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              {league?.draftStatus === 'completed' ? 'Completed' : 'In Progress'}
+            </p>
+            <button
+              onClick={() => navigate(`/league/${leagueId}/draft`)}
+              className={`w-full px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                league?.draftStatus === 'completed'
+                  ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                  : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
+              }`}
+            >
+              {league?.draftStatus === 'completed' ? 'View Results' : 'View Draft'}
             </button>
           </div>
 
@@ -796,23 +802,6 @@ export function LeagueHome() {
               </div>
             )}
 
-            {/* Draft Card */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/draft-icon.webp" alt="Draft" className="w-6 h-6 rounded-full" />
-                <h3 className="text-lg font-bold text-white">Draft</h3>
-              </div>
-              <p className="text-sm text-gray-400 mb-4">
-                In Progress
-              </p>
-              <button
-                onClick={() => navigate(`/league/${leagueId}/draft`)}
-                className="w-full border-2 border-purple-400 text-purple-400 px-4 py-2 rounded-lg font-semibold hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)] transition-all cursor-pointer"
-              >
-                View Draft
-              </button>
-            </div>
-
             {/* Free Agent Pool Card */}
             <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center gap-2 mb-2">
@@ -827,6 +816,27 @@ export function LeagueHome() {
                 className="w-full border-2 border-pink-400 text-pink-400 px-4 py-2 rounded-lg font-semibold hover:bg-pink-400/10 hover:shadow-[0_0_15px_rgba(244,114,182,0.5)] transition-all cursor-pointer"
               >
                 View Pool
+              </button>
+            </div>
+
+            {/* Draft Card */}
+            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <img src="/icons/draft-icon.webp" alt="Draft" className="w-6 h-6 rounded-full" />
+                <h3 className="text-lg font-bold text-white">Draft</h3>
+              </div>
+              <p className="text-sm text-gray-400 mb-4">
+                {league?.draftStatus === 'completed' ? 'Completed' : 'In Progress'}
+              </p>
+              <button
+                onClick={() => navigate(`/league/${leagueId}/draft`)}
+                className={`w-full px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer ${
+                  league?.draftStatus === 'completed'
+                    ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                    : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
+                }`}
+              >
+                {league?.draftStatus === 'completed' ? 'View Results' : 'View Draft'}
               </button>
             </div>
 
