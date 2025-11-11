@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDocs, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjectedStats } from '../hooks/useProjectedStats';
@@ -18,12 +18,16 @@ export function FreeAgents() {
   const [ownedPlayerIds, setOwnedPlayerIds] = useState<Set<string>>(new Set());
   const [seasonYear, setSeasonYear] = useState<number>(2025);
   const [userTeamId, setUserTeamId] = useState<string | null>(null);
+  const [userRoster, setUserRoster] = useState<RegularSeasonRoster | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [selectedPlayerIndex, setSelectedPlayerIndex] = useState<number>(-1);
   const [sortColumn, setSortColumn] = useState<SortColumn>('score');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [searchTerm, setSearchTerm] = useState('');
+  const [addingPlayer, setAddingPlayer] = useState<Player | null>(null);
+  const [playerToDrop, setPlayerToDrop] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
   const { projectedStats } = useProjectedStats();
   const { previousStats } = usePreviousStats();
   const { watchList, setWatchList } = useWatchList(
@@ -149,6 +153,11 @@ export function FreeAgents() {
         roster.irSlots.forEach(id => ownedIds.add(id));
         roster.redshirtPlayers.forEach(id => ownedIds.add(id));
         roster.internationalPlayers.forEach(id => ownedIds.add(id));
+
+        // Store user's roster if this is their team
+        if (userTeamId && roster.teamId === userTeamId) {
+          setUserRoster(roster);
+        }
       });
 
       setOwnedPlayerIds(ownedIds);
@@ -159,7 +168,7 @@ export function FreeAgents() {
     });
 
     return () => unsubscribe();
-  }, [leagueId, seasonYear]);
+  }, [leagueId, seasonYear, userTeamId]);
 
   // Apply search and sorting to free agents
   const freeAgents = useMemo(() => {
@@ -274,6 +283,69 @@ export function FreeAgents() {
     );
   };
 
+  const handleAddPlayer = (player: Player) => {
+    if (!userRoster || !userTeamId) {
+      alert('You must be a team owner to add players');
+      return;
+    }
+    setAddingPlayer(player);
+  };
+
+  const handleConfirmAdd = async () => {
+    if (!addingPlayer || !userRoster || processing) return;
+
+    try {
+      setProcessing(true);
+
+      const rosterRef = doc(db, 'regularSeasonRosters', userRoster.id);
+      const updates: any = {
+        lastUpdated: Date.now(),
+      };
+
+      // If roster is at 13, must drop a player first
+      if (userRoster.activeRoster.length >= 13) {
+        if (!playerToDrop) {
+          alert('You must select a player to drop');
+          setProcessing(false);
+          return;
+        }
+
+        // Drop the selected player
+        updates.activeRoster = arrayRemove(playerToDrop);
+      }
+
+      // Add the new player
+      if (playerToDrop) {
+        // Need to do it in sequence to avoid race condition
+        await updateDoc(rosterRef, {
+          activeRoster: arrayRemove(playerToDrop),
+          lastUpdated: Date.now(),
+        });
+      }
+
+      await updateDoc(rosterRef, {
+        activeRoster: arrayUnion(addingPlayer.id),
+        lastUpdated: Date.now(),
+      });
+
+      setAddingPlayer(null);
+      setPlayerToDrop(null);
+      setProcessing(false);
+    } catch (error) {
+      console.error('Error adding player:', error);
+      alert(`Error adding player: ${error}`);
+      setProcessing(false);
+    }
+  };
+
+  // Get active roster players for drop selection
+  const activeRosterPlayers = useMemo(() => {
+    if (!userRoster) return [];
+    return userRoster.activeRoster
+      .map(playerId => allPlayers.find(p => p.id === playerId))
+      .filter((p): p is Player => p !== undefined);
+  }, [userRoster, allPlayers]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
@@ -334,6 +406,11 @@ export function FreeAgents() {
                   {renderSortHeader('FG%', 'fgPercent')}
                   {renderSortHeader('FT%', 'ftPercent')}
                   {renderSortHeader('3PM', 'threePointMade')}
+                  {userTeamId && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Action
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-[#121212] divide-y divide-gray-800">
@@ -409,6 +486,19 @@ export function FreeAgents() {
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 text-center">
                         {formatStat(stats?.threePointMade)}
                       </td>
+                      {userTeamId && (
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddPlayer(player);
+                            }}
+                            className="px-3 py-1 text-xs border border-green-500 text-green-400 rounded hover:bg-green-500/10 transition-colors"
+                          >
+                            Add
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -444,6 +534,106 @@ export function FreeAgents() {
         projectedStats={selectedPlayer ? projectedStats.get(selectedPlayer.fantraxId) : undefined}
         previousStats={selectedPlayer ? previousStats.get(selectedPlayer.fantraxId) : undefined}
       />
+
+      {/* Add Player Modal */}
+      {addingPlayer && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#121212] rounded-lg border border-gray-800 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Add Player</h2>
+                  <p className="text-gray-400 mt-1">
+                    Adding {addingPlayer.name} to your roster
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setAddingPlayer(null);
+                    setPlayerToDrop(null);
+                  }}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Roster Status */}
+              {userRoster && (
+                <div className="mb-6">
+                  <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                    <div className="text-sm text-gray-400">Active Roster</div>
+                    <div className={`text-2xl font-bold ${userRoster.activeRoster.length >= 13 ? 'text-pink-400' : 'text-white'}`}>
+                      {userRoster.activeRoster.length}/13
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Drop Player Selection */}
+              {userRoster && userRoster.activeRoster.length >= 13 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-white mb-3">
+                    Select a Player to Drop
+                  </h3>
+                  <p className="text-sm text-gray-400 mb-4">
+                    Your active roster is full. You must drop a player to add {addingPlayer.name}.
+                  </p>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {activeRosterPlayers.map((player) => (
+                      <label
+                        key={player.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          playerToDrop === player.id
+                            ? 'border-pink-500 bg-pink-500/10'
+                            : 'border-gray-700 hover:border-gray-600 bg-[#0a0a0a]'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="playerToDrop"
+                          value={player.id}
+                          checked={playerToDrop === player.id}
+                          onChange={() => setPlayerToDrop(player.id)}
+                          className="text-pink-500 focus:ring-pink-500"
+                        />
+                        <div className="flex-1">
+                          <div className="text-white font-medium">{player.name}</div>
+                          <div className="text-sm text-gray-400">
+                            {player.position} | {player.nbaTeam} | ${(player.salary / 1_000_000).toFixed(1)}M
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setAddingPlayer(null);
+                    setPlayerToDrop(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmAdd}
+                  disabled={processing || (userRoster !== null && userRoster.activeRoster.length >= 13 && playerToDrop === null)}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {processing ? 'Adding...' : 'Confirm Add'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
