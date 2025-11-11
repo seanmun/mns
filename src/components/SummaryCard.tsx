@@ -5,9 +5,10 @@ import { CAP_CONSTANTS } from '../types';
 interface SummaryCardProps {
   summary: RosterSummary;
   maxKeepers?: number;
+  isRegularSeason?: boolean;
 }
 
-export function SummaryCard({ summary, maxKeepers = 8 }: SummaryCardProps) {
+export function SummaryCard({ summary, maxKeepers = 8, isRegularSeason = false }: SummaryCardProps) {
   const formatMoney = (cents: number) => `$${cents.toFixed(0)}`;
 
   return (
@@ -49,20 +50,24 @@ export function SummaryCard({ summary, maxKeepers = 8 }: SummaryCardProps) {
             <span className="font-medium text-white">$50</span>
           </div>
 
-          {summary.franchiseTags > 0 && (
+          {summary.franchiseTagDues > 0 && (
             <div>
               <div className="flex justify-between">
                 <span className="text-gray-400">
-                  Franchise Tags ({summary.franchiseTags} × $
-                  {CAP_CONSTANTS.FRANCHISE_TAG_FEE})
+                  {summary.franchiseTags > 0
+                    ? `Franchise Tags (${summary.franchiseTags} × $${CAP_CONSTANTS.FRANCHISE_TAG_FEE})`
+                    : 'Franchise Tags'
+                  }
                 </span>
                 <span className="font-medium text-white">
                   {formatMoney(summary.franchiseTagDues)}
                 </span>
               </div>
-              <div className="text-xs text-gray-500 mt-1 italic">
-                Additional 1st round keepers beyond the first
-              </div>
+              {!isRegularSeason && (
+                <div className="text-xs text-gray-500 mt-1 italic">
+                  Additional 1st round keepers beyond the first
+                </div>
+              )}
             </div>
           )}
 
@@ -112,18 +117,22 @@ export function SummaryCard({ summary, maxKeepers = 8 }: SummaryCardProps) {
         </div>
       </div>
 
-      {/* Validation warnings */}
-      {summary.keepersCount > maxKeepers && (
-        <div className="mt-4 p-3 bg-red-400/10 border border-red-400/30 rounded text-sm text-red-400">
-          ⚠️ Too many keepers. Remove{' '}
-          {summary.keepersCount - maxKeepers} keeper(s) before submitting.
-        </div>
-      )}
+      {/* Validation warnings - only show for keeper phase, not regular season */}
+      {!isRegularSeason && (
+        <>
+          {summary.keepersCount > maxKeepers && (
+            <div className="mt-4 p-3 bg-red-400/10 border border-red-400/30 rounded text-sm text-red-400">
+              ⚠️ Too many keepers. Remove{' '}
+              {summary.keepersCount - maxKeepers} keeper(s) before submitting.
+            </div>
+          )}
 
-      {summary.keepersCount === 0 && summary.redshirtsCount === 0 && summary.intStashCount === 0 && (
-        <div className="mt-4 p-3 bg-blue-400/10 border border-blue-400/30 rounded text-sm text-blue-400">
-          ℹ️ No keepers, redshirts, or int stash selected. This is allowed but unusual.
-        </div>
+          {summary.keepersCount === 0 && summary.redshirtsCount === 0 && summary.intStashCount === 0 && (
+            <div className="mt-4 p-3 bg-blue-400/10 border border-blue-400/30 rounded text-sm text-blue-400">
+              ℹ️ No keepers, redshirts, or int stash selected. This is allowed but unusual.
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -7,11 +7,14 @@ import { useProjectedStats } from '../hooks/useProjectedStats';
 import { usePreviousStats } from '../hooks/usePreviousStats';
 import { useAuth } from '../contexts/AuthContext';
 import { useWatchList } from '../hooks/useWatchList';
+import { useRegularSeasonRoster } from '../hooks/useRegularSeasonRoster';
+import { useTeamFees } from '../hooks/useTeamFees';
 import { RosterTable } from '../components/RosterTable';
 import { CapThermometer } from '../components/CapThermometer';
 import { SummaryCard } from '../components/SummaryCard';
 import { DraftBoardView } from '../components/DraftBoardView';
 import { WatchListView } from '../components/WatchListView';
+import { RegularSeasonRosterView } from '../components/RegularSeasonRosterView';
 import { baseKeeperRound, stackKeeperRounds, computeSummary, validateRoster } from '../lib/keeperAlgorithms';
 import type { RosterEntry, Decision, Player, SavedScenario } from '../types';
 
@@ -33,6 +36,8 @@ export function OwnerDashboard() {
   const { league } = useLeague(leagueId!);
   const { players, loading: playersLoading } = useTeamPlayers(leagueId!, teamId!);
   const { roster, loading: rosterLoading } = useRoster(leagueId!, teamId!);
+  const { roster: regularSeasonRoster, loading: regularSeasonLoading } = useRegularSeasonRoster(leagueId!, teamId!);
+  const { teamFees, loading: feesLoading } = useTeamFees(leagueId!, teamId!, league?.seasonYear || 0);
   const { projectedStats, loading: statsLoading } = useProjectedStats();
   const { previousStats } = usePreviousStats();
   const { watchList } = useWatchList(user?.email || '', leagueId!, teamId!);
@@ -159,13 +164,14 @@ export function OwnerDashboard() {
 
       try {
         const playersRef = collection(db, 'players');
-        const q = query(playersRef, where('roster.leagueId', '==', leagueId));
-        const snapshot = await getDocs(q);
+        // Load ALL players - no longer filter by roster.leagueId (old keeper phase data)
+        // Ownership is now tracked in regularSeasonRosters collection
+        const snapshot = await getDocs(playersRef);
         const allPlayers = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         })) as Player[];
-        console.log(`[OwnerDashboard] Fetched ${allPlayers.length} league players for leagueId: ${leagueId}`);
+        console.log(`[OwnerDashboard] Fetched ${allPlayers.length} total players`);
         console.log(`[OwnerDashboard] Team ${teamId} roster entries:`, roster?.entries?.length || 0);
         setAllLeaguePlayers(allPlayers);
       } catch (error) {
@@ -533,7 +539,10 @@ export function OwnerDashboard() {
 
   const isLocked = roster?.status === 'adminLocked' || roster?.status === 'submitted';
 
-  if (teamLoading || playersLoading || rosterLoading || statsLoading) {
+  // Check if we're in regular season mode
+  const isRegularSeason = league?.seasonStatus === 'pre_season' || league?.seasonStatus === 'active';
+
+  if (teamLoading || playersLoading || rosterLoading || statsLoading || regularSeasonLoading || feesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
         <div className="text-gray-400">Loading...</div>
@@ -592,6 +601,16 @@ export function OwnerDashboard() {
           </button>
         </div>
 
+        {/* Regular Season Roster View */}
+        {isRegularSeason && regularSeasonRoster && team ? (
+          <RegularSeasonRosterView
+            regularSeasonRoster={regularSeasonRoster}
+            allPlayers={allLeaguePlayers}
+            team={team}
+            teamFees={teamFees}
+          />
+        ) : (
+          <>
         {/* Desktop: Side by side layout */}
         <div className="hidden lg:grid lg:grid-cols-3 gap-6 mb-6">
           <div className="lg:col-span-2">
@@ -898,7 +917,8 @@ export function OwnerDashboard() {
             </div>
           </div>
         )}
-
+          </>
+        )}
 
         {/* Rookie Draft Picks */}
         {rookiePicks.length > 0 && (

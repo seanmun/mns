@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import type { League } from '../types';
+import { AdminRosterManagement } from '../components/AdminRosterManagement';
+import type { League, RegularSeasonRoster, Player, TeamFees } from '../types';
 
 export function AdminLeague() {
   const { role } = useAuth();
@@ -12,6 +13,8 @@ export function AdminLeague() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedLeague, setSelectedLeague] = useState<League | null>(null);
+  const [showRosterManagement, setShowRosterManagement] = useState(false);
+  const [startingSeasonProcessing, setStartingSeasonProcessing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
     seasonYear: 2025,
@@ -111,6 +114,118 @@ export function AdminLeague() {
     }
   };
 
+  const handleStartSeason = async () => {
+    if (!selectedLeague) return;
+
+    const confirmed = confirm(
+      `Are you sure you want to start the ${selectedLeague.seasonYear} season?\n\n` +
+      `This will:\n` +
+      `- Lock all team fees based on current rosters\n` +
+      `- Calculate first apron fees ($50) for teams over $195M\n` +
+      `- Calculate second apron penalties ($2/M over $225M)\n\n` +
+      `This action cannot be undone!`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setStartingSeasonProcessing(true);
+
+      // Load all regular season rosters for this league
+      const rostersQuery = query(
+        collection(db, 'regularSeasonRosters'),
+        where('leagueId', '==', selectedLeague.id),
+        where('seasonYear', '==', selectedLeague.seasonYear)
+      );
+      const rostersSnap = await getDocs(rostersQuery);
+
+      // Load all players
+      const playersSnap = await getDocs(collection(db, 'players'));
+      const playersMap = new Map(
+        playersSnap.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() } as Player])
+      );
+
+      let teamsProcessed = 0;
+      let errors: string[] = [];
+
+      // Process each roster
+      for (const rosterDoc of rostersSnap.docs) {
+        const roster = { id: rosterDoc.id, ...rosterDoc.data() } as RegularSeasonRoster;
+
+        try {
+          // Calculate total salary (active + IR only)
+          let totalSalary = 0;
+          [...roster.activeRoster, ...roster.irSlots].forEach(playerId => {
+            const player = playersMap.get(playerId);
+            if (player) {
+              totalSalary += player.salary || 0;
+            }
+          });
+
+          // Calculate apron fees
+          const firstApronFee = totalSalary > 195_000_000 ? 50 : 0;
+          const overBy = Math.max(0, totalSalary - 225_000_000);
+          const overByM = Math.ceil(overBy / 1_000_000);
+          const secondApronPenalty = overByM * 2;
+
+          // Update teamFees document
+          const feesId = `${selectedLeague.id}_${roster.teamId}_${selectedLeague.seasonYear}`;
+          const feesRef = doc(db, 'teamFees', feesId);
+
+          // Get existing fees to preserve franchise/redshirt fees
+          const feesSnap = await getDocs(
+            query(collection(db, 'teamFees'), where('__name__', '==', feesId))
+          );
+
+          let existingFees: TeamFees | null = null;
+          if (!feesSnap.empty) {
+            existingFees = { id: feesSnap.docs[0].id, ...feesSnap.docs[0].data() } as TeamFees;
+          }
+
+          const franchiseTagFees = existingFees?.franchiseTagFees || 0;
+          const redshirtFees = existingFees?.redshirtFees || 0;
+          const totalFees = franchiseTagFees + redshirtFees + firstApronFee + secondApronPenalty;
+
+          await updateDoc(feesRef, {
+            firstApronFee,
+            secondApronPenalty,
+            totalFees,
+            feesLocked: true,
+            lockedAt: Date.now(),
+            lockedSalary: totalSalary,
+          });
+
+          teamsProcessed++;
+        } catch (error) {
+          console.error(`Error processing team ${roster.teamId}:`, error);
+          errors.push(`Team ${roster.teamId}: ${error}`);
+        }
+      }
+
+      setStartingSeasonProcessing(false);
+
+      if (errors.length > 0) {
+        alert(
+          `Season started with errors!\n\n` +
+          `Teams processed: ${teamsProcessed}\n` +
+          `Errors: ${errors.length}\n\n` +
+          `Check console for details.`
+        );
+        console.error('Errors during season start:', errors);
+      } else {
+        alert(
+          `Season started successfully!\n\n` +
+          `${teamsProcessed} teams processed\n` +
+          `All fees have been locked based on current rosters.`
+        );
+      }
+    } catch (error) {
+      console.error('Error starting season:', error);
+      alert(`Error starting season: ${error}`);
+      setStartingSeasonProcessing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
@@ -122,7 +237,26 @@ export function AdminLeague() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-white mb-8">Manage Leagues</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-white">Manage Leagues</h1>
+          {selectedLeague && (
+            <div className="flex gap-3">
+              <button
+                onClick={handleStartSeason}
+                disabled={startingSeasonProcessing}
+                className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {startingSeasonProcessing ? 'Starting Season...' : 'Start Season'}
+              </button>
+              <button
+                onClick={() => setShowRosterManagement(true)}
+                className="px-6 py-3 bg-purple-500 text-white font-semibold rounded-lg hover:bg-purple-600 transition-colors"
+              >
+                Manage Rosters
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* League Selection */}
@@ -292,6 +426,15 @@ export function AdminLeague() {
           )}
         </div>
       </div>
+
+      {/* Roster Management Modal */}
+      {showRosterManagement && selectedLeague && (
+        <AdminRosterManagement
+          leagueId={selectedLeague.id}
+          seasonYear={selectedLeague.seasonYear}
+          onClose={() => setShowRosterManagement(false)}
+        />
+      )}
     </div>
   );
 }

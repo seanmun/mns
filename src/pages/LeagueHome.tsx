@@ -4,7 +4,7 @@ import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWalletData } from '../lib/blockchain';
-import type { Team, League, RosterDoc, Player, Portfolio } from '../types';
+import type { Team, League, RosterDoc, Player, Portfolio, RegularSeasonRoster, TeamFees } from '../types';
 
 // Helper function to determine prize pool rule and calculate payouts
 function calculatePrizePayouts(totalPrizePool: number, totalCollected: number) {
@@ -143,104 +143,88 @@ export function LeagueHome() {
 
         setTeams(teamData);
 
-        // Fetch roster summaries ONLY for franchise tags and redshirt fees (set during keeper phase)
-        const rostersMap = new Map<string, RosterDoc>();
-        let franchiseTagDues = 0;
-        let redshirtDues = 0;
+        // Load all players for salary lookups
+        const playersSnap = await getDocs(collection(db, 'players'));
+        const playersMap = new Map<string, Player>();
+        playersSnap.docs.forEach(doc => {
+          const player = { id: doc.id, ...doc.data() } as Player;
+          playersMap.set(player.id, player);
+        });
 
-        // NOTE: Roster document IDs are stored as {leagueId}_{teamId} WITHOUT year suffix
-        // For 2025-2026 season, IDs are like: "XPL9dJv8BTFNAMlrNBpJ_8RmmV46iLVXcRQ3ltJuW"
-        // If roster format changes in future seasons to include year, update this line
-        await Promise.all(
-          teamData.map(async (team) => {
-            const rosterDocId = `${leagueId}_${team.id}`;
-            const rosterDoc = await getDoc(doc(db, 'rosters', rosterDocId));
-            if (rosterDoc.exists()) {
-              const rosterData = { id: rosterDoc.id, ...rosterDoc.data() } as RosterDoc;
-              rostersMap.set(team.id, rosterData);
-
-              if (rosterData.status === 'submitted' && rosterData.summary) {
-                // ONLY pull keeper-phase fees (franchise tags, redshirts)
-                franchiseTagDues += rosterData.summary.franchiseTagDues || 0;
-                redshirtDues += rosterData.summary.redshirtDues || 0;
-              }
-            }
-          })
+        // Load regular season rosters and calculate salaries
+        const regularSeasonRostersSnap = await getDocs(
+          query(
+            collection(db, 'regularSeasonRosters'),
+            where('leagueId', '==', leagueId),
+            where('seasonYear', '==', leagueData.seasonYear)
+          )
         );
 
-        // Simple approach: sum all player salaries from draft picks
-        const draftId = `${leagueId}_${leagueData.seasonYear}`;
-        const draftDoc = await getDoc(doc(db, 'drafts', draftId));
+        const salariesMap = new Map<string, number>();
+        regularSeasonRostersSnap.docs.forEach(doc => {
+          const roster = { id: doc.id, ...doc.data() } as RegularSeasonRoster;
 
-        if (draftDoc.exists()) {
-          // Load all players to get salaries
-          const playersSnap = await getDocs(collection(db, 'players'));
-          const playersMap = new Map<string, Player>();
-          playersSnap.docs.forEach(doc => {
-            const player = { id: doc.id, ...doc.data() } as Player;
-            playersMap.set(player.fantraxId, player); // Index by fantraxId instead of document id
-          });
+          // Calculate salary from active roster + IR (redshirts and int stash don't count)
+          const activeSalary = roster.activeRoster.reduce((sum, playerId) => {
+            const player = playersMap.get(playerId);
+            return sum + (player?.salary || 0);
+          }, 0);
 
-          // Load pickAssignments to get current team ownership (includes trades)
-          const pickAssignmentsSnap = await getDocs(
-            query(
-              collection(db, 'pickAssignments'),
-              where('leagueId', '==', leagueId),
-              where('seasonYear', '==', leagueData.seasonYear)
-            )
-          );
+          const irSalary = roster.irSlots.reduce((sum, playerId) => {
+            const player = playersMap.get(playerId);
+            return sum + (player?.salary || 0);
+          }, 0);
 
-          const allPickAssignments = pickAssignmentsSnap.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })) as any[];
+          salariesMap.set(roster.teamId, activeSalary + irSalary);
+        });
 
-          // Calculate total salary per team from their current picks (after trades)
-          const salariesMap = new Map<string, number>();
-          teamData.forEach(team => {
-            // Get all picks currently owned by this team
-            const teamPicks = allPickAssignments.filter(pick =>
-              pick.currentTeamId === team.id && pick.playerId
-            );
+        setTeamSalaries(salariesMap);
 
-            // Sum up the salaries
-            const totalSalary = teamPicks.reduce((sum, pick) => {
-              const player = playersMap.get(pick.playerId); // playerId is fantraxId
-              return sum + (player?.salary || 0);
-            }, 0);
+        // Load team fees
+        const teamFeesSnap = await getDocs(
+          query(
+            collection(db, 'teamFees'),
+            where('leagueId', '==', leagueId),
+            where('seasonYear', '==', leagueData.seasonYear)
+          )
+        );
 
-            salariesMap.set(team.id, totalSalary);
-          });
+        let franchiseTagDues = 0;
+        let redshirtDues = 0;
+        let firstApronFees = 0;
+        let secondApronPenalties = 0;
 
-          setTeamSalaries(salariesMap);
+        teamFeesSnap.docs.forEach(doc => {
+          const fees = { id: doc.id, ...doc.data() } as TeamFees;
+          franchiseTagDues += fees.franchiseTagFees || 0;
+          redshirtDues += fees.redshirtFees || 0;
 
-          // Calculate apron fees based on TOTAL ROSTER salaries (keepers + drafted players)
-          let firstApronFees = 0;
-          let secondApronPenalties = 0;
-
-          salariesMap.forEach((totalSalary) => {
-            // First apron fee: $50 if over $195M
-            if (totalSalary > 195_000_000) {
+          // Only count apron fees if they're locked (season started)
+          if (fees.feesLocked) {
+            firstApronFees += fees.firstApronFee || 0;
+            secondApronPenalties += fees.secondApronPenalty || 0;
+          } else {
+            // Calculate potential fees if not locked yet
+            const teamSalary = salariesMap.get(fees.teamId) || 0;
+            if (teamSalary > 195_000_000) {
               firstApronFees += 50;
             }
-
-            // Second apron penalty: $2 per $1M over $225M
-            if (totalSalary > 225_000_000) {
-              const overByM = Math.ceil((totalSalary - 225_000_000) / 1_000_000);
+            if (teamSalary > 225_000_000) {
+              const overByM = Math.ceil((teamSalary - 225_000_000) / 1_000_000);
               secondApronPenalties += overByM * 2;
             }
-          });
+          }
+        });
 
-          // Total fees = keeper-phase fees + apron fees based on final rosters
-          const totalPrizeFees = franchiseTagDues + redshirtDues + firstApronFees + secondApronPenalties;
-          setTotalKeeperFees(totalPrizeFees);
-          setFeeBreakdown({
-            penaltyDues: secondApronPenalties,
-            franchiseTagDues,
-            redshirtDues,
-            firstApronFee: firstApronFees
-          });
-        }
+        // Total fees = all fees combined
+        const totalPrizeFees = franchiseTagDues + redshirtDues + firstApronFees + secondApronPenalties;
+        setTotalKeeperFees(totalPrizeFees);
+        setFeeBreakdown({
+          penaltyDues: secondApronPenalties,
+          franchiseTagDues,
+          redshirtDues,
+          firstApronFee: firstApronFees
+        });
 
         // Find user's team
         const userTeam = teamData.find((team) => team.owners.includes(user.email || ''));
@@ -788,12 +772,6 @@ export function LeagueHome() {
                 >
                   Manage Roster
                 </button>
-                <div className="mt-4 text-sm text-gray-400 space-y-2">
-                  <div className="flex justify-between">
-                    <span>Max Keepers:</span>
-                    <span className="font-semibold text-white">{myTeam.settings.maxKeepers}</span>
-                  </div>
-                </div>
               </div>
             ) : (
               <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">

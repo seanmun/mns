@@ -7,7 +7,7 @@ import { useProjectedStats } from '../hooks/useProjectedStats';
 import { usePreviousStats } from '../hooks/usePreviousStats';
 import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
 import { PlayerModal } from '../components/PlayerModal';
-import type { Player } from '../types';
+import type { Player, RegularSeasonRoster, League } from '../types';
 
 type SortColumn = 'score' | 'salary' | 'points' | 'rebounds' | 'assists' | 'steals' | 'blocks' | 'fgPercent' | 'ftPercent' | 'threePointMade';
 
@@ -15,6 +15,8 @@ export function FreeAgents() {
   const { leagueId } = useParams<{ leagueId: string }>();
   const { user } = useAuth();
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+  const [ownedPlayerIds, setOwnedPlayerIds] = useState<Set<string>>(new Set());
+  const [seasonYear, setSeasonYear] = useState<number>(2025);
   const [userTeamId, setUserTeamId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -64,6 +66,25 @@ export function FreeAgents() {
     }
   };
 
+  // Fetch league to get seasonYear
+  useEffect(() => {
+    const fetchLeague = async () => {
+      if (!leagueId) return;
+
+      try {
+        const leagueSnap = await getDocs(query(collection(db, 'leagues'), where('__name__', '==', leagueId)));
+        if (!leagueSnap.empty) {
+          const leagueData = leagueSnap.docs[0].data() as League;
+          setSeasonYear(leagueData.seasonYear);
+        }
+      } catch (error) {
+        console.error('Error fetching league:', error);
+      }
+    };
+
+    fetchLeague();
+  }, [leagueId]);
+
   // Fetch user's team
   useEffect(() => {
     const fetchUserTeam = async () => {
@@ -90,33 +111,60 @@ export function FreeAgents() {
     fetchUserTeam();
   }, [leagueId, user]);
 
+  // Load all players and regular season rosters with real-time updates
   useEffect(() => {
-    if (!leagueId) return;
+    if (!leagueId || !seasonYear) return;
 
-    // Set up real-time listener for players in this league
-    const playersRef = collection(db, 'players');
-    const q = query(playersRef, where('roster.leagueId', '==', leagueId));
+    // Load all players (one-time, players collection doesn't change often)
+    const loadPlayers = async () => {
+      try {
+        const playersSnap = await getDocs(collection(db, 'players'));
+        const playerData = playersSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Player[];
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const playerData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Player[];
+        setAllPlayers(playerData);
+      } catch (error) {
+        console.error('Error loading players:', error);
+      }
+    };
 
-      setAllPlayers(playerData);
+    loadPlayers();
+
+    // Set up real-time listener for regular season rosters
+    const rostersQuery = query(
+      collection(db, 'regularSeasonRosters'),
+      where('leagueId', '==', leagueId),
+      where('seasonYear', '==', seasonYear)
+    );
+
+    const unsubscribe = onSnapshot(rostersQuery, (snapshot) => {
+      // Build set of all owned player IDs
+      const ownedIds = new Set<string>();
+
+      snapshot.docs.forEach(doc => {
+        const roster = { id: doc.id, ...doc.data() } as RegularSeasonRoster;
+        roster.activeRoster.forEach(id => ownedIds.add(id));
+        roster.irSlots.forEach(id => ownedIds.add(id));
+        roster.redshirtPlayers.forEach(id => ownedIds.add(id));
+        roster.internationalPlayers.forEach(id => ownedIds.add(id));
+      });
+
+      setOwnedPlayerIds(ownedIds);
       setLoading(false);
     }, (error) => {
-      console.error('Error fetching players:', error);
+      console.error('Error loading rosters:', error);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [leagueId]);
+  }, [leagueId, seasonYear]);
 
   // Apply search and sorting to free agents
   const freeAgents = useMemo(() => {
-    // Filter out drafted players (those with a teamId)
-    let agents = allPlayers.filter(player => !player.roster?.teamId);
+    // Filter out owned players (those in regularSeasonRosters)
+    let agents = allPlayers.filter(player => !ownedPlayerIds.has(player.id));
 
     // Apply search filter
     if (searchTerm.trim()) {
@@ -185,7 +233,7 @@ export function FreeAgents() {
 
       return sortDirection === 'desc' ? valueB - valueA : valueA - valueB;
     });
-  }, [allPlayers, projectedStats, sortColumn, sortDirection, searchTerm]);
+  }, [allPlayers, ownedPlayerIds, projectedStats, sortColumn, sortDirection, searchTerm]);
 
   const formatSalary = (salary: number) => {
     return `$${(salary / 1_000_000).toFixed(2)}M`;

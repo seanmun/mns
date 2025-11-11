@@ -266,6 +266,14 @@ export function CompleteDraftModal({
       const { franchiseTags: tags } = stackKeeperRounds(roster.entries);
       franchiseTags = tags;
       redshirtCount = roster.entries.filter(e => e.decision === 'REDSHIRT').length;
+
+      console.log(`[CompleteDraftModal] Team ${team.name}:`, {
+        franchiseTags,
+        redshirtCount,
+        rosterEntriesCount: roster.entries.length
+      });
+    } else {
+      console.log(`[CompleteDraftModal] No roster found for team ${team.name}`);
     }
 
     const franchiseTagFees = franchiseTags * 15;

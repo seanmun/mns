@@ -28,6 +28,7 @@ const AdminUpload = lazy(() => import('./pages/AdminUpload').then(m => ({ defaul
 const AdminTeams = lazy(() => import('./pages/AdminTeams').then(m => ({ default: m.AdminTeams })));
 const AdminPlayers = lazy(() => import('./pages/AdminPlayers').then(m => ({ default: m.AdminPlayers })));
 const AdminLeague = lazy(() => import('./pages/AdminLeague').then(m => ({ default: m.AdminLeague })));
+const AdminRosterManager = lazy(() => import('./pages/AdminRosterManager').then(m => ({ default: m.AdminRosterManager })));
 const AdminDraftTest = lazy(() => import('./pages/AdminDraftTest').then(m => ({ default: m.AdminDraftTest })));
 const AdminDraftSetup = lazy(() => import('./pages/AdminDraftSetup').then(m => ({ default: m.AdminDraftSetup })));
 const AdminViewRosters = lazy(() => import('./pages/AdminViewRosters').then(m => ({ default: m.AdminViewRosters })));
@@ -276,6 +277,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <AdminLeague />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/rosters"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminRosterManager />
                 </AppLayout>
               </PrivateRoute>
             }
