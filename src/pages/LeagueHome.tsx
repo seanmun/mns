@@ -6,15 +6,15 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchWalletData } from '../lib/blockchain';
 import type { Team, League, Player, Portfolio, RegularSeasonRoster, TeamFees } from '../types';
 
-// Helper function to determine prize pool rule and calculate payouts
+// Helper function to determine prize pool zone and calculate payouts
 function calculatePrizePayouts(totalPrizePool: number, totalCollected: number) {
-  // Boiler Room Rule - prize pool declined
+  // Boiler Room Zone - prize pool declined
   if (totalPrizePool < totalCollected) {
     if (totalPrizePool < 300) {
       return {
-        rule: 'boilerRoom',
-        ruleName: 'Boiler Room Rule',
-        ruleDescription: 'Prize pool below $300',
+        zone: 'boilerRoom',
+        zoneName: 'Boiler Room Zone',
+        zoneDescription: 'Prize pool below $300',
         emoji: '📉',
         image: '/prizePool/boilerRoom.webp',
         bgGradient: 'from-gray-700 via-gray-800 to-gray-900',
@@ -24,9 +24,9 @@ function calculatePrizePayouts(totalPrizePool: number, totalCollected: number) {
       };
     } else {
       return {
-        rule: 'boilerRoom',
-        ruleName: 'Boiler Room Rule',
-        ruleDescription: 'Prize pool declined below initial investment',
+        zone: 'boilerRoom',
+        zoneName: 'Boiler Room Zone',
+        zoneDescription: 'Prize pool declined below initial investment',
         emoji: '📉',
         image: '/prizePool/boilerRoom.webp',
         bgGradient: 'from-gray-700 via-gray-800 to-gray-900',
@@ -38,12 +38,12 @@ function calculatePrizePayouts(totalPrizePool: number, totalCollected: number) {
     }
   }
 
-  // Bernie Sanders Rule - prize pool $10,000+
+  // Bernie Zone - prize pool $10,000+
   if (totalPrizePool >= 10000) {
     return {
-      rule: 'bernieSanders',
-      ruleName: 'Bernie Sanders Rule',
-      ruleDescription: 'Prize pool $10,000+',
+      zone: 'bernieSanders',
+      zoneName: 'Bernie Zone',
+      zoneDescription: 'Prize pool $10,000+',
       emoji: '🚀',
       image: '/prizePool/bernieOnceAgain.webp',
       bgGradient: 'from-purple-400 via-purple-500 to-purple-600',
@@ -56,11 +56,11 @@ function calculatePrizePayouts(totalPrizePool: number, totalCollected: number) {
     };
   }
 
-  // Gordon Gekko Rule - prize pool grew
+  // Gordon Gekko Zone - prize pool grew
   return {
-    rule: 'gordonGekko',
-    ruleName: 'Gordon Gekko Rule',
-    ruleDescription: 'Prize pool grew above initial investment',
+    zone: 'gordonGekko',
+    zoneName: 'Gordon Gekko Zone',
+    zoneDescription: 'Prize pool grew above initial investment',
     emoji: '💹',
     image: '/icons/mnsPal.webp',
     bgGradient: 'from-green-400 via-green-500 to-emerald-600',
@@ -669,23 +669,15 @@ export function LeagueHome() {
                 <div className="bg-[#121212] rounded-lg border border-gray-800">
                   <div className="p-6">
                     {/* Header with Image and Payouts */}
-                    <div className="flex items-start gap-6">
-                      {/* Image - 50% width */}
-                      <div className="w-1/2">
-                        <img
-                          src={prizeInfo.image}
-                          alt={prizeInfo.ruleName}
-                          className="w-full h-auto rounded-lg object-contain bg-[#0a0a0a]"
-                        />
-                      </div>
-                      {/* Rule Info and Payouts - 50% width */}
-                      <div className="w-1/2 flex flex-col">
+                    <div className="flex flex-col md:flex-row items-start gap-6">
+                      {/* Zone Info and Payouts - 50% width on desktop, full on mobile, comes first on mobile */}
+                      <div className="w-full md:w-1/2 flex flex-col order-1 md:order-2">
                         <div className="mb-4">
-                          <h2 className="text-xl font-bold text-white mb-2">{prizeInfo.ruleName}</h2>
-                          <p className="text-sm text-gray-400">{prizeInfo.ruleDescription}</p>
+                          <h2 className="text-xl font-bold text-white mb-2">{prizeInfo.zoneName}</h2>
+                          <p className="text-sm text-gray-400">{prizeInfo.zoneDescription}</p>
                         </div>
 
-                        {/* Payout Breakdown in right column */}
+                        {/* Payout Breakdown */}
                         <div className="space-y-3 flex-1">
                           {prizeInfo.payouts.map((payout, idx) => (
                             <div
@@ -711,6 +703,14 @@ export function LeagueHome() {
                             </div>
                           ))}
                         </div>
+                      </div>
+                      {/* Image - 50% width on desktop, full on mobile, comes second on mobile */}
+                      <div className="w-full md:w-1/2 order-2 md:order-1">
+                        <img
+                          src={prizeInfo.image}
+                          alt={prizeInfo.zoneName}
+                          className="w-full h-auto rounded-lg object-contain bg-[#0a0a0a]"
+                        />
                       </div>
                     </div>
                   </div>
