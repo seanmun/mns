@@ -13,10 +13,10 @@ export function SummaryCard({ summary, maxKeepers = 8, isRegularSeason = false }
 
   return (
     <div className="bg-[#121212] p-6 rounded-lg border border-gray-800">
-      <h3 className="text-lg font-semibold mb-4 text-white">Roster Summary and Fees</h3>
+      <h3 className="text-lg font-semibold mb-3 text-white">Roster Summary and Fees</h3>
 
       {/* Counts */}
-      <div className="space-y-3 mb-6">
+      <div className="space-y-2 mb-4">
         <div className="flex justify-between items-center">
           <span className="text-gray-400">Roster</span>
           <span
@@ -71,14 +71,27 @@ export function SummaryCard({ summary, maxKeepers = 8, isRegularSeason = false }
             </div>
           )}
 
-          {summary.redshirtsCount > 0 && (
+          {summary.redshirtDues > 0 && (
             <div className="flex justify-between">
               <span className="text-gray-400">
-                Redshirts ({summary.redshirtsCount} × $
-                {CAP_CONSTANTS.REDSHIRT_FEE})
+                {summary.redshirtsCount > 0
+                  ? `Redshirt Fee (${summary.redshirtsCount} × $${CAP_CONSTANTS.REDSHIRT_FEE})`
+                  : 'Redshirt Fee'
+                }
               </span>
               <span className="font-medium text-white">
                 {formatMoney(summary.redshirtDues)}
+              </span>
+            </div>
+          )}
+
+          {summary.activationDues > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-400">
+                Redshirt Activation Fee (${CAP_CONSTANTS.IN_SEASON_ACTIVATION_FEE} each)
+              </span>
+              <span className="font-medium text-white">
+                {formatMoney(summary.activationDues)}
               </span>
             </div>
           )}

@@ -85,6 +85,7 @@ export function LeagueHome() {
     penaltyDues: 0,
     franchiseTagDues: 0,
     redshirtDues: 0,
+    activationDues: 0,
     firstApronFee: 0
   });
   const [currentSeason, setCurrentSeason] = useState<number>(2025);
@@ -191,6 +192,7 @@ export function LeagueHome() {
 
         let franchiseTagDues = 0;
         let redshirtDues = 0;
+        let activationDues = 0;
         let firstApronFees = 0;
         let secondApronPenalties = 0;
 
@@ -198,6 +200,7 @@ export function LeagueHome() {
           const fees = { id: doc.id, ...doc.data() } as TeamFees;
           franchiseTagDues += fees.franchiseTagFees || 0;
           redshirtDues += fees.redshirtFees || 0;
+          activationDues += fees.unredshirtFees || 0;
 
           // Only count apron fees if they're locked (season started)
           if (fees.feesLocked) {
@@ -217,12 +220,13 @@ export function LeagueHome() {
         });
 
         // Total fees = all fees combined
-        const totalPrizeFees = franchiseTagDues + redshirtDues + firstApronFees + secondApronPenalties;
+        const totalPrizeFees = franchiseTagDues + redshirtDues + activationDues + firstApronFees + secondApronPenalties;
         setTotalKeeperFees(totalPrizeFees);
         setFeeBreakdown({
           penaltyDues: secondApronPenalties,
           franchiseTagDues,
           redshirtDues,
+          activationDues,
           firstApronFee: firstApronFees
         });
 
@@ -630,6 +634,12 @@ export function LeagueHome() {
                             <div className="flex justify-between">
                               <span>Redshirt Fees ($10 each)</span>
                               <span className="font-semibold text-white">${feeBreakdown.redshirtDues}</span>
+                            </div>
+                          )}
+                          {feeBreakdown.activationDues > 0 && (
+                            <div className="flex justify-between">
+                              <span>Redshirt Activation Fees ($25 each)</span>
+                              <span className="font-semibold text-white">${feeBreakdown.activationDues}</span>
                             </div>
                           )}
                           <div className="flex justify-between pt-2 mt-2 border-t border-gray-700 font-bold text-white">

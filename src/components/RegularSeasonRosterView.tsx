@@ -72,13 +72,14 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
     // Use actual fees from teamFees if available, otherwise calculate potential fees
     const franchiseTagDues = teamFees?.franchiseTagFees || 0;
     const redshirtDues = teamFees?.redshirtFees || 0;
+    const activationDues = teamFees?.unredshirtFees || 0;
 
     // If fees are locked, use the locked values; otherwise show calculated values
     const lockedFirstApronFee = teamFees?.feesLocked ? teamFees.firstApronFee : firstApronFee;
     const lockedPenaltyDues = teamFees?.feesLocked ? teamFees.secondApronPenalty : penaltyDues;
 
-    // Total fees = pre-draft fees (always locked) + season fees (locked if season started)
-    const totalFees = franchiseTagDues + redshirtDues + lockedFirstApronFee + lockedPenaltyDues;
+    // Total fees = pre-draft fees (always locked) + season fees (locked if season started) + activation fees
+    const totalFees = franchiseTagDues + redshirtDues + activationDues + lockedFirstApronFee + lockedPenaltyDues;
 
     return {
       keepersCount: activePlayers.length, // Only active roster, not IR
@@ -95,7 +96,7 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
       franchiseTagDues,
       redshirtDues,
       firstApronFee: lockedFirstApronFee,
-      activationDues: 0,
+      activationDues,
       totalFees,
     };
   }, [activePlayers, irPlayers, redshirtPlayers, internationalPlayers, totalSalary, team, teamFees]);
@@ -131,12 +132,19 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
       // Update fees
       const feesId = `${regularSeasonRoster.leagueId}_${regularSeasonRoster.teamId}_${regularSeasonRoster.seasonYear}`;
       const feesRef = doc(db, 'teamFees', feesId);
-      const currentRedshirtFees = teamFees?.redshirtFees || 0;
+      const currentUnredshirtFees = teamFees?.unredshirtFees || 0;
       const currentTotalFees = teamFees?.totalFees || 0;
 
       await updateDoc(feesRef, {
-        redshirtFees: currentRedshirtFees + 25,
+        unredshirtFees: currentUnredshirtFees + 25,
         totalFees: currentTotalFees + 25,
+        feeTransactions: arrayUnion({
+          type: 'unredshirt',
+          amount: 25,
+          timestamp: Date.now(),
+          triggeredBy: playerId,
+          note: `Activated ${player.name} from redshirt`,
+        }),
       });
 
       setProcessing(false);
