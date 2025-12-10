@@ -4,6 +4,8 @@ import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWalletData } from '../lib/blockchain';
+import { useWagers } from '../hooks/useWagers';
+import { ProposeWagerModal } from '../components/ProposeWagerModal';
 import type { Team, League, Player, Portfolio, RegularSeasonRoster, TeamFees } from '../types';
 
 // Helper function to determine prize pool zone and calculate payouts
@@ -97,6 +99,14 @@ export function LeagueHome() {
   const [portfolioLoading, setPortfolioLoading] = useState(false);
   const [showPortfolioDetails, setShowPortfolioDetails] = useState(false);
   const [showFeeBreakdown, setShowFeeBreakdown] = useState(false);
+  const [isWagerModalOpen, setIsWagerModalOpen] = useState(false);
+
+  // Fetch accepted wagers (live wagers)
+  const { wagers: liveWagers } = useWagers({
+    leagueId,
+    status: 'accepted',
+    includeAll: true,
+  });
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -427,39 +437,48 @@ export function LeagueHome() {
             </button>
           </div>
 
-          {/* Draft Card */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+          {/* Draft Room Card - Consolidated */}
+          <div className="bg-[#121212] rounded-lg border border-gray-800 p-4 col-span-2">
             <div className="flex items-center gap-2 mb-1">
-              <img src="/icons/draft-icon.webp" alt="Draft" className="w-5 h-5 rounded-full" />
-              <h3 className="text-sm font-bold text-white">Draft</h3>
+              <img src="/icons/draft-icon.webp" alt="Draft Room" className="w-5 h-5 rounded-full" />
+              <h3 className="text-sm font-bold text-white">Draft Room</h3>
             </div>
-            <p className="text-xs text-gray-400 mb-3">
-              {league?.draftStatus === 'completed' ? 'Completed' : 'In Progress'}
-            </p>
-            <button
-              onClick={() => navigate(`/league/${leagueId}/draft`)}
-              className={`w-full px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                league?.draftStatus === 'completed'
-                  ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
-                  : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
-              }`}
-            >
-              {league?.draftStatus === 'completed' ? 'View Results' : 'View Draft'}
-            </button>
+            <p className="text-xs text-gray-400 mb-3">Access all draft activities</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => navigate(`/league/${leagueId}/draft`)}
+                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  league?.draftStatus === 'completed'
+                    ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                    : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
+                }`}
+              >
+                Draft
+              </button>
+              <button
+                onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
+                className="bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
+              >
+                Rookie Draft
+              </button>
+            </div>
           </div>
 
-          {/* Rookie Draft Card */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+          {/* Prospects Card - NEW PRIORITY SECTION */}
+          <div className="bg-[#121212] rounded-lg border border-green-400/50 p-4 col-span-2">
             <div className="flex items-center gap-2 mb-1">
-              <img src="/icons/rookie-icon.webp" alt="Rookie Draft" className="w-5 h-5 rounded-full" />
-              <h3 className="text-sm font-bold text-white">Rookie Draft</h3>
+              <span className="text-xl">🌟</span>
+              <h3 className="text-sm font-bold text-white">Prospects</h3>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-400 text-black">
+                NEW
+              </span>
             </div>
-            <p className="text-xs text-gray-400 mb-3">June 25, 2025</p>
+            <p className="text-xs text-gray-400 mb-3">Scouting reports and prospect rankings</p>
             <button
-              onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
-              className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
+              onClick={() => navigate(`/league/${leagueId}/prospects`)}
+              className="w-full border-2 border-green-400 text-green-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all cursor-pointer"
             >
-              View Results
+              View Prospects
             </button>
           </div>
 
@@ -491,6 +510,50 @@ export function LeagueHome() {
             >
               Record Book
             </button>
+          </div>
+        </div>
+
+        {/* Mobile: Archive Section */}
+        <div className="lg:hidden mb-6">
+          <div className="mb-3">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Archive</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Draft Card */}
+            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4 opacity-75">
+              <div className="flex items-center gap-2 mb-1">
+                <img src="/icons/draft-icon.webp" alt="Draft" className="w-5 h-5 rounded-full" />
+                <h3 className="text-sm font-bold text-white">Draft</h3>
+              </div>
+              <p className="text-xs text-gray-400 mb-3">
+                {league?.draftStatus === 'completed' ? 'Completed' : 'In Progress'}
+              </p>
+              <button
+                onClick={() => navigate(`/league/${leagueId}/draft`)}
+                className={`w-full px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  league?.draftStatus === 'completed'
+                    ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                    : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
+                }`}
+              >
+                {league?.draftStatus === 'completed' ? 'View Results' : 'View Draft'}
+              </button>
+            </div>
+
+            {/* Rookie Draft Card */}
+            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4 opacity-75">
+              <div className="flex items-center gap-2 mb-1">
+                <img src="/icons/rookie-icon.webp" alt="Rookie Draft" className="w-5 h-5 rounded-full" />
+                <h3 className="text-sm font-bold text-white">Rookie Draft</h3>
+              </div>
+              <p className="text-xs text-gray-400 mb-3">June 25, 2025</p>
+              <button
+                onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
+                className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
+              >
+                View Results
+              </button>
+            </div>
           </div>
         </div>
 
@@ -728,6 +791,76 @@ export function LeagueHome() {
               );
             })()}
 
+            {/* Live Wagers Section */}
+            {liveWagers.length > 0 && (
+              <div className="bg-[#121212] rounded-lg border border-gray-800">
+                <div className="p-6 border-b border-gray-800">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Live Wagers</h2>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Accepted wagers between teams
+                      </p>
+                    </div>
+                    {myTeam && (
+                      <button
+                        onClick={() => setIsWagerModalOpen(true)}
+                        className="px-4 py-2 bg-yellow-400 text-black rounded-lg font-semibold hover:bg-yellow-500 transition-colors"
+                      >
+                        Propose Wager
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="divide-y divide-gray-800">
+                  {liveWagers.map((wager) => (
+                    <div key={wager.id} className="px-6 py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <img src="/icons/money-icon.webp" alt="Wager" className="w-5 h-5 rounded-full" />
+                            <span className="text-sm font-semibold text-white">
+                              {wager.proposerName} vs {wager.opponentName}
+                            </span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-400/20 text-green-400 border border-green-400/30">
+                              ${wager.amount.toFixed(2)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-400">{wager.description}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Settlement: {new Date(wager.settlementDate).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Propose Wager Button (when no live wagers) */}
+            {liveWagers.length === 0 && myTeam && (
+              <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+                <div className="text-center">
+                  <img src="/icons/money-icon.webp" alt="Wager" className="w-16 h-16 rounded-full mx-auto mb-3" />
+                  <h3 className="text-lg font-bold text-white mb-2">No Live Wagers</h3>
+                  <p className="text-sm text-gray-400 mb-4">
+                    Challenge another team to a friendly wager
+                  </p>
+                  <button
+                    onClick={() => setIsWagerModalOpen(true)}
+                    className="px-6 py-3 bg-yellow-400 text-black rounded-lg font-semibold hover:bg-yellow-500 transition-colors"
+                  >
+                    Propose Wager
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* All Teams Section */}
             <div className="bg-[#121212] rounded-lg border border-gray-800">
               <div className="p-6 border-b border-gray-800">
@@ -807,41 +940,52 @@ export function LeagueHome() {
               </button>
             </div>
 
-            {/* Draft Card */}
+            {/* Draft Room Card - Consolidated */}
             <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
               <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/draft-icon.webp" alt="Draft" className="w-6 h-6 rounded-full" />
-                <h3 className="text-lg font-bold text-white">Draft</h3>
+                <img src="/icons/draft-icon.webp" alt="Draft Room" className="w-6 h-6 rounded-full" />
+                <h3 className="text-lg font-bold text-white">Draft Room</h3>
               </div>
               <p className="text-sm text-gray-400 mb-4">
-                {league?.draftStatus === 'completed' ? 'Completed' : 'In Progress'}
+                Access all draft activities
               </p>
-              <button
-                onClick={() => navigate(`/league/${leagueId}/draft`)}
-                className={`w-full px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer ${
-                  league?.draftStatus === 'completed'
-                    ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
-                    : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
-                }`}
-              >
-                {league?.draftStatus === 'completed' ? 'View Results' : 'View Draft'}
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={() => navigate(`/league/${leagueId}/draft`)}
+                  className={`w-full px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer ${
+                    league?.draftStatus === 'completed'
+                      ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                      : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
+                  }`}
+                >
+                  Draft
+                </button>
+                <button
+                  onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
+                  className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
+                >
+                  Rookie Draft
+                </button>
+              </div>
             </div>
 
-            {/* Rookie Draft Card */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            {/* Prospects Card - NEW PRIORITY SECTION */}
+            <div className="bg-[#121212] rounded-lg border border-green-400/50 p-6 shadow-[0_0_15px_rgba(74,222,128,0.2)]">
               <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/rookie-icon.webp" alt="Rookie Draft" className="w-6 h-6 rounded-full" />
-                <h3 className="text-lg font-bold text-white">Rookie Draft</h3>
+                <span className="text-2xl">🌟</span>
+                <h3 className="text-lg font-bold text-white">Prospects</h3>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-400 text-black">
+                  NEW
+                </span>
               </div>
               <p className="text-sm text-gray-400 mb-4">
-                June 25, 2025 results
+                Scouting reports and prospect rankings
               </p>
               <button
-                onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
-                className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
+                onClick={() => navigate(`/league/${leagueId}/prospects`)}
+                className="w-full border-2 border-green-400 text-green-400 px-4 py-2 rounded-lg font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all cursor-pointer"
               >
-                View Results
+                View Prospects
               </button>
             </div>
 
@@ -876,9 +1020,66 @@ export function LeagueHome() {
                 Record Book
               </button>
             </div>
+
+            {/* Archive Section - Desktop */}
+            <div className="pt-6 border-t border-gray-800">
+              <div className="mb-4">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Archive</h3>
+              </div>
+              <div className="space-y-4">
+                {/* Draft Card */}
+                <div className="bg-[#121212] rounded-lg border border-gray-800 p-4 opacity-75">
+                  <div className="flex items-center gap-2 mb-2">
+                    <img src="/icons/draft-icon.webp" alt="Draft" className="w-5 h-5 rounded-full" />
+                    <h3 className="text-sm font-bold text-white">Draft</h3>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-3">
+                    {league?.draftStatus === 'completed' ? 'Completed' : 'In Progress'}
+                  </p>
+                  <button
+                    onClick={() => navigate(`/league/${leagueId}/draft`)}
+                    className={`w-full px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                      league?.draftStatus === 'completed'
+                        ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                        : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
+                    }`}
+                  >
+                    {league?.draftStatus === 'completed' ? 'View Results' : 'View Draft'}
+                  </button>
+                </div>
+
+                {/* Rookie Draft Card */}
+                <div className="bg-[#121212] rounded-lg border border-gray-800 p-4 opacity-75">
+                  <div className="flex items-center gap-2 mb-2">
+                    <img src="/icons/rookie-icon.webp" alt="Rookie Draft" className="w-5 h-5 rounded-full" />
+                    <h3 className="text-sm font-bold text-white">Rookie Draft</h3>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-3">June 25, 2025</p>
+                  <button
+                    onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
+                    className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
+                  >
+                    View Results
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Propose Wager Modal */}
+      {myTeam && user && (
+        <ProposeWagerModal
+          isOpen={isWagerModalOpen}
+          onClose={() => setIsWagerModalOpen(false)}
+          leagueId={leagueId!}
+          seasonYear={league?.seasonYear || 2025}
+          myTeam={myTeam}
+          allTeams={teams}
+          userEmail={user.email || ''}
+        />
+      )}
     </div>
   );
 }

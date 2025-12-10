@@ -4,10 +4,10 @@ import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { baseKeeperRound } from '../lib/keeperAlgorithms';
 import Papa from 'papaparse';
-import type { Player, ProjectedStats, PreviousStats } from '../types';
+import type { Player, ProjectedStats, PreviousStats, Prospect } from '../types';
 
 export function AdminUpload() {
-  const [uploadType, setUploadType] = useState<'players' | 'projectedStats' | 'previousStats'>('players');
+  const [uploadType, setUploadType] = useState<'players' | 'projectedStats' | 'previousStats' | 'prospects'>('players');
   const [file, setFile] = useState<File | null>(null);
   const [leagueId, setLeagueId] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -180,6 +180,119 @@ export function AdminUpload() {
     }
   };
 
+  const handleUploadProspects = async () => {
+    if (!file) {
+      alert('Please select a file');
+      return;
+    }
+
+    setUploading(true);
+    const errors: string[] = [];
+    let successCount = 0;
+
+    try {
+      const text = await file.text();
+      const rows = await parseCSV(text);
+
+      setProgress({ current: 0, total: rows.length });
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        try {
+          // Skip empty rows
+          if (!row.Player && !row.player) {
+            continue;
+          }
+
+          const parseNumber = (value: any): number => {
+            const num = parseFloat(String(value || '0').replace(/,/g, ''));
+            return isNaN(num) ? 0 : num;
+          };
+
+          const playerName = (row.Player || row.player).trim();
+          const rank = parseNumber(row.Rk || row.rank);
+
+          // Generate ID from player name (lowercase, no spaces)
+          const prospectId = playerName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+          const prospect: any = {
+            id: prospectId,
+            rank,
+            player: playerName,
+            school: (row.School || row.school || '').trim(),
+            year: (row.Year || row.year || '').trim(),
+            position: (row.Pos || row.position || '').trim(),
+            positionRank: parseNumber(row['Pos Rk'] || row.posRk || row.positionRank),
+            height: (row.HT || row.height || '').trim(),
+            weight: parseNumber(row.WT || row.weight),
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+
+          // Add optional fields only if they have values (Firestore doesn't allow undefined)
+          const age = row.Age || row.age;
+          if (age && String(age).trim()) {
+            prospect.age = parseNumber(age);
+          }
+
+          const hometown = row.Hometown || row.hometown;
+          if (hometown && String(hometown).trim()) {
+            prospect.hometown = String(hometown).trim();
+          }
+
+          const highSchool = row['High School'] || row.highSchool;
+          if (highSchool && String(highSchool).trim()) {
+            prospect.highSchool = String(highSchool).trim();
+          }
+
+          const draftYear = row['Draft Year'] || row.draftYear;
+          if (draftYear && String(draftYear).trim()) {
+            prospect.draftYear = parseNumber(draftYear);
+          }
+
+          const draftProjection = row['Draft Projection'] || row.draftProjection;
+          if (draftProjection && String(draftProjection).trim()) {
+            prospect.draftProjection = String(draftProjection).trim();
+          }
+
+          const scoutingReport = row['Scouting Report'] || row.scoutingReport;
+          if (scoutingReport && String(scoutingReport).trim()) {
+            prospect.scoutingReport = String(scoutingReport).trim();
+          }
+
+          const strengths = row.Strengths || row.strengths;
+          if (strengths && String(strengths).trim()) {
+            prospect.strengths = String(strengths).split(',').map((s: string) => s.trim()).filter(s => s);
+          }
+
+          const weaknesses = row.Weaknesses || row.weaknesses;
+          if (weaknesses && String(weaknesses).trim()) {
+            prospect.weaknesses = String(weaknesses).split(',').map((s: string) => s.trim()).filter(s => s);
+          }
+
+          const playerComparison = row['Player Comparison'] || row.playerComparison;
+          if (playerComparison && String(playerComparison).trim()) {
+            prospect.playerComparison = String(playerComparison).trim();
+          }
+
+          // Save to Firestore using generated ID
+          await setDoc(doc(db, 'prospects', prospectId), prospect);
+          successCount++;
+          setProgress({ current: i + 1, total: rows.length });
+        } catch (error: any) {
+          errors.push(`Row ${i + 2} (${row.Player || row.player || 'unknown'}): ${error.message}`);
+          console.error(`Error processing row ${i + 2}:`, error, row);
+        }
+      }
+
+      setResults({ success: successCount, errors });
+    } catch (error: any) {
+      alert(`Upload failed: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (uploadType === 'projectedStats') {
       return handleUploadProjectedStats();
@@ -187,6 +300,10 @@ export function AdminUpload() {
 
     if (uploadType === 'previousStats') {
       return handleUploadPreviousStats();
+    }
+
+    if (uploadType === 'prospects') {
+      return handleUploadProspects();
     }
 
     if (!file || !leagueId) {
@@ -273,7 +390,7 @@ export function AdminUpload() {
 
   const progressPercent = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
 
-  const handleDeleteCollection = async (collectionName: 'players' | 'projectedStats' | 'previousStats') => {
+  const handleDeleteCollection = async (collectionName: 'players' | 'projectedStats' | 'previousStats' | 'prospects') => {
     const confirmed = window.confirm(
       `⚠️ WARNING: This will permanently delete ALL documents in the "${collectionName}" collection. This cannot be undone. Are you absolutely sure?`
     );
@@ -349,7 +466,7 @@ export function AdminUpload() {
             <select
               value={uploadType}
               onChange={(e) => {
-                setUploadType(e.target.value as 'players' | 'projectedStats' | 'previousStats');
+                setUploadType(e.target.value as 'players' | 'projectedStats' | 'previousStats' | 'prospects');
                 setFile(null);
                 setResults(null);
               }}
@@ -358,6 +475,7 @@ export function AdminUpload() {
               <option value="players">Player Data</option>
               <option value="projectedStats">Projected Stats (2025-26)</option>
               <option value="previousStats">Previous Season Stats (2024-25)</option>
+              <option value="prospects">Prospects (Draft Rankings)</option>
             </select>
           </div>
 
@@ -424,7 +542,11 @@ export function AdminUpload() {
               disabled={!file || (uploadType === 'players' && !leagueId) || uploading}
               className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {uploading ? 'Uploading...' : uploadType === 'players' ? 'Upload Players' : uploadType === 'projectedStats' ? 'Upload Projected Stats' : 'Upload Previous Stats'}
+              {uploading ? 'Uploading...' :
+               uploadType === 'players' ? 'Upload Players' :
+               uploadType === 'projectedStats' ? 'Upload Projected Stats' :
+               uploadType === 'previousStats' ? 'Upload Previous Stats' :
+               'Upload Prospects'}
             </button>
 
             <button
@@ -490,6 +612,36 @@ export function AdminUpload() {
                   </div>
                   <p className="mt-2 text-xs text-gray-500">
                     ℹ️ Fields with commas (like "SF,PF") should be wrapped in quotes
+                  </p>
+                </div>
+              </>
+            ) : uploadType === 'prospects' ? (
+              <>
+                <p className="text-sm text-gray-600 mb-2">
+                  Your CSV should have these columns (first row = headers):
+                </p>
+                <div className="bg-gray-50 p-4 rounded text-xs font-mono overflow-x-auto">
+                  Rk,Player,School,Year,Pos,Pos Rk,HT,WT
+                </div>
+
+                <div className="mt-4 text-sm text-gray-600 space-y-2">
+                  <p><strong>Required:</strong> Rk (rank), Player (name), School, Year, Pos (position), Pos Rk (position rank), HT (height), WT (weight)</p>
+                  <p><strong>Optional:</strong> Age, Hometown, High School, Draft Year, Draft Projection, Scouting Report, Strengths, Weaknesses, Player Comparison</p>
+                  <p><strong>List fields:</strong> Strengths and Weaknesses can be comma-separated (will be split into array)</p>
+                  <p><strong>Column order:</strong> Doesn't matter! Columns can be in any order as long as headers match.</p>
+                  <p><strong>ID Generation:</strong> Document ID automatically generated from player name</p>
+                </div>
+
+                <div className="mt-4">
+                  <h4 className="font-semibold text-sm mb-2">Example CSV:</h4>
+                  <div className="bg-gray-50 p-4 rounded text-xs font-mono overflow-x-auto">
+                    Rk,Player,School,Year,Pos,Pos Rk,HT,WT,Draft Year,Draft Projection<br/>
+                    1,Cooper Flagg,Duke,Fr,PF,1,6-9,205,2025,Lottery Pick<br/>
+                    2,Ace Bailey,Rutgers,Fr,SF,1,6-10,200,2025,Top 5 Pick<br/>
+                    3,Dylan Harper,Rutgers,Fr,SG,1,6-6,215,2025,Top 3 Pick
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    ℹ️ Height format: "6-9" for 6 feet 9 inches. Weight in pounds.
                   </p>
                 </div>
               </>

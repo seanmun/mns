@@ -15,8 +15,9 @@ import { SummaryCard } from '../components/SummaryCard';
 import { DraftBoardView } from '../components/DraftBoardView';
 import { WatchListView } from '../components/WatchListView';
 import { RegularSeasonRosterView } from '../components/RegularSeasonRosterView';
+import { ProposeWagerModal } from '../components/ProposeWagerModal';
 import { baseKeeperRound, stackKeeperRounds, computeSummary, validateRoster } from '../lib/keeperAlgorithms';
-import type { RosterEntry, Decision, Player, SavedScenario } from '../types';
+import type { RosterEntry, Decision, Player, SavedScenario, Team } from '../types';
 
 interface RookieDraftPick {
   id: string;
@@ -42,6 +43,7 @@ export function OwnerDashboard() {
   const { previousStats } = usePreviousStats();
   const { watchList } = useWatchList(user?.email || '', leagueId!, teamId!);
   const [allLeaguePlayers, setAllLeaguePlayers] = useState<Player[]>([]);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [rookiePicks, setRookiePicks] = useState<RookieDraftPick[]>([]);
   const [draftedPlayers, setDraftedPlayers] = useState<Player[]>([]);
   const [teamDraftPicks, setTeamDraftPicks] = useState<any[]>([]);
@@ -179,6 +181,23 @@ export function OwnerDashboard() {
       }
     };
 
+    const fetchAllTeams = async () => {
+      if (!leagueId) return;
+
+      try {
+        const teamsRef = collection(db, 'teams');
+        const teamsQuery = query(teamsRef, where('leagueId', '==', leagueId));
+        const teamsSnap = await getDocs(teamsQuery);
+        const teamsData = teamsSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Team[];
+        setAllTeams(teamsData);
+      } catch (error) {
+        console.error('Error fetching teams:', error);
+      }
+    };
+
     const fetchRookiePicks = async () => {
       if (!leagueId || !teamId) return;
       try {
@@ -246,6 +265,7 @@ export function OwnerDashboard() {
     };
 
     fetchAllPlayers();
+    fetchAllTeams();
     fetchRookiePicks();
     fetchDraftedPlayers();
   }, [leagueId, teamId, league]);
@@ -1001,24 +1021,17 @@ export function OwnerDashboard() {
         </div>
       )}
 
-      {/* Wager Modal */}
-      {showWagerModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowWagerModal(false)}>
-          <div className="bg-[#121212] border border-gray-800 rounded-lg max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">Propose Wager</h2>
-              <button onClick={() => setShowWagerModal(false)} className="text-gray-400 hover:text-white">
-                ✕
-              </button>
-            </div>
-            <div className="text-center">
-              <img src="/icons/stayTuned.webp" alt="Stay Tuned" className="w-full max-w-sm mx-auto mb-4 rounded-lg" />
-              <p className="text-gray-400 text-lg">
-                The chefs are hard at work on this feature! 👨‍🍳
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Propose Wager Modal */}
+      {team && user && league && (
+        <ProposeWagerModal
+          isOpen={showWagerModal}
+          onClose={() => setShowWagerModal(false)}
+          leagueId={leagueId!}
+          seasonYear={league.seasonYear}
+          myTeam={team}
+          allTeams={allTeams}
+          userEmail={user.email || ''}
+        />
       )}
     </div>
   );

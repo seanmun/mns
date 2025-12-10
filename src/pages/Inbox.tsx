@@ -1,10 +1,26 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { getDailyQuote } from '../data/hinkieQuotes';
+import { useAuth } from '../contexts/AuthContext';
+import { useWagers } from '../hooks/useWagers';
+import { WagerProposal } from '../components/WagerProposal';
+import type { Team } from '../types';
 
 export function Inbox() {
+  const { leagueId } = useParams<{ leagueId: string }>();
+  const { user } = useAuth();
   const dailyQuote = getDailyQuote();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRead, setIsRead] = useState(false);
+  const [myTeam, setMyTeam] = useState<Team | null>(null);
+
+  // Fetch wagers involving the user's team
+  const { wagers } = useWagers({
+    leagueId,
+    teamId: myTeam?.id,
+  });
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -12,6 +28,31 @@ export function Inbox() {
     month: 'long',
     day: 'numeric'
   });
+
+  // Fetch user's team
+  useEffect(() => {
+    const fetchMyTeam = async () => {
+      if (!leagueId || !user?.email) {
+        return;
+      }
+
+      try {
+        const teamsRef = collection(db, 'teams');
+        const q = query(teamsRef, where('leagueId', '==', leagueId));
+        const snapshot = await getDocs(q);
+
+        const teamData = snapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() })) as Team[];
+
+        const userTeam = teamData.find((team) => team.owners.includes(user.email || ''));
+        setMyTeam(userTeam || null);
+      } catch (error) {
+        console.error('Error fetching team:', error);
+      }
+    };
+
+    fetchMyTeam();
+  }, [leagueId, user]);
 
   // Load read status from localStorage
   useEffect(() => {
@@ -123,28 +164,45 @@ export function Inbox() {
 
         </div>
 
+        {/* Wager Proposals */}
+        {wagers.length > 0 && (
+          <div className="mt-6 space-y-4">
+            <h2 className="text-xl font-bold text-white">Wager Proposals</h2>
+            {wagers.map((wager) => (
+              <WagerProposal
+                key={wager.id}
+                wager={wager}
+                userEmail={user?.email || ''}
+                isOpponent={myTeam?.id === wager.opponentId}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Empty State / Future Messages */}
-        <div className="mt-6 text-center py-12">
-          <svg
-            className="w-16 h-16 text-gray-600 mx-auto mb-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-            />
-          </svg>
-          <p className="text-gray-400 text-sm">
-            No other messages
-          </p>
-          <p className="text-gray-500 text-xs mt-2">
-            Check back tomorrow for another quote
-          </p>
-        </div>
+        {wagers.length === 0 && (
+          <div className="mt-6 text-center py-12">
+            <svg
+              className="w-16 h-16 text-gray-600 mx-auto mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+              />
+            </svg>
+            <p className="text-gray-400 text-sm">
+              No wager proposals
+            </p>
+            <p className="text-gray-500 text-xs mt-2">
+              Propose a wager to another team from the league home page
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

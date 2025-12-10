@@ -197,5 +197,29 @@ service cloud.firestore {
       // Only admins can create/update/delete fees
       allow write: if isAdmin();
     }
+
+    // Wagers collection
+    match /wagers/{wagerId} {
+      // All signed-in users can read wagers
+      allow read: if isSignedIn();
+      // Team owners can create wagers for their team
+      allow create: if isSignedIn() && isTeamOwner(request.resource.data.proposerId);
+      // Team owners can update wagers they're involved in (proposer or opponent)
+      allow update: if isSignedIn() && (
+        isTeamOwner(resource.data.proposerId) ||
+        isTeamOwner(resource.data.opponentId) ||
+        isAdmin()
+      );
+      // Only admins can delete wagers
+      allow delete: if isAdmin();
+    }
+
+    // Prospects collection
+    match /prospects/{prospectId} {
+      // All signed-in users can read prospects
+      allow read: if isSignedIn();
+      // Only admins can create/update/delete prospects
+      allow write: if isAdmin();
+    }
   }
 }

@@ -443,3 +443,66 @@ export interface TeamFees {
   createdAt: number;
   updatedAt: number;
 }
+
+// Wagers
+export type WagerStatus = 'pending' | 'accepted' | 'declined' | 'live' | 'settled';
+
+export interface Wager {
+  id: string;  // Auto-generated Firestore ID
+  leagueId: string;
+  seasonYear: number;
+
+  // Parties
+  proposerId: string;  // Team ID
+  proposerName: string;  // Team name
+  opponentId: string;  // Team ID
+  opponentName: string;  // Team name
+
+  // Wager details
+  description: string;  // What the wager is about
+  amount: number;  // Dollar amount
+  settlementDate: string;  // ISO date string
+
+  // Status
+  status: WagerStatus;
+  proposedAt: number;  // Timestamp
+  proposedBy: string;  // User email who created it
+  respondedAt?: number;  // Timestamp when accepted/declined
+  respondedBy?: string;  // User email who responded
+  settledAt?: number;  // Timestamp when settled
+  winnerId?: string;  // Team ID of winner (set when settled)
+
+  createdAt: number;
+  updatedAt: number;
+}
+
+// Prospects
+export interface Prospect {
+  id: string;  // Auto-generated or derived ID
+  rank: number;  // Overall prospect ranking
+  player: string;  // Player name
+  school: string;  // College/University
+  year: string;  // Class year (Fr, So, Jr, Sr)
+  position: string;  // Position (PG, SG, SF, PF, C)
+  positionRank: number;  // Rank within position
+  height: string;  // Height (e.g., "6-7")
+  weight: number;  // Weight in pounds
+
+  // Optional additional fields
+  age?: number;
+  hometown?: string;
+  highSchool?: string;
+
+  // Draft info
+  draftYear?: number;  // Expected draft year
+  draftProjection?: string;  // Lottery, First Round, Second Round, etc.
+
+  // Scouting
+  scoutingReport?: string;
+  strengths?: string[];
+  weaknesses?: string[];
+  playerComparison?: string;  // NBA player comparison
+
+  createdAt: number;
+  updatedAt: number;
+}

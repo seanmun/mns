@@ -20,6 +20,7 @@ const FreeAgents = lazy(() => import('./pages/FreeAgents').then(m => ({ default:
 const RecordBook = lazy(() => import('./pages/RecordBook').then(m => ({ default: m.RecordBook })));
 const RookieDraft = lazy(() => import('./pages/RookieDraft').then(m => ({ default: m.RookieDraft })));
 const Rules = lazy(() => import('./pages/Rules').then(m => ({ default: m.Rules })));
+const Prospects = lazy(() => import('./pages/Prospects').then(m => ({ default: m.Prospects })));
 const Inbox = lazy(() => import('./pages/Inbox').then(m => ({ default: m.Inbox })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 
@@ -167,6 +168,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <Rules />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/league/:leagueId/prospects"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <Prospects />
                 </AppLayout>
               </PrivateRoute>
             }
