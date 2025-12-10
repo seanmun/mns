@@ -4,7 +4,7 @@ import { db } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { baseKeeperRound } from '../lib/keeperAlgorithms';
 import Papa from 'papaparse';
-import type { Player, ProjectedStats, PreviousStats, Prospect } from '../types';
+import type { Player, ProjectedStats, PreviousStats } from '../types';
 
 export function AdminUpload() {
   const [uploadType, setUploadType] = useState<'players' | 'projectedStats' | 'previousStats' | 'prospects'>('players');
