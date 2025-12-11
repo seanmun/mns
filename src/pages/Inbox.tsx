@@ -22,6 +22,23 @@ export function Inbox() {
     teamId: myTeam?.id,
   });
 
+  // Debug logging
+  useEffect(() => {
+    console.log('Inbox Debug:', {
+      leagueId,
+      myTeam: myTeam?.id,
+      myTeamName: myTeam?.name,
+      userEmail: user?.email,
+      wagersCount: wagers.length,
+      wagers: wagers.map(w => ({
+        id: w.id,
+        proposer: w.proposerId,
+        opponent: w.opponentId,
+        status: w.status
+      }))
+    });
+  }, [leagueId, myTeam, user, wagers]);
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',

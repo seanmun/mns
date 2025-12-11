@@ -81,7 +81,9 @@ export function ProposeWagerModal({
         updatedAt: now,
       };
 
-      await addDoc(collection(db, 'wagers'), wagerData);
+      console.log('Creating wager:', wagerData);
+      const docRef = await addDoc(collection(db, 'wagers'), wagerData);
+      console.log('Wager created with ID:', docRef.id);
 
       // Reset form
       setSelectedOpponentId('');
