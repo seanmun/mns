@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWalletData } from '../lib/blockchain';
 import { useWagers } from '../hooks/useWagers';
@@ -120,60 +119,124 @@ export function LeagueHome() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Helper to map a Supabase player row to the Player type
+  const mapPlayer = (row: any): Player => ({
+    id: row.id,
+    fantraxId: row.fantrax_id,
+    name: row.name,
+    position: row.position,
+    salary: row.salary,
+    nbaTeam: row.nba_team,
+    roster: {
+      leagueId: row.league_id,
+      teamId: row.team_id,
+      onIR: row.on_ir,
+      isRookie: row.is_rookie,
+      isInternationalStash: row.is_international_stash,
+      intEligible: row.int_eligible,
+      rookieDraftInfo: row.rookie_draft_info || undefined,
+    },
+    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
+      ? { priorYearRound: row.keeper_prior_year_round || undefined, derivedBaseRound: row.keeper_derived_base_round || undefined }
+      : undefined,
+  });
+
+  // Helper to map a Supabase team row to the Team type
+  const mapTeamRow = (row: any): Team => ({
+    id: row.id,
+    leagueId: row.league_id,
+    name: row.name,
+    abbrev: row.abbrev,
+    owners: row.owners,
+    ownerNames: row.owner_names,
+    telegramUsername: row.telegram_username,
+    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
+    settings: row.settings || { maxKeepers: 8 },
+    banners: row.banners,
+  });
+
+  // Helper to map a Supabase league row to the League type
+  const mapLeagueRow = (row: any): League => ({
+    id: row.id,
+    name: row.name,
+    seasonYear: row.season_year,
+    deadlines: row.deadlines,
+    cap: row.cap,
+    keepersLocked: row.keepers_locked,
+    draftStatus: row.draft_status,
+    seasonStatus: row.season_status,
+    seasonStartedAt: row.season_started_at,
+    seasonStartedBy: row.season_started_by,
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       if (!leagueId || !user?.email) return;
 
       try {
         // Fetch league data
-        const leagueDoc = await getDocs(
-          query(collection(db, 'leagues'), where('__name__', '==', leagueId))
-        );
+        const { data: leagueRow, error: leagueError } = await supabase
+          .from('leagues')
+          .select('*')
+          .eq('id', leagueId)
+          .single();
 
-        if (leagueDoc.empty) {
+        if (leagueError || !leagueRow) {
           setLoading(false);
           return;
         }
 
-        const leagueData = { id: leagueDoc.docs[0].id, ...leagueDoc.docs[0].data() } as League;
+        const leagueData = mapLeagueRow(leagueRow);
         setLeague(leagueData);
         setCurrentSeason(leagueData.seasonYear);
 
-        // For now, just show current season. TODO: Query Firestore for all available seasons
+        // For now, just show current season. TODO: Query Supabase for all available seasons
         setAvailableSeasons([leagueData.seasonYear]);
 
         // Fetch all teams in this league
-        const teamsRef = collection(db, 'teams');
-        const q = query(teamsRef, where('leagueId', '==', leagueId));
-        const snapshot = await getDocs(q);
+        const { data: teamRows, error: teamError } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('league_id', leagueId);
 
-        const teamData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Team[];
+        if (teamError) throw teamError;
 
+        const teamData = (teamRows || []).map(mapTeamRow);
         setTeams(teamData);
 
-        // Load all players for salary lookups
-        const playersSnap = await getDocs(collection(db, 'players'));
+        // Load all players for salary lookups (paginated past 1000-row limit)
+        const playerRows = await fetchAllRows('players');
+
         const playersMap = new Map<string, Player>();
-        playersSnap.docs.forEach(doc => {
-          const player = { id: doc.id, ...doc.data() } as Player;
+        playerRows.forEach((row: any) => {
+          const player = mapPlayer(row);
           playersMap.set(player.id, player);
         });
 
         // Load regular season rosters and calculate salaries
-        const regularSeasonRostersSnap = await getDocs(
-          query(
-            collection(db, 'regularSeasonRosters'),
-            where('leagueId', '==', leagueId),
-            where('seasonYear', '==', leagueData.seasonYear)
-          )
-        );
+        const { data: rosterRows, error: rosterError } = await supabase
+          .from('regular_season_rosters')
+          .select('*')
+          .eq('league_id', leagueId)
+          .eq('season_year', leagueData.seasonYear);
+
+        if (rosterError) throw rosterError;
 
         const salariesMap = new Map<string, number>();
-        regularSeasonRostersSnap.docs.forEach(doc => {
-          const roster = { id: doc.id, ...doc.data() } as RegularSeasonRoster;
+        (rosterRows || []).forEach((row: any) => {
+          const roster: RegularSeasonRoster = {
+            id: row.id,
+            leagueId: row.league_id,
+            teamId: row.team_id,
+            seasonYear: row.season_year,
+            activeRoster: row.active_roster || [],
+            irSlots: row.ir_slots || [],
+            redshirtPlayers: row.redshirt_players || [],
+            internationalPlayers: row.international_players || [],
+            isLegalRoster: row.is_legal_roster,
+            lastUpdated: row.last_updated,
+            updatedBy: row.updated_by,
+          };
 
           // Calculate salary from active roster + IR (redshirts and int stash don't count)
           const activeSalary = roster.activeRoster.reduce((sum, playerId) => {
@@ -192,13 +255,13 @@ export function LeagueHome() {
         setTeamSalaries(salariesMap);
 
         // Load team fees
-        const teamFeesSnap = await getDocs(
-          query(
-            collection(db, 'teamFees'),
-            where('leagueId', '==', leagueId),
-            where('seasonYear', '==', leagueData.seasonYear)
-          )
-        );
+        const { data: feeRows, error: feeError } = await supabase
+          .from('team_fees')
+          .select('*')
+          .eq('league_id', leagueId)
+          .eq('season_year', leagueData.seasonYear);
+
+        if (feeError) throw feeError;
 
         let franchiseTagDues = 0;
         let redshirtDues = 0;
@@ -206,8 +269,24 @@ export function LeagueHome() {
         let firstApronFees = 0;
         let secondApronPenalties = 0;
 
-        teamFeesSnap.docs.forEach(doc => {
-          const fees = { id: doc.id, ...doc.data() } as TeamFees;
+        (feeRows || []).forEach((row: any) => {
+          const fees: TeamFees = {
+            id: row.id,
+            leagueId: row.league_id,
+            teamId: row.team_id,
+            seasonYear: row.season_year,
+            franchiseTagFees: row.franchise_tag_fees || 0,
+            redshirtFees: row.redshirt_fees || 0,
+            firstApronFee: row.first_apron_fee || 0,
+            secondApronPenalty: row.second_apron_penalty || 0,
+            unredshirtFees: row.unredshirt_fees || 0,
+            feesLocked: row.fees_locked,
+            lockedAt: row.locked_at,
+            totalFees: row.total_fees || 0,
+            feeTransactions: row.fee_transactions || [],
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+          };
           franchiseTagDues += fees.franchiseTagFees || 0;
           redshirtDues += fees.redshirtFees || 0;
           activationDues += fees.unredshirtFees || 0;
@@ -261,13 +340,27 @@ export function LeagueHome() {
     if (!leagueId) return;
 
     try {
-      const portfolioDoc = await getDoc(doc(db, 'portfolios', leagueId));
-      if (!portfolioDoc.exists()) {
+      const { data: portfolioRow, error } = await supabase
+        .from('portfolios')
+        .select('*')
+        .eq('id', leagueId)
+        .single();
+
+      if (error || !portfolioRow) {
         setPortfolio(null);
         return;
       }
 
-      const portfolioData = { id: portfolioDoc.id, ...portfolioDoc.data() } as Portfolio;
+      const portfolioData: Portfolio = {
+        id: portfolioRow.id,
+        leagueId: portfolioRow.league_id,
+        walletAddress: portfolioRow.wallet_address,
+        usdInvested: portfolioRow.usd_invested,
+        lastUpdated: portfolioRow.last_updated,
+        cachedEthBalance: portfolioRow.cached_eth_balance,
+        cachedUsdValue: portfolioRow.cached_usd_value,
+        cachedEthPrice: portfolioRow.cached_eth_price,
+      };
 
       // Check if cache is older than 1 hour
       const oneHourAgo = Date.now() - (60 * 60 * 1000);
@@ -298,8 +391,16 @@ export function LeagueHome() {
         lastUpdated: walletData.timestamp,
       };
 
-      // Save updated data to Firestore
-      await setDoc(doc(db, 'portfolios', leagueId!), updatedPortfolio);
+      // Save updated data to Supabase
+      await supabase
+        .from('portfolios')
+        .update({
+          cached_eth_balance: updatedPortfolio.cachedEthBalance,
+          cached_eth_price: updatedPortfolio.cachedEthPrice,
+          cached_usd_value: updatedPortfolio.cachedUsdValue,
+          last_updated: new Date(updatedPortfolio.lastUpdated).toISOString(),
+        })
+        .eq('id', leagueId!);
       setPortfolio(updatedPortfolio);
     } catch (error) {
       console.error('Error refreshing portfolio data:', error);

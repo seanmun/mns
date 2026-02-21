@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { collection, doc, setDoc, getDocs, writeBatch } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { baseKeeperRound } from '../lib/keeperAlgorithms';
 import Papa from 'papaparse';
-import type { Player, ProjectedStats, PreviousStats } from '../types';
+import type { Player } from '../types';
 
 export function AdminUpload() {
   const [uploadType, setUploadType] = useState<'players' | 'projectedStats' | 'previousStats' | 'prospects'>('players');
@@ -75,31 +74,35 @@ export function AdminUpload() {
           // Calculate Salary Score (PPM - Points Per Million)
           const salaryScore = salary > 0 ? (score / salary) * 1_000_000 : 0;
 
-          const projectedStats: ProjectedStats = {
-            fantraxId: row.fantraxId.trim(),
+          const projectedStatsData = {
+            fantrax_id: row.fantraxId.trim(),
             name: row.name.trim(),
-            nbaTeam: row.nbaTeam?.trim() || '',
+            nba_team: row.nbaTeam?.trim() || '',
             position: (row.Position || row.position || '').trim(),
-            rkOv: parseNumber(row.RkOv || row.rkOv),
+            rk_ov: parseNumber(row.RkOv || row.rkOv),
             age: Math.floor(parseNumber(row.Age || row.age)),
             salary,
             score,
             adp: parseNumber(row.ADP || row.adp),
-            fgPercent: parseNumber(row['FG%'] || row.fgPercent),
-            threePointMade: parseNumber(row['3PTM'] || row.threePointMade),
-            ftPercent: parseNumber(row['FT%'] || row.ftPercent),
+            fg_percent: parseNumber(row['FG%'] || row.fgPercent),
+            three_point_made: parseNumber(row['3PTM'] || row.threePointMade),
+            ft_percent: parseNumber(row['FT%'] || row.ftPercent),
             points: parseNumber(row.PTS || row.points),
             rebounds: parseNumber(row.REB || row.rebounds),
             assists: parseNumber(row.AST || row.assists),
             steals: parseNumber(row.ST || row.steals),
             blocks: parseNumber(row.BLK || row.blocks),
-            assistToTurnover: parseNumber(row['A/TO'] || row.assistToTurnover),
-            salaryScore: isNaN(salaryScore) ? 0 : salaryScore,
-            seasonYear: '2025-26',
+            assist_to_turnover: parseNumber(row['A/TO'] || row.assistToTurnover),
+            salary_score: isNaN(salaryScore) ? 0 : salaryScore,
+            season_year: '2025-26',
           };
 
-          // Save to Firestore using fantraxId as document ID
-          await setDoc(doc(db, 'projectedStats', row.fantraxId.trim()), projectedStats);
+          // Save to Supabase using fantrax_id as primary key
+          const { error } = await supabase
+            .from('projected_stats')
+            .upsert(projectedStatsData, { onConflict: 'fantrax_id' });
+          if (error) throw error;
+
           successCount++;
           setProgress({ current: i + 1, total: rows.length });
         } catch (error: any) {
@@ -145,25 +148,29 @@ export function AdminUpload() {
             return isNaN(num) ? 0 : num;
           };
 
-          const previousStats: PreviousStats = {
-            fantraxId: row.fantraxId.trim(),
+          const previousStatsData = {
+            fantrax_id: row.fantraxId.trim(),
             name: row.name.trim(),
-            nbaTeam: row.nbaTeam?.trim() || '',
+            nba_team: row.nbaTeam?.trim() || '',
             position: (row.Position || row.position || '').trim(),
-            fgPercent: parseNumber(row['FG%'] || row.fgPercent),
-            threePointMade: parseNumber(row['3PTM'] || row.threePointMade),
-            ftPercent: parseNumber(row['FT%'] || row.ftPercent),
+            fg_percent: parseNumber(row['FG%'] || row.fgPercent),
+            three_point_made: parseNumber(row['3PTM'] || row.threePointMade),
+            ft_percent: parseNumber(row['FT%'] || row.ftPercent),
             points: parseNumber(row.PTS || row.points),
             rebounds: parseNumber(row.REB || row.rebounds),
             assists: parseNumber(row.AST || row.assists),
             steals: parseNumber(row.ST || row.steals),
             blocks: parseNumber(row.BLK || row.blocks),
-            assistToTurnover: parseNumber(row['A/TO'] || row.assistToTurnover),
-            seasonYear: '2024-25',
+            assist_to_turnover: parseNumber(row['A/TO'] || row.assistToTurnover),
+            season_year: '2024-25',
           };
 
-          // Save to Firestore using fantraxId as document ID
-          await setDoc(doc(db, 'previousStats', row.fantraxId.trim()), previousStats);
+          // Save to Supabase using fantrax_id as primary key
+          const { error } = await supabase
+            .from('previous_stats')
+            .upsert(previousStatsData, { onConflict: 'fantrax_id' });
+          if (error) throw error;
+
           successCount++;
           setProgress({ current: i + 1, total: rows.length });
         } catch (error: any) {
@@ -222,14 +229,14 @@ export function AdminUpload() {
             school: (row.School || row.school || '').trim(),
             year: (row.Year || row.year || '').trim(),
             position: (row.Pos || row.position || '').trim(),
-            positionRank: parseNumber(row['Pos Rk'] || row.posRk || row.positionRank),
+            position_rank: parseNumber(row['Pos Rk'] || row.posRk || row.positionRank),
             height: (row.HT || row.height || '').trim(),
             weight: parseNumber(row.WT || row.weight),
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           };
 
-          // Add optional fields only if they have values (Firestore doesn't allow undefined)
+          // Add optional fields only if they have values
           const age = row.Age || row.age;
           if (age && String(age).trim()) {
             prospect.age = parseNumber(age);
@@ -242,22 +249,22 @@ export function AdminUpload() {
 
           const highSchool = row['High School'] || row.highSchool;
           if (highSchool && String(highSchool).trim()) {
-            prospect.highSchool = String(highSchool).trim();
+            prospect.high_school = String(highSchool).trim();
           }
 
           const draftYear = row['Draft Year'] || row.draftYear;
           if (draftYear && String(draftYear).trim()) {
-            prospect.draftYear = parseNumber(draftYear);
+            prospect.draft_year = parseNumber(draftYear);
           }
 
           const draftProjection = row['Draft Projection'] || row.draftProjection;
           if (draftProjection && String(draftProjection).trim()) {
-            prospect.draftProjection = String(draftProjection).trim();
+            prospect.draft_projection = String(draftProjection).trim();
           }
 
           const scoutingReport = row['Scouting Report'] || row.scoutingReport;
           if (scoutingReport && String(scoutingReport).trim()) {
-            prospect.scoutingReport = String(scoutingReport).trim();
+            prospect.scouting_report = String(scoutingReport).trim();
           }
 
           const strengths = row.Strengths || row.strengths;
@@ -272,11 +279,15 @@ export function AdminUpload() {
 
           const playerComparison = row['Player Comparison'] || row.playerComparison;
           if (playerComparison && String(playerComparison).trim()) {
-            prospect.playerComparison = String(playerComparison).trim();
+            prospect.player_comparison = String(playerComparison).trim();
           }
 
-          // Save to Firestore using generated ID
-          await setDoc(doc(db, 'prospects', prospectId), prospect);
+          // Save to Supabase using generated ID
+          const { error } = await supabase
+            .from('prospects')
+            .upsert(prospect, { onConflict: 'id' });
+          if (error) throw error;
+
           successCount++;
           setProgress({ current: i + 1, total: rows.length });
         } catch (error: any) {
@@ -371,8 +382,31 @@ export function AdminUpload() {
             }
           }
 
-          // Save to Firestore using fantraxId as document ID
-          await setDoc(doc(db, 'players', row.fantraxId), player);
+          // Map to Supabase snake_case columns (flatten nested)
+          const playerData = {
+            id: player.id,
+            fantrax_id: player.fantraxId,
+            name: player.name,
+            position: player.position,
+            salary: player.salary,
+            nba_team: player.nbaTeam,
+            league_id: player.roster!.leagueId,
+            team_id: player.roster!.teamId || null,
+            on_ir: player.roster!.onIR,
+            is_rookie: player.roster!.isRookie,
+            is_international_stash: player.roster!.isInternationalStash,
+            int_eligible: player.roster!.intEligible,
+            rookie_draft_info: player.roster!.rookieDraftInfo || null,
+            keeper_prior_year_round: player.keeper?.priorYearRound || null,
+            keeper_derived_base_round: player.keeper?.derivedBaseRound || null,
+          };
+
+          // Save to Supabase using fantraxId as primary key
+          const { error } = await supabase
+            .from('players')
+            .upsert(playerData, { onConflict: 'id' });
+          if (error) throw error;
+
           successCount++;
           setProgress({ current: i + 1, total: rows.length });
         } catch (error: any) {
@@ -391,14 +425,23 @@ export function AdminUpload() {
   const progressPercent = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
 
   const handleDeleteCollection = async (collectionName: 'players' | 'projectedStats' | 'previousStats' | 'prospects') => {
+    // Map collection names to Supabase table names
+    const tableMap: Record<string, string> = {
+      players: 'players',
+      projectedStats: 'projected_stats',
+      previousStats: 'previous_stats',
+      prospects: 'prospects',
+    };
+    const tableName = tableMap[collectionName];
+
     const confirmed = window.confirm(
-      `⚠️ WARNING: This will permanently delete ALL documents in the "${collectionName}" collection. This cannot be undone. Are you absolutely sure?`
+      `⚠️ WARNING: This will permanently delete ALL rows in the "${tableName}" table. This cannot be undone. Are you absolutely sure?`
     );
 
     if (!confirmed) return;
 
     const doubleCheck = window.confirm(
-      `This is your last chance. Type "DELETE" in the next prompt to confirm deletion of ${collectionName} collection.`
+      `This is your last chance. Type "DELETE" in the next prompt to confirm deletion of ${tableName} table.`
     );
 
     if (!doubleCheck) return;
@@ -411,32 +454,30 @@ export function AdminUpload() {
 
     try {
       setUploading(true);
-      const collectionRef = collection(db, collectionName);
-      const snapshot = await getDocs(collectionRef);
 
-      setProgress({ current: 0, total: snapshot.size });
+      // Count rows first
+      const { count, error: countErr } = await supabase
+        .from(tableName)
+        .select('*', { count: 'exact', head: true });
+      if (countErr) throw countErr;
 
-      // Delete in batches of 500 (Firestore limit)
-      const batchSize = 500;
-      let deletedCount = 0;
+      const totalCount = count || 0;
+      setProgress({ current: 0, total: totalCount });
 
-      for (let i = 0; i < snapshot.docs.length; i += batchSize) {
-        const batch = writeBatch(db);
-        const batchDocs = snapshot.docs.slice(i, i + batchSize);
+      // Delete all rows - Supabase doesn't have batch limits like Firestore
+      // Use a broad filter to delete all rows
+      const { error: deleteErr } = await supabase
+        .from(tableName)
+        .delete()
+        .neq('id', '___impossible_id___'); // Supabase requires a filter for delete, this matches all rows
+      if (deleteErr) throw deleteErr;
 
-        batchDocs.forEach((docSnapshot) => {
-          batch.delete(docSnapshot.ref);
-        });
+      setProgress({ current: totalCount, total: totalCount });
 
-        await batch.commit();
-        deletedCount += batchDocs.length;
-        setProgress({ current: deletedCount, total: snapshot.size });
-      }
-
-      alert(`Successfully deleted ${deletedCount} documents from ${collectionName} collection.`);
-      setResults({ success: deletedCount, errors: [] });
+      alert(`Successfully deleted ${totalCount} rows from ${tableName} table.`);
+      setResults({ success: totalCount, errors: [] });
     } catch (error: any) {
-      alert(`Failed to delete collection: ${error.message}`);
+      alert(`Failed to delete table data: ${error.message}`);
       console.error('Delete error:', error);
     } finally {
       setUploading(false);
@@ -597,7 +638,7 @@ export function AdminUpload() {
 
                 <div className="mt-4 text-sm text-gray-600 space-y-2">
                   <p><strong>Required:</strong> name, position, salary, nbaTeam</p>
-                  <p><strong>Optional:</strong> teamId (your team's Firestore document ID), priorYearRound (1-13 for returning players)</p>
+                  <p><strong>Optional:</strong> teamId (your team's document ID), priorYearRound (1-13 for returning players)</p>
                   <p><strong>For rookies:</strong> isRookie=true, rookieRound (1-3), rookiePick (1-12), redshirtEligible=true/false, intEligible=true/false</p>
                   <p><strong>Boolean fields:</strong> Use "true" or "1" for true, anything else for false</p>
                   <p><strong>Column order:</strong> Doesn't matter! Columns can be in any order as long as headers match.</p>

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team, Player, RosterDoc } from '../types';
@@ -66,57 +65,117 @@ export function AdminTradeManager() {
     setLoading(true);
     try {
       // Load teams
-      const teamsRef = collection(db, 'teams');
-      const teamsQuery = query(teamsRef, where('leagueId', '==', currentLeagueId));
-      const teamsSnap = await getDocs(teamsQuery);
-      const teamsData = teamsSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Team[];
-      setTeams(teamsData.sort((a, b) => a.name.localeCompare(b.name)));
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('league_id', currentLeagueId);
+      if (teamsError) throw teamsError;
 
-      // Load all players
-      const playersSnap = await getDocs(collection(db, 'players'));
+      const mappedTeams = (teamsData || []).map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        abbrev: t.abbrev,
+        owners: t.owners,
+        leagueId: t.league_id,
+        ownerNames: t.owner_names,
+        capAdjustments: t.cap_adjustments,
+        telegramUsername: t.telegram_username,
+      })) as Team[];
+      setTeams(mappedTeams.sort((a, b) => a.name.localeCompare(b.name)));
+
+      // Load all players (paginated past 1000-row limit)
+      const playersData = await fetchAllRows('players');
+
       const playersMap = new Map<string, Player>();
-      playersSnap.docs.forEach((doc) => {
-        playersMap.set(doc.id, { id: doc.id, ...doc.data() } as Player);
+      playersData.forEach((row: any) => {
+        playersMap.set(row.id, {
+          id: row.id,
+          fantraxId: row.fantrax_id,
+          name: row.name,
+          position: row.position,
+          salary: row.salary,
+          nbaTeam: row.nba_team,
+          roster: {
+            leagueId: row.league_id,
+            teamId: row.team_id,
+            onIR: row.on_ir,
+            isRookie: row.is_rookie,
+            isInternationalStash: row.is_international_stash,
+            intEligible: row.int_eligible,
+            rookieDraftInfo: row.rookie_draft_info || undefined,
+          },
+          keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
+            ? {
+                priorYearRound: row.keeper_prior_year_round || undefined,
+                derivedBaseRound: row.keeper_derived_base_round || undefined,
+              }
+            : undefined,
+        } as Player);
       });
       setPlayers(playersMap);
 
       // Load rosters
-      const rostersSnap = await getDocs(collection(db, 'rosters'));
+      const { data: rostersData, error: rostersError } = await supabase
+        .from('rosters')
+        .select('*');
+      if (rostersError) throw rostersError;
+
       const rostersMap = new Map<string, RosterDoc>();
-      for (const team of teamsData) {
+      for (const team of mappedTeams) {
         const rosterId = `${currentLeagueId}_${team.id}`;
-        const rosterDoc = rostersSnap.docs.find(d => d.id === rosterId);
-        if (rosterDoc) {
+        const rosterRow = (rostersData || []).find((d: any) => d.id === rosterId);
+        if (rosterRow) {
           rostersMap.set(team.id, {
-            id: rosterDoc.id,
-            ...rosterDoc.data(),
+            id: rosterRow.id,
+            teamId: rosterRow.team_id,
+            leagueId: rosterRow.league_id,
+            seasonYear: rosterRow.season_year,
+            entries: rosterRow.entries,
+            status: rosterRow.status,
+            summary: rosterRow.summary,
+            savedScenarios: rosterRow.saved_scenarios,
           } as RosterDoc);
         }
       }
       setRosters(rostersMap);
 
       // Load rookie picks
-      const picksRef = collection(db, 'rookieDraftPicks');
-      const picksQuery = query(picksRef, where('leagueId', '==', currentLeagueId));
-      const picksSnap = await getDocs(picksQuery);
-      const picksData = picksSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as RookieDraftPick[];
-      setRookiePicks(picksData);
+      const { data: rookiePicksData, error: rookiePicksError } = await supabase
+        .from('rookie_draft_picks')
+        .select('*')
+        .eq('league_id', currentLeagueId);
+      if (rookiePicksError) throw rookiePicksError;
+
+      const mappedRookiePicks = (rookiePicksData || []).map((p: any): RookieDraftPick => ({
+        id: p.id,
+        year: p.year,
+        round: p.round,
+        originalTeam: p.original_team,
+        originalTeamName: p.original_team_name,
+        currentOwner: p.current_owner,
+        leagueId: p.league_id,
+      }));
+      setRookiePicks(mappedRookiePicks);
 
       // Load draft picks
-      const draftPicksRef = collection(db, 'draftPicks');
-      const draftPicksQuery = query(draftPicksRef, where('leagueId', '==', currentLeagueId));
-      const draftPicksSnap = await getDocs(draftPicksQuery);
-      const draftPicksData = draftPicksSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as DraftPick[];
-      setDraftPicks(draftPicksData.sort((a, b) => a.pickNumber - b.pickNumber));
+      const { data: draftPicksData, error: draftPicksError } = await supabase
+        .from('draft_picks')
+        .select('*')
+        .eq('league_id', currentLeagueId);
+      if (draftPicksError) throw draftPicksError;
+
+      const mappedDraftPicks = (draftPicksData || []).map((p: any): DraftPick => ({
+        id: p.id,
+        pickNumber: p.pick_number,
+        round: p.round,
+        pickInRound: p.pick_in_round,
+        originalTeam: p.original_team,
+        originalTeamName: p.original_team_name,
+        currentOwner: p.current_owner,
+        leagueId: p.league_id,
+        isKeeperSlot: p.is_keeper_slot,
+      }));
+      setDraftPicks(mappedDraftPicks.sort((a, b) => a.pickNumber - b.pickNumber));
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -262,23 +321,29 @@ export function AdminTradeManager() {
 
         // Update roster
         const rosterId = `${currentLeagueId}_${teamId}`;
-        await updateDoc(doc(db, 'rosters', rosterId), {
-          entries: filteredEntries,
-        });
+        const { error: rosterError } = await supabase
+          .from('rosters')
+          .update({ entries: filteredEntries })
+          .eq('id', rosterId);
+        if (rosterError) throw rosterError;
       }
 
       // Update draft pick ownership
       for (const asset of tradeAssets.filter(a => a.type === 'draft_pick')) {
-        await updateDoc(doc(db, 'draftPicks', asset.id), {
-          currentOwner: asset.toTeam,
-        });
+        const { error } = await supabase
+          .from('draft_picks')
+          .update({ current_owner: asset.toTeam })
+          .eq('id', asset.id);
+        if (error) throw error;
       }
 
       // Update rookie pick ownership
       for (const asset of tradeAssets.filter(a => a.type === 'rookie_pick')) {
-        await updateDoc(doc(db, 'rookieDraftPicks', asset.id), {
-          currentOwner: asset.toTeam,
-        });
+        const { error } = await supabase
+          .from('rookie_draft_picks')
+          .update({ current_owner: asset.toTeam })
+          .eq('id', asset.id);
+        if (error) throw error;
       }
 
       alert('Trade executed successfully!');

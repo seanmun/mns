@@ -1,10 +1,53 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, getDocs, doc, updateDoc, query, where } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { AdminRosterManagement } from '../components/AdminRosterManagement';
 import type { League, RegularSeasonRoster, Player, TeamFees } from '../types';
+
+// --- Mapping helpers ---
+
+function mapLeague(row: any): League {
+  return {
+    id: row.id,
+    name: row.name,
+    seasonYear: row.season_year,
+    deadlines: row.deadlines || {},
+    cap: row.cap || {},
+    keepersLocked: row.keepers_locked,
+    draftStatus: row.draft_status,
+    seasonStatus: row.season_status,
+    seasonStartedAt: row.season_started_at ? new Date(row.season_started_at).getTime() : undefined,
+    seasonStartedBy: row.season_started_by || undefined,
+  };
+}
+
+function mapPlayer(row: any): Player {
+  return {
+    id: row.id,
+    fantraxId: row.fantrax_id,
+    name: row.name,
+    position: row.position,
+    salary: row.salary,
+    nbaTeam: row.nba_team,
+    roster: {
+      leagueId: row.league_id,
+      teamId: row.team_id,
+      onIR: row.on_ir,
+      isRookie: row.is_rookie,
+      isInternationalStash: row.is_international_stash,
+      intEligible: row.int_eligible,
+      rookieDraftInfo: row.rookie_draft_info || undefined,
+    },
+    keeper:
+      row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
+        ? {
+            priorYearRound: row.keeper_prior_year_round || undefined,
+            derivedBaseRound: row.keeper_derived_base_round || undefined,
+          }
+        : undefined,
+  };
+}
 
 export function AdminLeague() {
   const { role } = useAuth();
@@ -34,12 +77,12 @@ export function AdminLeague() {
 
     const fetchLeagues = async () => {
       try {
-        const snapshot = await getDocs(collection(db, 'leagues'));
-        const leagueData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as League[];
+        const { data: rows, error } = await supabase
+          .from('leagues')
+          .select('*');
+        if (error) throw error;
 
+        const leagueData = (rows || []).map(mapLeague);
         setLeagues(leagueData);
         setLoading(false);
       } catch (error) {
@@ -70,18 +113,23 @@ export function AdminLeague() {
 
     try {
       setSaving(true);
-      const leagueRef = doc(db, 'leagues', selectedLeague.id);
 
-      await updateDoc(leagueRef, {
-        name: editForm.name,
-        seasonYear: editForm.seasonYear,
-        'cap.floor': editForm['cap.floor'],
-        'cap.firstApron': editForm['cap.firstApron'],
-        'cap.secondApron': editForm['cap.secondApron'],
-        'cap.max': editForm['cap.max'],
-        'cap.tradeLimit': editForm['cap.tradeLimit'],
-        'cap.penaltyRatePerM': editForm['cap.penaltyRatePerM'],
-      });
+      const { error } = await supabase
+        .from('leagues')
+        .update({
+          name: editForm.name,
+          season_year: editForm.seasonYear,
+          cap: {
+            floor: editForm['cap.floor'],
+            firstApron: editForm['cap.firstApron'],
+            secondApron: editForm['cap.secondApron'],
+            max: editForm['cap.max'],
+            tradeLimit: editForm['cap.tradeLimit'],
+            penaltyRatePerM: editForm['cap.penaltyRatePerM'],
+          },
+        })
+        .eq('id', selectedLeague.id);
+      if (error) throw error;
 
       // Update local state
       setLeagues((prev) =>
@@ -132,25 +180,38 @@ export function AdminLeague() {
       setStartingSeasonProcessing(true);
 
       // Load all regular season rosters for this league
-      const rostersQuery = query(
-        collection(db, 'regularSeasonRosters'),
-        where('leagueId', '==', selectedLeague.id),
-        where('seasonYear', '==', selectedLeague.seasonYear)
-      );
-      const rostersSnap = await getDocs(rostersQuery);
+      const { data: rostersRows, error: rostersErr } = await supabase
+        .from('regular_season_rosters')
+        .select('*')
+        .eq('league_id', selectedLeague.id)
+        .eq('season_year', selectedLeague.seasonYear);
+      if (rostersErr) throw rostersErr;
 
-      // Load all players
-      const playersSnap = await getDocs(collection(db, 'players'));
+      // Load all players (paginated past 1000-row limit)
+      const playersRows = await fetchAllRows('players');
+
       const playersMap = new Map(
-        playersSnap.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() } as Player])
+        playersRows.map(row => [row.id, mapPlayer(row)])
       );
 
       let teamsProcessed = 0;
       let errors: string[] = [];
 
       // Process each roster
-      for (const rosterDoc of rostersSnap.docs) {
-        const roster = { id: rosterDoc.id, ...rosterDoc.data() } as RegularSeasonRoster;
+      for (const rosterRow of (rostersRows || [])) {
+        const roster: RegularSeasonRoster = {
+          id: rosterRow.id,
+          teamId: rosterRow.team_id,
+          leagueId: rosterRow.league_id,
+          seasonYear: rosterRow.season_year,
+          activeRoster: rosterRow.active_roster || [],
+          irSlots: rosterRow.ir_slots || [],
+          redshirtPlayers: rosterRow.redshirt_players || [],
+          internationalPlayers: rosterRow.international_players || [],
+          isLegalRoster: rosterRow.is_legal_roster ?? true,
+          lastUpdated: rosterRow.last_updated ? new Date(rosterRow.last_updated).getTime() : Date.now(),
+          updatedBy: rosterRow.updated_by || '',
+        };
 
         try {
           // Calculate total salary (active + IR only)
@@ -168,32 +229,45 @@ export function AdminLeague() {
           const overByM = Math.ceil(overBy / 1_000_000);
           const secondApronPenalty = overByM * 2;
 
-          // Update teamFees document
+          // Update teamFees record
           const feesId = `${selectedLeague.id}_${roster.teamId}_${selectedLeague.seasonYear}`;
-          const feesRef = doc(db, 'teamFees', feesId);
 
           // Get existing fees to preserve franchise/redshirt fees
-          const feesSnap = await getDocs(
-            query(collection(db, 'teamFees'), where('__name__', '==', feesId))
-          );
+          const { data: existingFeesRows } = await supabase
+            .from('team_fees')
+            .select('*')
+            .eq('id', feesId);
 
           let existingFees: TeamFees | null = null;
-          if (!feesSnap.empty) {
-            existingFees = { id: feesSnap.docs[0].id, ...feesSnap.docs[0].data() } as TeamFees;
+          if (existingFeesRows && existingFeesRows.length > 0) {
+            const r = existingFeesRows[0];
+            existingFees = {
+              id: r.id,
+              franchiseTagFees: r.franchise_tag_fees,
+              redshirtFees: r.redshirt_fees,
+              firstApronFee: r.first_apron_fee,
+              secondApronPenalty: r.second_apron_penalty,
+              totalFees: r.total_fees,
+              feesLocked: r.fees_locked,
+            } as TeamFees;
           }
 
           const franchiseTagFees = existingFees?.franchiseTagFees || 0;
           const redshirtFees = existingFees?.redshirtFees || 0;
           const totalFees = franchiseTagFees + redshirtFees + firstApronFee + secondApronPenalty;
 
-          await updateDoc(feesRef, {
-            firstApronFee,
-            secondApronPenalty,
-            totalFees,
-            feesLocked: true,
-            lockedAt: Date.now(),
-            lockedSalary: totalSalary,
-          });
+          const { error: updateErr } = await supabase
+            .from('team_fees')
+            .update({
+              first_apron_fee: firstApronFee,
+              second_apron_penalty: secondApronPenalty,
+              total_fees: totalFees,
+              fees_locked: true,
+              locked_at: Date.now(),
+              locked_salary: totalSalary,
+            })
+            .eq('id', feesId);
+          if (updateErr) throw updateErr;
 
           teamsProcessed++;
         } catch (error) {

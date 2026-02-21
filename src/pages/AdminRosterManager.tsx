@@ -1,10 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { AdminRosterManagement } from '../components/AdminRosterManagement';
 import type { League } from '../types';
+
+// --- Mapping helper ---
+
+function mapLeague(row: any): League {
+  return {
+    id: row.id,
+    name: row.name,
+    seasonYear: row.season_year,
+    deadlines: row.deadlines || { keepersLockAt: '', redshirtLockAt: '', draftAt: '' },
+    cap: row.cap,
+    keepersLocked: row.keepers_locked,
+    draftStatus: row.draft_status,
+    seasonStatus: row.season_status,
+  };
+}
 
 export function AdminRosterManager() {
   const { role } = useAuth();
@@ -21,12 +35,12 @@ export function AdminRosterManager() {
 
     const fetchLeagues = async () => {
       try {
-        const snapshot = await getDocs(collection(db, 'leagues'));
-        const leagueData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as League[];
+        const { data: rows, error } = await supabase
+          .from('leagues')
+          .select('*');
+        if (error) throw error;
 
+        const leagueData = (rows || []).map(mapLeague);
         setLeagues(leagueData);
         setLoading(false);
       } catch (error) {

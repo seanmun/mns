@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team, Player, RosterDoc } from '../types';
@@ -15,6 +14,75 @@ interface RookieDraftPick {
   originalTeamName: string;
   currentOwner: string;
   leagueId: string;
+}
+
+// --- Mapping helpers ---
+
+function mapTeam(row: any): Team {
+  return {
+    id: row.id,
+    leagueId: row.league_id,
+    name: row.name,
+    abbrev: row.abbrev,
+    owners: row.owners || [],
+    ownerNames: row.owner_names || [],
+    telegramUsername: row.telegram_username || undefined,
+    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
+    settings: row.settings || { maxKeepers: 8 },
+    banners: row.banners || [],
+  };
+}
+
+function mapPlayer(row: any): Player {
+  return {
+    id: row.id,
+    fantraxId: row.fantrax_id,
+    name: row.name,
+    position: row.position,
+    salary: row.salary,
+    nbaTeam: row.nba_team,
+    roster: {
+      leagueId: row.league_id,
+      teamId: row.team_id,
+      onIR: row.on_ir,
+      isRookie: row.is_rookie,
+      isInternationalStash: row.is_international_stash,
+      intEligible: row.int_eligible,
+      rookieDraftInfo: row.rookie_draft_info || undefined,
+    },
+    keeper:
+      row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
+        ? {
+            priorYearRound: row.keeper_prior_year_round || undefined,
+            derivedBaseRound: row.keeper_derived_base_round || undefined,
+          }
+        : undefined,
+  };
+}
+
+function mapRosterDoc(row: any): RosterDoc {
+  return {
+    id: row.id,
+    teamId: row.team_id,
+    leagueId: row.league_id,
+    seasonYear: row.season_year,
+    status: row.status,
+    entries: row.entries || [],
+    summary: row.summary,
+    savedScenarios: row.saved_scenarios || [],
+  } as RosterDoc;
+}
+
+function mapRookiePick(row: any): RookieDraftPick {
+  return {
+    id: row.id,
+    year: row.year || row.season_year,
+    round: row.round,
+    originalTeam: row.original_team,
+    originalTeamName: row.original_team_name,
+    currentOwner: row.current_owner || row.team_id,
+    leagueId: row.league_id,
+  };
 }
 
 export function AdminViewRosters() {
@@ -49,9 +117,12 @@ export function AdminViewRosters() {
 
     try {
       const rosterId = `${currentLeagueId}_${selectedTeamId}`;
-      await updateDoc(doc(db, 'rosters', rosterId), {
-        status: 'submitted',
-      });
+      const { error } = await supabase
+        .from('rosters')
+        .update({ status: 'submitted' })
+        .eq('id', rosterId);
+      if (error) throw error;
+
       alert('Roster submitted successfully');
       await loadData();
     } catch (error) {
@@ -65,49 +136,50 @@ export function AdminViewRosters() {
 
     setLoading(true);
     try {
-      // Load teams
-      const teamsRef = collection(db, 'teams');
-      const teamsQuery = query(teamsRef, where('leagueId', '==', currentLeagueId));
-      const teamsSnap = await getDocs(teamsQuery);
-      const teamsData = teamsSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Team[];
+      // Load teams for this league
+      const { data: teamsRows, error: teamsErr } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('league_id', currentLeagueId);
+      if (teamsErr) throw teamsErr;
+
+      const teamsData = (teamsRows || []).map(mapTeam);
       setTeams(teamsData.sort((a, b) => a.name.localeCompare(b.name)));
 
-      // Load all players
-      const playersSnap = await getDocs(collection(db, 'players'));
+      // Load all players (paginated past 1000-row limit)
+      const playersRows = await fetchAllRows('players');
+
       const playersMap = new Map<string, Player>();
-      playersSnap.docs.forEach((doc) => {
-        playersMap.set(doc.id, { id: doc.id, ...doc.data() } as Player);
+      playersRows.forEach((row) => {
+        playersMap.set(row.id, mapPlayer(row));
       });
       setPlayers(playersMap);
 
       // Load rosters for each team
-      const rostersSnap = await getDocs(collection(db, 'rosters'));
-      const rostersMap = new Map<string, RosterDoc>();
+      const { data: rostersRows, error: rostersErr } = await supabase
+        .from('rosters')
+        .select('*');
+      if (rostersErr) throw rostersErr;
 
+      const rostersMap = new Map<string, RosterDoc>();
       for (const team of teamsData) {
         const rosterId = `${currentLeagueId}_${team.id}`;
-        const rosterDoc = rostersSnap.docs.find(d => d.id === rosterId);
+        const rosterRow = (rostersRows || []).find((r: any) => r.id === rosterId);
 
-        if (rosterDoc) {
-          rostersMap.set(team.id, {
-            id: rosterDoc.id,
-            ...rosterDoc.data(),
-          } as RosterDoc);
+        if (rosterRow) {
+          rostersMap.set(team.id, mapRosterDoc(rosterRow));
         }
       }
       setRosters(rostersMap);
 
       // Load rookie picks
-      const picksRef = collection(db, 'rookieDraftPicks');
-      const picksQuery = query(picksRef, where('leagueId', '==', currentLeagueId));
-      const picksSnap = await getDocs(picksQuery);
-      const picksData = picksSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as RookieDraftPick[];
+      const { data: picksRows, error: picksErr } = await supabase
+        .from('rookie_draft_picks')
+        .select('*')
+        .eq('league_id', currentLeagueId);
+      if (picksErr) throw picksErr;
+
+      const picksData = (picksRows || []).map(mapRookiePick);
       setRookiePicks(picksData);
 
       // Auto-select first team
@@ -185,15 +257,21 @@ export function AdminViewRosters() {
           });
 
           // Update roster: set to draft, load scenario entries
-          await updateDoc(doc(db, 'rosters', rosterId), cleanData);
+          const { error } = await supabase
+            .from('rosters')
+            .update(cleanData)
+            .eq('id', rosterId);
+          if (error) throw error;
 
           updatedCount++;
         } else {
           // No scenario - just unsubmit
           const rosterId = `${currentLeagueId}_${team.id}`;
-          await updateDoc(doc(db, 'rosters', rosterId), {
-            status: 'draft',
-          });
+          const { error } = await supabase
+            .from('rosters')
+            .update({ status: 'draft' })
+            .eq('id', rosterId);
+          if (error) throw error;
         }
       }
 

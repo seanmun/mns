@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team } from '../types';
@@ -40,7 +39,7 @@ export function AdminDraftTest() {
   const [isOrderSet, setIsOrderSet] = useState(false);
   const [mockKeepers, setMockKeepers] = useState<Record<string, { round: number; playerName: string }[]>>({});
 
-  // Fetch real teams from Firestore
+  // Fetch real teams from Supabase
   useEffect(() => {
     if (role !== 'admin' || !currentLeagueId) {
       if (role !== 'admin') navigate('/');
@@ -49,12 +48,21 @@ export function AdminDraftTest() {
 
     const fetchTeams = async () => {
       try {
-        const teamsRef = collection(db, 'teams');
-        const q = query(teamsRef, where('leagueId', '==', currentLeagueId));
-        const snapshot = await getDocs(q);
-        const teamData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
+        const { data: teamsData, error } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('league_id', currentLeagueId);
+        if (error) throw error;
+
+        const teamData = (teamsData || []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          abbrev: t.abbrev,
+          owners: t.owners,
+          leagueId: t.league_id,
+          ownerNames: t.owner_names,
+          capAdjustments: t.cap_adjustments,
+          telegramUsername: t.telegram_username,
         })) as Team[];
 
         setTeams(teamData);

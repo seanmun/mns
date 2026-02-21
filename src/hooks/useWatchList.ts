@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import type { WatchList } from '../types';
 
 export function useWatchList(_userId: string | undefined, leagueId: string | undefined, teamId: string | undefined) {
@@ -15,21 +14,23 @@ export function useWatchList(_userId: string | undefined, leagueId: string | und
       }
 
       try {
-        // Query for watchlist by leagueId and teamId only (team-based, not user-based)
-        const watchListRef = collection(db, 'watchlists');
-        const q = query(
-          watchListRef,
-          where('leagueId', '==', leagueId),
-          where('teamId', '==', teamId)
-        );
-        const snapshot = await getDocs(q);
+        const { data, error } = await supabase
+          .from('watchlists')
+          .select('*')
+          .eq('league_id', leagueId)
+          .eq('team_id', teamId)
+          .maybeSingle();
 
-        if (!snapshot.empty) {
-          const doc = snapshot.docs[0];
+        if (error) throw error;
+
+        if (data) {
           setWatchList({
-            id: doc.id,
-            ...doc.data(),
-          } as WatchList);
+            id: data.id,
+            leagueId: data.league_id,
+            teamId: data.team_id,
+            playerIds: data.player_ids || [],
+            updatedAt: new Date(data.updated_at).getTime(),
+          });
         } else {
           // Initialize empty watchlist (team-based)
           setWatchList({
@@ -76,26 +77,28 @@ export async function togglePlayerInWatchList(
       updatedAt: Date.now(),
     };
 
-    // If no ID, create new document
     if (!currentWatchList?.id) {
-      const watchListRef = collection(db, 'watchlists');
-      const docRef = doc(watchListRef);
-      await setDoc(docRef, {
-        leagueId,
-        teamId,
-        playerIds: updatedPlayerIds,
-        updatedAt: Date.now(),
-      });
-      updatedWatchList.id = docRef.id;
+      // Create new watchlist
+      const { data, error } = await supabase
+        .from('watchlists')
+        .insert({
+          league_id: leagueId,
+          team_id: teamId,
+          player_ids: updatedPlayerIds,
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      updatedWatchList.id = data.id;
     } else {
-      // Update existing document
-      const docRef = doc(db, 'watchlists', currentWatchList.id);
-      await setDoc(docRef, {
-        leagueId,
-        teamId,
-        playerIds: updatedPlayerIds,
-        updatedAt: Date.now(),
-      });
+      // Update existing watchlist
+      const { error } = await supabase
+        .from('watchlists')
+        .update({ player_ids: updatedPlayerIds })
+        .eq('id', currentWatchList.id);
+
+      if (error) throw error;
     }
 
     return updatedWatchList;

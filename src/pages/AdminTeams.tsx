@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import type { Team, League } from '../types';
 
@@ -17,6 +16,36 @@ interface Backup {
   createdAt: string;
   rosters: any[];
   players: any[];
+}
+
+// --- Mapping helpers ---
+
+function mapLeague(row: any): League {
+  return {
+    id: row.id,
+    name: row.name,
+    seasonYear: row.season_year,
+    deadlines: row.deadlines || { keepersLockAt: '', redshirtLockAt: '', draftAt: '' },
+    cap: row.cap,
+    keepersLocked: row.keepers_locked,
+    draftStatus: row.draft_status,
+    seasonStatus: row.season_status,
+  };
+}
+
+function mapTeam(row: any): Team {
+  return {
+    id: row.id,
+    leagueId: row.league_id,
+    name: row.name,
+    abbrev: row.abbrev,
+    owners: row.owners || [],
+    ownerNames: row.owner_names || [],
+    telegramUsername: row.telegram_username || undefined,
+    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
+    settings: row.settings || { maxKeepers: 8 },
+    banners: row.banners || [],
+  };
 }
 
 export function AdminTeams() {
@@ -52,27 +81,30 @@ export function AdminTeams() {
     setLoading(true);
     try {
       // Load leagues
-      const leaguesSnap = await getDocs(collection(db, 'leagues'));
-      const leaguesData = leaguesSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as League[];
+      const { data: leaguesRows, error: leaguesErr } = await supabase
+        .from('leagues')
+        .select('*');
+      if (leaguesErr) throw leaguesErr;
+      const leaguesData = (leaguesRows || []).map(mapLeague);
       setLeagues(leaguesData);
 
       // Load teams
-      const teamsSnap = await getDocs(collection(db, 'teams'));
-      const teamsData = teamsSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Team[];
+      const { data: teamsRows, error: teamsErr } = await supabase
+        .from('teams')
+        .select('*');
+      if (teamsErr) throw teamsErr;
+      const teamsData = (teamsRows || []).map(mapTeam);
 
       // Load rosters to get submission status
-      const rostersSnap = await getDocs(collection(db, 'rosters'));
+      const { data: rostersRows, error: rostersErr } = await supabase
+        .from('rosters')
+        .select('team_id, status');
+      if (rostersErr) throw rostersErr;
+
       const rosterStatusMap = new Map<string, 'draft' | 'submitted' | 'adminLocked'>();
-      rostersSnap.docs.forEach((doc) => {
-        const data = doc.data();
-        if (data.teamId) {
-          rosterStatusMap.set(data.teamId, data.status || 'draft');
+      (rostersRows || []).forEach((row: any) => {
+        if (row.team_id) {
+          rosterStatusMap.set(row.team_id, row.status || 'draft');
         }
       });
 
@@ -84,18 +116,16 @@ export function AdminTeams() {
 
       setTeams(teamsWithStatus);
 
-      // Load backups (if collection exists and accessible)
+      // Load backups
       try {
-        const backupsSnap = await getDocs(collection(db, 'backups'));
-        const backupsData = backupsSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Backup[];
-        // Sort by timestamp descending (newest first)
-        backupsData.sort((a, b) => b.timestamp - a.timestamp);
-        setBackups(backupsData);
+        const { data: backupsRows, error: backupsErr } = await supabase
+          .from('backups')
+          .select('*')
+          .order('timestamp', { ascending: false });
+        if (backupsErr) throw backupsErr;
+        setBackups((backupsRows || []) as Backup[]);
       } catch (backupError) {
-        console.warn('Could not load backups (collection may not exist yet):', backupError);
+        console.warn('Could not load backups (table may not exist yet):', backupError);
         setBackups([]);
       }
     } catch (error) {
@@ -144,10 +174,10 @@ export function AdminTeams() {
       const teamData: any = {
         name: formData.name,
         abbrev: formData.abbrev,
-        leagueId: formData.leagueId,
+        league_id: formData.leagueId,
         owners: ownersArray,
-        ownerNames: ownerNamesArray,
-        capAdjustments: {
+        owner_names: ownerNamesArray,
+        cap_adjustments: {
           tradeDelta: formData.tradeDelta,
         },
         settings: {
@@ -156,18 +186,25 @@ export function AdminTeams() {
         banners: formData.banners,
       };
 
-      // Only add telegramUsername if it has a value
+      // Only add telegram_username if it has a value
       if (formData.telegramUsername) {
-        teamData.telegramUsername = formData.telegramUsername;
+        teamData.telegram_username = formData.telegramUsername;
       }
 
       if (editingTeam) {
         // Update existing team
-        await updateDoc(doc(db, 'teams', editingTeam.id), teamData);
+        const { error } = await supabase
+          .from('teams')
+          .update(teamData)
+          .eq('id', editingTeam.id);
+        if (error) throw error;
         alert('Team updated successfully!');
       } else {
         // Create new team
-        await addDoc(collection(db, 'teams'), teamData);
+        const { error } = await supabase
+          .from('teams')
+          .insert(teamData);
+        if (error) throw error;
         alert('Team created successfully!');
       }
 
@@ -216,19 +253,24 @@ export function AdminTeams() {
     if (!confirmed) return;
 
     try {
-      // Find the roster document for this team
-      const rostersSnap = await getDocs(collection(db, 'rosters'));
-      const rosterDoc = rostersSnap.docs.find((doc) => doc.data().teamId === team.id);
+      // Find the roster for this team
+      const { data: rosterRows, error: findErr } = await supabase
+        .from('rosters')
+        .select('id')
+        .eq('team_id', team.id);
+      if (findErr) throw findErr;
 
-      if (!rosterDoc) {
+      if (!rosterRows || rosterRows.length === 0) {
         alert('No roster found for this team');
         return;
       }
 
       // Update roster status to draft
-      await updateDoc(doc(db, 'rosters', rosterDoc.id), {
-        status: 'draft',
-      });
+      const { error } = await supabase
+        .from('rosters')
+        .update({ status: 'draft' })
+        .eq('id', rosterRows[0].id);
+      if (error) throw error;
 
       alert(`Keepers unlocked for ${team.name}!`);
 
@@ -321,56 +363,57 @@ export function AdminTeams() {
                   try {
                     // If locking, create backup first
                     if (newValue) {
-                      // Create backup before making changes
                       const timestamp = Date.now();
                       const backupId = `${league.id}_${timestamp}`;
 
-                      // Get all rosters for this league
-                      const rostersSnap = await getDocs(collection(db, 'rosters'));
-                      const leagueRosters = rostersSnap.docs
-                        .filter(doc => doc.id.startsWith(`${league.id}_`))
-                        .map(doc => ({ id: doc.id, ...doc.data() }));
+                      // Get all rosters for this league (composite id starts with league id)
+                      const { data: leagueRosters } = await supabase
+                        .from('rosters')
+                        .select('*')
+                        .like('id', `${league.id}_%`);
 
                       // Get all players in this league
-                      const playersSnap = await getDocs(collection(db, 'players'));
-                      const leaguePlayers = playersSnap.docs
-                        .filter(doc => {
-                          const data = doc.data();
-                          return data.roster?.leagueId === league.id;
-                        })
-                        .map(doc => ({ id: doc.id, ...doc.data() }));
+                      const { data: leaguePlayers } = await supabase
+                        .from('players')
+                        .select('*')
+                        .eq('league_id', league.id);
 
                       // Save backup
-                      await setDoc(doc(db, 'backups', backupId), {
-                        leagueId: league.id,
-                        leagueName: league.name,
-                        seasonYear: league.seasonYear,
-                        timestamp,
-                        rosters: leagueRosters,
-                        players: leaguePlayers,
-                        createdAt: new Date().toISOString(),
-                      });
+                      const { error: backupErr } = await supabase
+                        .from('backups')
+                        .upsert({
+                          id: backupId,
+                          league_id: league.id,
+                          league_name: league.name,
+                          season_year: league.seasonYear,
+                          timestamp,
+                          rosters: leagueRosters || [],
+                          players: leaguePlayers || [],
+                          created_at: new Date().toISOString(),
+                        });
+                      if (backupErr) console.warn('Backup save error:', backupErr);
 
                       console.log(`Backup created: ${backupId}`);
                     }
 
                     // Update league keepersLocked flag
-                    await updateDoc(doc(db, 'leagues', league.id), {
-                      keepersLocked: newValue,
-                    });
+                    const { error: updateErr } = await supabase
+                      .from('leagues')
+                      .update({ keepers_locked: newValue })
+                      .eq('id', league.id);
+                    if (updateErr) throw updateErr;
 
                     // If locking, drop non-kept players to free agency
                     if (newValue) {
                       // Get all rosters for this league
-                      const rostersSnap = await getDocs(collection(db, 'rosters'));
-                      const leagueRosters = rostersSnap.docs.filter(doc =>
-                        doc.id.startsWith(`${league.id}_`)
-                      );
+                      const { data: leagueRosters } = await supabase
+                        .from('rosters')
+                        .select('*')
+                        .like('id', `${league.id}_%`);
 
                       // Collect all player IDs that should be kept
                       const keptPlayerIds = new Set<string>();
-                      leagueRosters.forEach(rosterDoc => {
-                        const roster = rosterDoc.data();
+                      (leagueRosters || []).forEach((roster: any) => {
                         roster.entries?.forEach((entry: any) => {
                           if (entry.decision === 'KEEP' || entry.decision === 'REDSHIRT' || entry.decision === 'INT_STASH') {
                             keptPlayerIds.add(entry.playerId);
@@ -378,20 +421,21 @@ export function AdminTeams() {
                         });
                       });
 
-                      // Get all players in this league
-                      const playersSnap = await getDocs(collection(db, 'players'));
-                      const leaguePlayers = playersSnap.docs.filter(doc => {
-                        const data = doc.data();
-                        return data.roster?.leagueId === league.id && data.roster?.teamId;
-                      });
+                      // Get all players in this league that have a team
+                      const { data: leaguePlayers } = await supabase
+                        .from('players')
+                        .select('id')
+                        .eq('league_id', league.id)
+                        .not('team_id', 'is', null);
 
                       // Drop players not in the kept list
                       let droppedCount = 0;
-                      for (const playerDoc of leaguePlayers) {
-                        if (!keptPlayerIds.has(playerDoc.id)) {
-                          await updateDoc(doc(db, 'players', playerDoc.id), {
-                            'roster.teamId': null,
-                          });
+                      for (const playerRow of (leaguePlayers || [])) {
+                        if (!keptPlayerIds.has(playerRow.id)) {
+                          await supabase
+                            .from('players')
+                            .update({ team_id: null })
+                            .eq('id', playerRow.id);
                           droppedCount++;
                         }
                       }
@@ -405,7 +449,7 @@ export function AdminTeams() {
                     await loadData();
                   } catch (error) {
                     console.error('Error updating league:', error);
-                    alert('Failed to update league settings. Backup may have been created - check Firestore backups collection.');
+                    alert('Failed to update league settings. Backup may have been created - check backups table.');
                   }
                 }}
                   className={`px-4 py-2 rounded-md font-medium transition-colors ${
@@ -462,18 +506,26 @@ export function AdminTeams() {
 
                         // Restore all players
                         for (const player of backup.players) {
-                          await updateDoc(doc(db, 'players', player.id), player);
+                          const { error } = await supabase
+                            .from('players')
+                            .update(player)
+                            .eq('id', player.id);
+                          if (error) console.warn(`Error restoring player ${player.id}:`, error);
                         }
 
                         // Restore all rosters
                         for (const roster of backup.rosters) {
-                          await setDoc(doc(db, 'rosters', roster.id), roster);
+                          const { error } = await supabase
+                            .from('rosters')
+                            .upsert(roster);
+                          if (error) console.warn(`Error restoring roster ${roster.id}:`, error);
                         }
 
                         // Unlock keepers
-                        await updateDoc(doc(db, 'leagues', backup.leagueId), {
-                          keepersLocked: false,
-                        });
+                        await supabase
+                          .from('leagues')
+                          .update({ keepers_locked: false })
+                          .eq('id', backup.leagueId);
 
                         alert(`Backup restored successfully!\n\n${backup.players.length} players and ${backup.rosters.length} rosters restored.`);
                         await loadData();

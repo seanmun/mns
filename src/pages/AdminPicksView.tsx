@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -44,30 +43,45 @@ export function AdminPicksView() {
   const loadData = async () => {
     try {
       // Load picks
-      const picksSnap = await getDocs(collection(db, 'pickAssignments'));
-      const picksData = picksSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Pick[];
+      const { data: picksData, error: picksError } = await supabase
+        .from('pick_assignments')
+        .select('*');
+      if (picksError) throw picksError;
 
-      picksData.sort((a, b) => a.overallPick - b.overallPick);
+      const mappedPicks = (picksData || []).map((row: any): Pick => ({
+        id: row.id,
+        round: row.round,
+        pickInRound: row.pick_in_round,
+        overallPick: row.overall_pick,
+        currentTeamId: row.current_team_id,
+        originalTeamId: row.original_team_id,
+        playerId: row.player_id,
+        playerName: row.player_name,
+        isKeeperSlot: row.is_keeper_slot,
+        wasTraded: row.was_traded,
+      }));
+
+      mappedPicks.sort((a, b) => a.overallPick - b.overallPick);
 
       // Debug: Check first 5 picks
-      console.log('First 5 picks:', picksData.slice(0, 5).map(p => ({
+      console.log('First 5 picks:', mappedPicks.slice(0, 5).map(p => ({
         pick: p.overallPick,
         player: p.playerName,
         isKeeperSlot: p.isKeeperSlot,
         type: typeof p.isKeeperSlot
       })));
 
-      setPicks(picksData);
+      setPicks(mappedPicks);
 
       // Load team names
-      const teamsSnap = await getDocs(collection(db, 'teams'));
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('*');
+      if (teamsError) throw teamsError;
+
       const names: Record<string, string> = {};
-      teamsSnap.docs.forEach(doc => {
-        const data = doc.data();
-        names[doc.id] = data.name || data.abbrev || doc.id.substring(0, 8);
+      (teamsData || []).forEach((row: any) => {
+        names[row.id] = row.name || row.abbrev || row.id.substring(0, 8);
       });
       setTeamNames(names);
 
@@ -98,7 +112,7 @@ export function AdminPicksView() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Pick Assignments View</h1>
-          <p className="text-gray-400 mt-2">All picks from pickAssignments collection ({picks.length} total)</p>
+          <p className="text-gray-400 mt-2">All picks from pick_assignments table ({picks.length} total)</p>
         </div>
 
         <div className="space-y-8">

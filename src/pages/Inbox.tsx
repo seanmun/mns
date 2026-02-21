@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { getDailyQuote } from '../data/hinkieQuotes';
 import { useAuth } from '../contexts/AuthContext';
 import { useWagers } from '../hooks/useWagers';
 import { WagerProposal } from '../components/WagerProposal';
 import type { Team } from '../types';
+
+function mapTeam(row: any): Team {
+  return {
+    id: row.id, leagueId: row.league_id, name: row.name, abbrev: row.abbrev,
+    owners: row.owners || [], ownerNames: row.owner_names || [],
+    telegramUsername: row.telegram_username || undefined,
+    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
+    settings: row.settings || { maxKeepers: 8 }, banners: row.banners || [],
+  };
+}
 
 export function Inbox() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -54,13 +63,14 @@ export function Inbox() {
       }
 
       try {
-        const teamsRef = collection(db, 'teams');
-        const q = query(teamsRef, where('leagueId', '==', leagueId));
-        const snapshot = await getDocs(q);
+        const { data, error } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('league_id', leagueId);
 
-        const teamData = snapshot.docs
-          .map((doc) => ({ id: doc.id, ...doc.data() })) as Team[];
+        if (error) throw error;
 
+        const teamData = (data || []).map(mapTeam);
         const userTeam = teamData.find((team) => team.owners.includes(user.email || ''));
         setMyTeam(userTeam || null);
       } catch (error) {

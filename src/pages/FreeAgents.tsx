@@ -1,15 +1,43 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, query, where, onSnapshot, getDocs, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { usePreviousStats } from '../hooks/usePreviousStats';
 import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
 import { PlayerModal } from '../components/PlayerModal';
-import type { Player, RegularSeasonRoster, League } from '../types';
+import type { Player, RegularSeasonRoster } from '../types';
 
 type SortColumn = 'score' | 'salary' | 'points' | 'rebounds' | 'assists' | 'steals' | 'blocks' | 'fgPercent' | 'ftPercent' | 'threePointMade';
+
+function mapPlayer(row: any): Player {
+  return {
+    id: row.id, fantraxId: row.fantrax_id, name: row.name, position: row.position,
+    salary: row.salary, nbaTeam: row.nba_team,
+    roster: { leagueId: row.league_id, teamId: row.team_id, onIR: row.on_ir,
+      isRookie: row.is_rookie, isInternationalStash: row.is_international_stash,
+      intEligible: row.int_eligible, rookieDraftInfo: row.rookie_draft_info || undefined },
+    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
+      ? { priorYearRound: row.keeper_prior_year_round || undefined, derivedBaseRound: row.keeper_derived_base_round || undefined }
+      : undefined,
+  };
+}
+
+function mapRegularSeasonRoster(row: any): RegularSeasonRoster {
+  return {
+    id: row.id,
+    leagueId: row.league_id,
+    teamId: row.team_id,
+    seasonYear: row.season_year,
+    activeRoster: row.active_roster || [],
+    irSlots: row.ir_slots || [],
+    redshirtPlayers: row.redshirt_players || [],
+    internationalPlayers: row.international_players || [],
+    isLegalRoster: row.is_legal_roster,
+    lastUpdated: row.last_updated,
+    updatedBy: row.updated_by,
+  };
+}
 
 export function FreeAgents() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -76,10 +104,15 @@ export function FreeAgents() {
       if (!leagueId) return;
 
       try {
-        const leagueSnap = await getDocs(query(collection(db, 'leagues'), where('__name__', '==', leagueId)));
-        if (!leagueSnap.empty) {
-          const leagueData = leagueSnap.docs[0].data() as League;
-          setSeasonYear(leagueData.seasonYear);
+        const { data, error } = await supabase
+          .from('leagues')
+          .select('season_year')
+          .eq('id', leagueId)
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setSeasonYear(data.season_year);
         }
       } catch (error) {
         console.error('Error fetching league:', error);
@@ -95,13 +128,15 @@ export function FreeAgents() {
       if (!leagueId || !user?.email) return;
 
       try {
-        const teamsRef = collection(db, 'teams');
-        const q = query(teamsRef, where('leagueId', '==', leagueId));
-        const snapshot = await getDocs(q);
+        const { data, error } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('league_id', leagueId);
 
-        const userTeam = snapshot.docs.find(doc => {
-          const teamData = doc.data();
-          return teamData.owners && teamData.owners.includes(user.email);
+        if (error) throw error;
+
+        const userTeam = (data || []).find((row: any) => {
+          return row.owners && row.owners.includes(user.email);
         });
 
         if (userTeam) {
@@ -122,12 +157,8 @@ export function FreeAgents() {
     // Load all players (one-time, players collection doesn't change often)
     const loadPlayers = async () => {
       try {
-        const playersSnap = await getDocs(collection(db, 'players'));
-        const playerData = playersSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Player[];
-
+        const data = await fetchAllRows('players');
+        const playerData = data.map(mapPlayer);
         setAllPlayers(playerData);
       } catch (error) {
         console.error('Error loading players:', error);
@@ -136,38 +167,61 @@ export function FreeAgents() {
 
     loadPlayers();
 
+    // Load regular season rosters initially
+    const loadRosters = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('regular_season_rosters')
+          .select('*')
+          .eq('league_id', leagueId)
+          .eq('season_year', seasonYear);
+
+        if (error) throw error;
+
+        const ownedIds = new Set<string>();
+        (data || []).forEach((row: any) => {
+          const roster = mapRegularSeasonRoster(row);
+          roster.activeRoster.forEach(id => ownedIds.add(id));
+          roster.irSlots.forEach(id => ownedIds.add(id));
+          roster.redshirtPlayers.forEach(id => ownedIds.add(id));
+          roster.internationalPlayers.forEach(id => ownedIds.add(id));
+
+          if (userTeamId && roster.teamId === userTeamId) {
+            setUserRoster(roster);
+          }
+        });
+
+        setOwnedPlayerIds(ownedIds);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading rosters:', error);
+        setLoading(false);
+      }
+    };
+
+    loadRosters();
+
     // Set up real-time listener for regular season rosters
-    const rostersQuery = query(
-      collection(db, 'regularSeasonRosters'),
-      where('leagueId', '==', leagueId),
-      where('seasonYear', '==', seasonYear)
-    );
-
-    const unsubscribe = onSnapshot(rostersQuery, (snapshot) => {
-      // Build set of all owned player IDs
-      const ownedIds = new Set<string>();
-
-      snapshot.docs.forEach(doc => {
-        const roster = { id: doc.id, ...doc.data() } as RegularSeasonRoster;
-        roster.activeRoster.forEach(id => ownedIds.add(id));
-        roster.irSlots.forEach(id => ownedIds.add(id));
-        roster.redshirtPlayers.forEach(id => ownedIds.add(id));
-        roster.internationalPlayers.forEach(id => ownedIds.add(id));
-
-        // Store user's roster if this is their team
-        if (userTeamId && roster.teamId === userTeamId) {
-          setUserRoster(roster);
+    const channel = supabase
+      .channel('regular_season_rosters_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'regular_season_rosters',
+          filter: `league_id=eq.${leagueId}`,
+        },
+        () => {
+          // Reload rosters on any change
+          loadRosters();
         }
-      });
+      )
+      .subscribe();
 
-      setOwnedPlayerIds(ownedIds);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error loading rosters:', error);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [leagueId, seasonYear, userTeamId]);
 
   // Apply search and sorting to free agents
@@ -297,11 +351,6 @@ export function FreeAgents() {
     try {
       setProcessing(true);
 
-      const rosterRef = doc(db, 'regularSeasonRosters', userRoster.id);
-      const updates: any = {
-        lastUpdated: Date.now(),
-      };
-
       // If roster is at 13, must drop a player first
       if (userRoster.activeRoster.length >= 13) {
         if (!playerToDrop) {
@@ -310,23 +359,43 @@ export function FreeAgents() {
           return;
         }
 
-        // Drop the selected player
-        updates.activeRoster = arrayRemove(playerToDrop);
-      }
+        // Drop the selected player first
+        const newActiveAfterDrop = userRoster.activeRoster.filter(id => id !== playerToDrop);
 
-      // Add the new player
-      if (playerToDrop) {
-        // Need to do it in sequence to avoid race condition
-        await updateDoc(rosterRef, {
-          activeRoster: arrayRemove(playerToDrop),
-          lastUpdated: Date.now(),
-        });
-      }
+        const { error: dropError } = await supabase
+          .from('regular_season_rosters')
+          .update({
+            active_roster: newActiveAfterDrop,
+            last_updated: Date.now(),
+          })
+          .eq('id', userRoster.id);
 
-      await updateDoc(rosterRef, {
-        activeRoster: arrayUnion(addingPlayer.id),
-        lastUpdated: Date.now(),
-      });
+        if (dropError) throw dropError;
+
+        // Add the new player
+        const { error: addError } = await supabase
+          .from('regular_season_rosters')
+          .update({
+            active_roster: [...newActiveAfterDrop, addingPlayer.id],
+            last_updated: Date.now(),
+          })
+          .eq('id', userRoster.id);
+
+        if (addError) throw addError;
+      } else {
+        // Just add the new player
+        const newActive = [...userRoster.activeRoster, addingPlayer.id];
+
+        const { error } = await supabase
+          .from('regular_season_rosters')
+          .update({
+            active_roster: newActive,
+            last_updated: Date.now(),
+          })
+          .eq('id', userRoster.id);
+
+        if (error) throw error;
+      }
 
       setAddingPlayer(null);
       setPlayerToDrop(null);

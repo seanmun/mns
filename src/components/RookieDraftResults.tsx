@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import type { Player, Team } from '../types';
 
 interface RookiePick {
@@ -16,6 +15,19 @@ interface RookieDraftResultsProps {
   teams: Team[];
 }
 
+function mapPlayer(row: any): Player {
+  return {
+    id: row.id, fantraxId: row.fantrax_id, name: row.name, position: row.position,
+    salary: row.salary, nbaTeam: row.nba_team,
+    roster: { leagueId: row.league_id, teamId: row.team_id, onIR: row.on_ir,
+      isRookie: row.is_rookie, isInternationalStash: row.is_international_stash,
+      intEligible: row.int_eligible, rookieDraftInfo: row.rookie_draft_info || undefined },
+    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
+      ? { priorYearRound: row.keeper_prior_year_round || undefined, derivedBaseRound: row.keeper_derived_base_round || undefined }
+      : undefined,
+  };
+}
+
 export function RookieDraftResults({ leagueId, teams }: RookieDraftResultsProps) {
   const [picks, setPicks] = useState<RookiePick[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,21 +35,17 @@ export function RookieDraftResults({ leagueId, teams }: RookieDraftResultsProps)
   useEffect(() => {
     const fetchRookiePicks = async () => {
       try {
-        // Query players with rookie draft info
-        const playersRef = collection(db, 'players');
-        const q = query(
-          playersRef,
-          where('roster.leagueId', '==', leagueId),
-          where('roster.isRookie', '==', true)
-        );
-        const snapshot = await getDocs(q);
+        // Query players with rookie draft info in this league
+        const { data, error } = await supabase
+          .from('players')
+          .select('*')
+          .eq('league_id', leagueId)
+          .eq('is_rookie', true)
+          .not('rookie_draft_info', 'is', null);
 
-        const rookiePlayers = snapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
-          .filter((player: any) => player.roster?.rookieDraftInfo) as Player[];
+        if (error) throw error;
+
+        const rookiePlayers = (data || []).map(mapPlayer);
 
         // Build picks array with team info
         const picksData: RookiePick[] = rookiePlayers

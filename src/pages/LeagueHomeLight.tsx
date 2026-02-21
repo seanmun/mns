@@ -1,9 +1,30 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Team, League } from '../types';
+
+function mapTeam(row: any): Team {
+  return {
+    id: row.id, leagueId: row.league_id, name: row.name, abbrev: row.abbrev,
+    owners: row.owners || [], ownerNames: row.owner_names || [],
+    telegramUsername: row.telegram_username || undefined,
+    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
+    settings: row.settings || { maxKeepers: 8 }, banners: row.banners || [],
+  };
+}
+
+function mapLeague(row: any): League {
+  return {
+    id: row.id,
+    name: row.name,
+    seasonYear: row.season_year,
+    keepersLocked: row.keepers_locked,
+    draftStatus: row.draft_status,
+    seasonStatus: row.season_status,
+    ...row,
+  };
+}
 
 export function LeagueHome() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -20,23 +41,26 @@ export function LeagueHome() {
 
       try {
         // Fetch league data
-        const leagueDoc = await getDocs(
-          query(collection(db, 'leagues'), where('__name__', '==', leagueId))
-        );
-        if (!leagueDoc.empty) {
-          setLeague({ id: leagueDoc.docs[0].id, ...leagueDoc.docs[0].data() } as League);
+        const { data: leagueData, error: leagueError } = await supabase
+          .from('leagues')
+          .select('*')
+          .eq('id', leagueId)
+          .single();
+
+        if (leagueError) throw leagueError;
+        if (leagueData) {
+          setLeague(mapLeague(leagueData));
         }
 
         // Fetch all teams in this league
-        const teamsRef = collection(db, 'teams');
-        const q = query(teamsRef, where('leagueId', '==', leagueId));
-        const snapshot = await getDocs(q);
+        const { data: teamsData, error: teamsError } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('league_id', leagueId);
 
-        const teamData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Team[];
+        if (teamsError) throw teamsError;
 
+        const teamData = (teamsData || []).map(mapTeam);
         setTeams(teamData);
 
         // Find user's team

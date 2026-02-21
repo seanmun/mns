@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import type { Wager } from '../types';
 
 interface WagerProposalProps {
@@ -18,13 +17,17 @@ export function WagerProposal({ wager, userEmail, isOpponent }: WagerProposalPro
 
     setIsSubmitting(true);
     try {
-      const wagerRef = doc(db, 'wagers', wager.id);
-      await updateDoc(wagerRef, {
-        status: 'accepted',
-        respondedAt: Date.now(),
-        respondedBy: userEmail,
-        updatedAt: Date.now(),
-      });
+      const { error } = await supabase
+        .from('wagers')
+        .update({
+          status: 'accepted',
+          responded_at: Date.now(),
+          responded_by: userEmail,
+          updated_at: Date.now(),
+        })
+        .eq('id', wager.id);
+
+      if (error) throw error;
     } catch (error) {
       console.error('Error accepting wager:', error);
       alert('Failed to accept wager. Please try again.');
@@ -38,13 +41,17 @@ export function WagerProposal({ wager, userEmail, isOpponent }: WagerProposalPro
 
     setIsSubmitting(true);
     try {
-      const wagerRef = doc(db, 'wagers', wager.id);
-      await updateDoc(wagerRef, {
-        status: 'declined',
-        respondedAt: Date.now(),
-        respondedBy: userEmail,
-        updatedAt: Date.now(),
-      });
+      const { error } = await supabase
+        .from('wagers')
+        .update({
+          status: 'declined',
+          responded_at: Date.now(),
+          responded_by: userEmail,
+          updated_at: Date.now(),
+        })
+        .eq('id', wager.id);
+
+      if (error) throw error;
     } catch (error) {
       console.error('Error declining wager:', error);
       alert('Failed to decline wager. Please try again.');

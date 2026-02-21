@@ -1,8 +1,71 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import type { Player, Team } from '../types';
+
+// --- Mapping helpers ---
+
+function mapTeam(row: any): Team {
+  return {
+    id: row.id,
+    leagueId: row.league_id,
+    name: row.name,
+    abbrev: row.abbrev,
+    owners: row.owners || [],
+    ownerNames: row.owner_names || [],
+    telegramUsername: row.telegram_username || undefined,
+    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
+    settings: row.settings || { maxKeepers: 8 },
+    banners: row.banners || [],
+  };
+}
+
+function mapPlayer(row: any): Player {
+  return {
+    id: row.id,
+    fantraxId: row.fantrax_id,
+    name: row.name,
+    position: row.position,
+    salary: row.salary,
+    nbaTeam: row.nba_team,
+    roster: {
+      leagueId: row.league_id,
+      teamId: row.team_id,
+      onIR: row.on_ir,
+      isRookie: row.is_rookie,
+      isInternationalStash: row.is_international_stash,
+      intEligible: row.int_eligible,
+      rookieDraftInfo: row.rookie_draft_info || undefined,
+    },
+    keeper:
+      row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
+        ? {
+            priorYearRound: row.keeper_prior_year_round || undefined,
+            derivedBaseRound: row.keeper_derived_base_round || undefined,
+          }
+        : undefined,
+  };
+}
+
+function playerToSupabase(player: Player): any {
+  return {
+    id: player.id,
+    fantrax_id: player.fantraxId,
+    name: player.name,
+    position: player.position,
+    salary: player.salary,
+    nba_team: player.nbaTeam,
+    league_id: player.roster?.leagueId,
+    team_id: player.roster?.teamId || null,
+    on_ir: player.roster?.onIR || false,
+    is_rookie: player.roster?.isRookie || false,
+    is_international_stash: player.roster?.isInternationalStash || false,
+    int_eligible: player.roster?.intEligible || false,
+    rookie_draft_info: player.roster?.rookieDraftInfo || null,
+    keeper_prior_year_round: player.keeper?.priorYearRound || null,
+    keeper_derived_base_round: player.keeper?.derivedBaseRound || null,
+  };
+}
 
 export function AdminPlayers() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -21,19 +84,16 @@ export function AdminPlayers() {
     setLoading(true);
     try {
       // Load teams
-      const teamsSnap = await getDocs(collection(db, 'teams'));
-      const teamsData = teamsSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Team[];
+      const { data: teamsRows, error: teamsErr } = await supabase
+        .from('teams')
+        .select('*');
+      if (teamsErr) throw teamsErr;
+      const teamsData = (teamsRows || []).map(mapTeam);
       setTeams(teamsData);
 
-      // Load players
-      const playersSnap = await getDocs(collection(db, 'players'));
-      const playersData = playersSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Player[];
+      // Load players (paginated past 1000-row limit)
+      const playersRows = await fetchAllRows('players');
+      const playersData = playersRows.map(mapPlayer);
       setPlayers(playersData);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -51,8 +111,15 @@ export function AdminPlayers() {
     if (!editingPlayer) return;
 
     try {
-      const { id, ...playerData } = editingPlayer;
-      await updateDoc(doc(db, 'players', id), playerData);
+      const supabaseData = playerToSupabase(editingPlayer);
+      const { id, ...updateData } = supabaseData;
+
+      const { error } = await supabase
+        .from('players')
+        .update(updateData)
+        .eq('id', id);
+      if (error) throw error;
+
       alert('Player updated successfully!');
       setEditingPlayer(null);
       await loadData();

@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import type { League } from '../types';
 
@@ -13,6 +12,22 @@ interface LeagueContextType {
 }
 
 const LeagueContext = createContext<LeagueContextType | undefined>(undefined);
+
+// Map Supabase row (snake_case) to League type (camelCase)
+function mapLeague(row: any): League {
+  return {
+    id: row.id,
+    name: row.name,
+    seasonYear: row.season_year,
+    deadlines: row.deadlines || {},
+    cap: row.cap || {},
+    keepersLocked: row.keepers_locked || false,
+    draftStatus: row.draft_status || undefined,
+    seasonStatus: row.season_status || undefined,
+    seasonStartedAt: row.season_started_at ? new Date(row.season_started_at).getTime() : undefined,
+    seasonStartedBy: row.season_started_by || undefined,
+  };
+}
 
 export function LeagueProvider({ children }: { children: React.ReactNode }) {
   const { user, role } = useAuth();
@@ -35,51 +50,47 @@ export function LeagueProvider({ children }: { children: React.ReactNode }) {
       try {
         setLoading(true);
 
-        // If admin, get all leagues
+        let leagues: League[] = [];
+
         if (role === 'admin') {
-          const leaguesRef = collection(db, 'leagues');
-          const snapshot = await getDocs(leaguesRef);
-          const leagues = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as League[];
+          // Admin sees all leagues
+          const { data, error } = await supabase
+            .from('leagues')
+            .select('*');
 
-          setUserLeagues(leagues);
-
-          // Set default league if none selected
-          if (!currentLeagueId && leagues.length > 0) {
-            const savedLeagueId = localStorage.getItem('currentLeagueId');
-            const defaultLeague = leagues.find(l => l.id === savedLeagueId) || leagues[0];
-            setCurrentLeagueIdState(defaultLeague.id);
-            setCurrentLeague(defaultLeague);
-            localStorage.setItem('currentLeagueId', defaultLeague.id);
-          }
+          if (error) throw error;
+          leagues = (data || []).map(mapLeague);
         } else {
-          // For regular users, find leagues where they own a team
-          const teamsRef = collection(db, 'teams');
-          const teamsQuery = query(teamsRef, where('owners', 'array-contains', user.email));
-          const teamsSnapshot = await getDocs(teamsQuery);
+          // Regular user: find leagues where they own a team
+          const { data: teams, error: teamsError } = await supabase
+            .from('teams')
+            .select('league_id')
+            .contains('owners', [user.email]);
 
-          // Get unique league IDs from teams
-          const leagueIds = Array.from(new Set(teamsSnapshot.docs.map(doc => doc.data().leagueId)));
+          if (teamsError) throw teamsError;
 
-          // Fetch league details
-          const leaguesRef = collection(db, 'leagues');
-          const leaguesSnapshot = await getDocs(leaguesRef);
-          const leagues = leaguesSnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(league => leagueIds.includes(league.id)) as League[];
+          const leagueIds = [...new Set((teams || []).map(t => t.league_id))];
 
-          setUserLeagues(leagues);
+          if (leagueIds.length > 0) {
+            const { data, error } = await supabase
+              .from('leagues')
+              .select('*')
+              .in('id', leagueIds);
 
-          // Set default league if none selected
-          if (!currentLeagueId && leagues.length > 0) {
-            const savedLeagueId = localStorage.getItem('currentLeagueId');
-            const defaultLeague = leagues.find(l => l.id === savedLeagueId) || leagues[0];
-            setCurrentLeagueIdState(defaultLeague.id);
-            setCurrentLeague(defaultLeague);
-            localStorage.setItem('currentLeagueId', defaultLeague.id);
+            if (error) throw error;
+            leagues = (data || []).map(mapLeague);
           }
+        }
+
+        setUserLeagues(leagues);
+
+        // Set default league if none selected
+        if (!currentLeagueId && leagues.length > 0) {
+          const savedLeagueId = localStorage.getItem('currentLeagueId');
+          const defaultLeague = leagues.find(l => l.id === savedLeagueId) || leagues[0];
+          setCurrentLeagueIdState(defaultLeague.id);
+          setCurrentLeague(defaultLeague);
+          localStorage.setItem('currentLeagueId', defaultLeague.id);
         }
       } catch (error) {
         console.error('Error fetching user leagues:', error);

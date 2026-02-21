@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
 
 interface Team {
   id: string;
@@ -9,6 +8,17 @@ interface Team {
   abbreviation: string;
   owners: string[];
   ownerNames?: string[];
+}
+
+// Map a Supabase team row to the local Team interface
+function mapTeam(row: any): Team {
+  return {
+    id: row.id,
+    name: row.name,
+    abbreviation: row.abbrev,
+    owners: row.owners,
+    ownerNames: row.owner_names,
+  };
 }
 
 export function Profile() {
@@ -29,15 +39,14 @@ export function Profile() {
       if (!user?.email) return;
 
       try {
-        const teamsRef = collection(db, 'teams');
-        const q = query(teamsRef, where('owners', 'array-contains', user.email));
-        const snapshot = await getDocs(q);
+        const { data: teamRows, error } = await supabase
+          .from('teams')
+          .select('*')
+          .contains('owners', [user.email]);
 
-        const userTeams = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Team[];
+        if (error) throw error;
 
+        const userTeams = (teamRows || []).map(mapTeam);
         setTeams(userTeams);
       } catch (error) {
         console.error('Error loading teams:', error);
@@ -70,13 +79,15 @@ export function Profile() {
   const handleSave = async (teamId: string) => {
     setSaving(true);
     try {
-      const teamRef = doc(db, 'teams', teamId);
-      const updateData: any = {
-        name: formData.name,
-        abbreviation: formData.abbreviation
-      };
+      const { error } = await supabase
+        .from('teams')
+        .update({
+          name: formData.name,
+          abbrev: formData.abbreviation,
+        })
+        .eq('id', teamId);
 
-      await updateDoc(teamRef, updateData);
+      if (error) throw error;
 
       // Update local state
       setTeams(teams.map(t =>
@@ -108,12 +119,14 @@ export function Profile() {
 
     setSaving(true);
     try {
-      const teamRef = doc(db, 'teams', teamId);
       const updatedOwners = [...team.owners, formData.newOwnerEmail.trim()];
 
-      await updateDoc(teamRef, {
-        owners: updatedOwners
-      });
+      const { error } = await supabase
+        .from('teams')
+        .update({ owners: updatedOwners })
+        .eq('id', teamId);
+
+      if (error) throw error;
 
       // Update local state
       setTeams(teams.map(t =>
@@ -144,12 +157,14 @@ export function Profile() {
 
     setSaving(true);
     try {
-      const teamRef = doc(db, 'teams', teamId);
       const updatedOwners = team.owners.filter(email => email !== ownerEmail);
 
-      await updateDoc(teamRef, {
-        owners: updatedOwners
-      });
+      const { error } = await supabase
+        .from('teams')
+        .update({ owners: updatedOwners })
+        .eq('id', teamId);
+
+      if (error) throw error;
 
       // Update local state
       setTeams(teams.map(t =>

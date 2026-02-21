@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import type { Prospect } from '../types';
 
 export function Prospects() {
@@ -13,14 +12,29 @@ export function Prospects() {
   useEffect(() => {
     const fetchProspects = async () => {
       try {
-        const prospectsRef = collection(db, 'prospects');
-        const q = query(prospectsRef, orderBy('rank', 'asc'));
-        const snapshot = await getDocs(q);
+        const { data, error } = await supabase
+          .from('prospects')
+          .select('*')
+          .order('rank', { ascending: true });
 
-        const prospectsData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Prospect[];
+        if (error) throw error;
+
+        // Map snake_case to camelCase
+        const prospectsData: Prospect[] = (data || []).map((row: any) => ({
+          id: row.id,
+          rank: row.rank,
+          player: row.player,
+          school: row.school,
+          position: row.position,
+          positionRank: row.position_rank,
+          year: row.year,
+          height: row.height,
+          weight: row.weight,
+          highSchool: row.high_school,
+          draftProjection: row.draft_projection,
+          createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+          updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : Date.now(),
+        }));
 
         setProspects(prospectsData);
       } catch (error) {

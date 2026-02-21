@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import { getDailyQuote } from '../data/hinkieQuotes';
@@ -26,19 +25,16 @@ export function Header() {
       }
 
       try {
-        const teamsRef = collection(db, 'teams');
-        const teamsQuery = query(
-          teamsRef,
-          where('leagueId', '==', currentLeague.id),
-          where('owners', 'array-contains', user.email)
-        );
-        const teamsSnapshot = await getDocs(teamsQuery);
+        const { data, error } = await supabase
+          .from('teams')
+          .select('id')
+          .eq('league_id', currentLeague.id)
+          .contains('owners', [user.email])
+          .limit(1);
 
-        if (!teamsSnapshot.empty) {
-          setUserTeamId(teamsSnapshot.docs[0].id);
-        } else {
-          setUserTeamId(null);
-        }
+        if (error) throw error;
+
+        setUserTeamId(data && data.length > 0 ? data[0].id : null);
       } catch (error) {
         console.error('Error fetching user team:', error);
         setUserTeamId(null);

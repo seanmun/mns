@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Portfolio } from '../types';
@@ -30,12 +29,26 @@ export function AdminPortfolio() {
     if (!currentLeagueId) return;
 
     try {
-      const portfolioDoc = await getDoc(doc(db, 'portfolios', currentLeagueId));
-      if (portfolioDoc.exists()) {
-        const data = { id: portfolioDoc.id, ...portfolioDoc.data() } as Portfolio;
-        setPortfolio(data);
-        setWalletAddress(data.walletAddress);
-        setUsdInvested(data.usdInvested.toString());
+      const { data, error } = await supabase
+        .from('portfolios')
+        .select('*')
+        .eq('id', currentLeagueId)
+        .single();
+
+      if (!error && data) {
+        const mapped: Portfolio = {
+          id: data.id,
+          leagueId: data.league_id,
+          walletAddress: data.wallet_address,
+          usdInvested: data.usd_invested,
+          lastUpdated: data.last_updated,
+          cachedEthBalance: data.cached_eth_balance,
+          cachedUsdValue: data.cached_usd_value,
+          cachedEthPrice: data.cached_eth_price,
+        };
+        setPortfolio(mapped);
+        setWalletAddress(mapped.walletAddress);
+        setUsdInvested(mapped.usdInvested.toString());
       }
     } catch (error) {
       console.error('Error loading portfolio:', error);
@@ -60,16 +73,27 @@ export function AdminPortfolio() {
 
     setSaving(true);
     try {
-      const portfolioData: Portfolio = {
+      const portfolioData = {
+        id: currentLeagueId,
+        league_id: currentLeagueId,
+        wallet_address: walletAddress.toLowerCase(),
+        usd_invested: invested,
+        last_updated: 0, // Will be set when first fetched
+      };
+
+      const { error } = await supabase
+        .from('portfolios')
+        .upsert(portfolioData);
+      if (error) throw error;
+
+      const mapped: Portfolio = {
         id: currentLeagueId,
         leagueId: currentLeagueId,
         walletAddress: walletAddress.toLowerCase(),
         usdInvested: invested,
-        lastUpdated: 0, // Will be set when first fetched
+        lastUpdated: 0,
       };
-
-      await setDoc(doc(db, 'portfolios', currentLeagueId), portfolioData);
-      setPortfolio(portfolioData);
+      setPortfolio(mapped);
       alert('Portfolio saved successfully!');
     } catch (error: any) {
       console.error('Error saving portfolio:', error);

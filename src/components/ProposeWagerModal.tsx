@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import type { Team, Wager } from '../types';
+import { supabase } from '../lib/supabase';
+import type { Team } from '../types';
 
 interface ProposeWagerModalProps {
   isOpen: boolean;
@@ -64,26 +63,32 @@ export function ProposeWagerModal({
 
     try {
       const now = Date.now();
-      const wagerData: Omit<Wager, 'id'> = {
-        leagueId,
-        seasonYear,
-        proposerId: myTeam.id,
-        proposerName: myTeam.name,
-        opponentId: selectedOpponent.id,
-        opponentName: selectedOpponent.name,
+      const wagerRow = {
+        league_id: leagueId,
+        season_year: seasonYear,
+        proposer_id: myTeam.id,
+        proposer_name: myTeam.name,
+        opponent_id: selectedOpponent.id,
+        opponent_name: selectedOpponent.name,
         description: description.trim(),
         amount: parseFloat(amount),
-        settlementDate,
+        settlement_date: settlementDate,
         status: 'pending',
-        proposedAt: now,
-        proposedBy: userEmail,
-        createdAt: now,
-        updatedAt: now,
+        proposed_at: now,
+        proposed_by: userEmail,
+        created_at: now,
+        updated_at: now,
       };
 
-      console.log('Creating wager:', wagerData);
-      const docRef = await addDoc(collection(db, 'wagers'), wagerData);
-      console.log('Wager created with ID:', docRef.id);
+      console.log('Creating wager:', wagerRow);
+      const { data, error: insertError } = await supabase
+        .from('wagers')
+        .insert(wagerRow)
+        .select('id')
+        .single();
+
+      if (insertError) throw insertError;
+      console.log('Wager created with ID:', data.id);
 
       // Reset form
       setSelectedOpponentId('');

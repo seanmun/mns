@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { collection, getDocs, doc, updateDoc, query, where, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import type { Team, Player, RegularSeasonRoster } from '../types';
 
 interface AdminRosterManagementProps {
@@ -10,6 +9,45 @@ interface AdminRosterManagementProps {
 }
 
 type ActionType = 'add_to_ir' | 'move_to_active' | 'drop_player' | 'add_free_agent';
+
+function mapTeam(row: any): Team {
+  return {
+    id: row.id, leagueId: row.league_id, name: row.name, abbrev: row.abbrev,
+    owners: row.owners || [], ownerNames: row.owner_names || [],
+    telegramUsername: row.telegram_username || undefined,
+    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
+    settings: row.settings || { maxKeepers: 8 }, banners: row.banners || [],
+  };
+}
+
+function mapPlayer(row: any): Player {
+  return {
+    id: row.id, fantraxId: row.fantrax_id, name: row.name, position: row.position,
+    salary: row.salary, nbaTeam: row.nba_team,
+    roster: { leagueId: row.league_id, teamId: row.team_id, onIR: row.on_ir,
+      isRookie: row.is_rookie, isInternationalStash: row.is_international_stash,
+      intEligible: row.int_eligible, rookieDraftInfo: row.rookie_draft_info || undefined },
+    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
+      ? { priorYearRound: row.keeper_prior_year_round || undefined, derivedBaseRound: row.keeper_derived_base_round || undefined }
+      : undefined,
+  };
+}
+
+function mapRegularSeasonRoster(row: any): RegularSeasonRoster {
+  return {
+    id: row.id,
+    leagueId: row.league_id,
+    teamId: row.team_id,
+    seasonYear: row.season_year,
+    activeRoster: row.active_roster || [],
+    irSlots: row.ir_slots || [],
+    redshirtPlayers: row.redshirt_players || [],
+    internationalPlayers: row.international_players || [],
+    isLegalRoster: row.is_legal_roster,
+    lastUpdated: row.last_updated,
+    updatedBy: row.updated_by,
+  };
+}
 
 export function AdminRosterManagement({ leagueId, seasonYear, onClose }: AdminRosterManagementProps) {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -31,30 +69,32 @@ export function AdminRosterManagement({ leagueId, seasonYear, onClose }: AdminRo
   const loadData = async () => {
     try {
       // Load teams
-      const teamsQuery = query(collection(db, 'teams'), where('leagueId', '==', leagueId));
-      const teamsSnap = await getDocs(teamsQuery);
-      const teamsData = teamsSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Team[];
-      setTeams(teamsData.sort((a, b) => a.name.localeCompare(b.name)));
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('league_id', leagueId);
 
-      // Load all players
-      const playersSnap = await getDocs(collection(db, 'players'));
-      const playersData = playersSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Player[];
-      setPlayers(playersData.sort((a, b) => a.name.localeCompare(b.name)));
+      if (teamsError) throw teamsError;
+      const mappedTeams = (teamsData || []).map(mapTeam).sort((a, b) => a.name.localeCompare(b.name));
+      setTeams(mappedTeams);
+
+      // Load all players (paginated past 1000-row limit)
+      const playersData = await fetchAllRows('players');
+      const mappedPlayers = playersData.map(mapPlayer).sort((a, b) => a.name.localeCompare(b.name));
+      setPlayers(mappedPlayers);
 
       // Load regular season rosters
-      const rostersSnap = await getDocs(collection(db, 'regularSeasonRosters'));
+      const { data: rostersData, error: rostersError } = await supabase
+        .from('regular_season_rosters')
+        .select('*')
+        .eq('league_id', leagueId)
+        .eq('season_year', seasonYear);
+
+      if (rostersError) throw rostersError;
       const rostersMap = new Map<string, RegularSeasonRoster>();
-      rostersSnap.docs.forEach(doc => {
-        const roster = { id: doc.id, ...doc.data() } as RegularSeasonRoster;
-        if (roster.leagueId === leagueId && roster.seasonYear === seasonYear) {
-          rostersMap.set(roster.teamId, roster);
-        }
+      (rostersData || []).forEach((row: any) => {
+        const roster = mapRegularSeasonRoster(row);
+        rostersMap.set(roster.teamId, roster);
       });
       setRosters(rostersMap);
 
@@ -142,41 +182,49 @@ export function AdminRosterManagement({ leagueId, seasonYear, onClose }: AdminRo
 
     try {
       const rosterId = `${leagueId}_${selectedTeam}`;
-      const rosterRef = doc(db, 'regularSeasonRosters', rosterId);
 
       switch (actionType) {
-        case 'add_to_ir':
+        case 'add_to_ir': {
           // Move from active to IR (max 2)
           if (roster.irSlots.length >= 2) {
             alert('IR is full (max 2 players)');
             setProcessing(false);
             return;
           }
-          await updateDoc(rosterRef, {
-            activeRoster: arrayRemove(selectedPlayer),
-            irSlots: arrayUnion(selectedPlayer),
-            lastUpdated: Date.now(),
-            updatedBy: 'admin'
-          });
+          const newActive = roster.activeRoster.filter(id => id !== selectedPlayer);
+          const newIR = [...roster.irSlots, selectedPlayer];
+          const { error } = await supabase
+            .from('regular_season_rosters')
+            .update({
+              active_roster: newActive,
+              ir_slots: newIR,
+              last_updated: Date.now(),
+              updated_by: 'admin'
+            })
+            .eq('id', rosterId);
+          if (error) throw error;
           break;
+        }
 
-        case 'move_to_active':
+        case 'move_to_active': {
           // Move from IR to active
-          await updateDoc(rosterRef, {
-            irSlots: arrayRemove(selectedPlayer),
-            activeRoster: arrayUnion(selectedPlayer),
-            lastUpdated: Date.now(),
-            updatedBy: 'admin'
-          });
+          const newIR = roster.irSlots.filter(id => id !== selectedPlayer);
+          const newActive = [...roster.activeRoster, selectedPlayer];
+          const { error } = await supabase
+            .from('regular_season_rosters')
+            .update({
+              ir_slots: newIR,
+              active_roster: newActive,
+              last_updated: Date.now(),
+              updated_by: 'admin'
+            })
+            .eq('id', rosterId);
+          if (error) throw error;
           break;
+        }
 
-        case 'drop_player':
+        case 'drop_player': {
           // Remove from all arrays
-          const updates: any = {
-            lastUpdated: Date.now(),
-            updatedBy: 'admin'
-          };
-
           console.log('[AdminRosterManagement] Dropping player:', selectedPlayer);
           console.log('[AdminRosterManagement] Current roster:', {
             active: roster.activeRoster,
@@ -185,36 +233,52 @@ export function AdminRosterManagement({ leagueId, seasonYear, onClose }: AdminRo
             intl: roster.internationalPlayers
           });
 
+          const updates: any = {
+            last_updated: Date.now(),
+            updated_by: 'admin'
+          };
+
           if (roster.activeRoster.includes(selectedPlayer)) {
             console.log('[AdminRosterManagement] Removing from activeRoster');
-            updates.activeRoster = arrayRemove(selectedPlayer);
+            updates.active_roster = roster.activeRoster.filter(id => id !== selectedPlayer);
           }
           if (roster.irSlots.includes(selectedPlayer)) {
             console.log('[AdminRosterManagement] Removing from irSlots');
-            updates.irSlots = arrayRemove(selectedPlayer);
+            updates.ir_slots = roster.irSlots.filter(id => id !== selectedPlayer);
           }
           if (roster.redshirtPlayers.includes(selectedPlayer)) {
             console.log('[AdminRosterManagement] Removing from redshirtPlayers');
-            updates.redshirtPlayers = arrayRemove(selectedPlayer);
+            updates.redshirt_players = roster.redshirtPlayers.filter(id => id !== selectedPlayer);
           }
           if (roster.internationalPlayers.includes(selectedPlayer)) {
             console.log('[AdminRosterManagement] Removing from internationalPlayers');
-            updates.internationalPlayers = arrayRemove(selectedPlayer);
+            updates.international_players = roster.internationalPlayers.filter(id => id !== selectedPlayer);
           }
 
           console.log('[AdminRosterManagement] Updates to apply:', updates);
-          await updateDoc(rosterRef, updates);
+          const { error } = await supabase
+            .from('regular_season_rosters')
+            .update(updates)
+            .eq('id', rosterId);
+          if (error) throw error;
           console.log('[AdminRosterManagement] Drop completed successfully');
           break;
+        }
 
-        case 'add_free_agent':
+        case 'add_free_agent': {
           // Add to active roster
-          await updateDoc(rosterRef, {
-            activeRoster: arrayUnion(selectedPlayer),
-            lastUpdated: Date.now(),
-            updatedBy: 'admin'
-          });
+          const newActive = [...roster.activeRoster, selectedPlayer];
+          const { error } = await supabase
+            .from('regular_season_rosters')
+            .update({
+              active_roster: newActive,
+              last_updated: Date.now(),
+              updated_by: 'admin'
+            })
+            .eq('id', rosterId);
+          if (error) throw error;
           break;
+        }
       }
 
       // Reload data

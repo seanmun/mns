@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { useRoster, useTeamPlayers, useTeam, useLeague, updateRoster, submitRoster, saveScenario } from '../hooks/useRoster';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { usePreviousStats } from '../hooks/usePreviousStats';
@@ -159,20 +158,52 @@ export function OwnerDashboard() {
     }
   }, [roster, players, playersMap]);
 
+  // Helper to map a Supabase player row to the Player type
+  const mapPlayer = (row: any): Player => ({
+    id: row.id,
+    fantraxId: row.fantrax_id,
+    name: row.name,
+    position: row.position,
+    salary: row.salary,
+    nbaTeam: row.nba_team,
+    roster: {
+      leagueId: row.league_id,
+      teamId: row.team_id,
+      onIR: row.on_ir,
+      isRookie: row.is_rookie,
+      isInternationalStash: row.is_international_stash,
+      intEligible: row.int_eligible,
+      rookieDraftInfo: row.rookie_draft_info || undefined,
+    },
+    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
+      ? { priorYearRound: row.keeper_prior_year_round || undefined, derivedBaseRound: row.keeper_derived_base_round || undefined }
+      : undefined,
+  });
+
+  // Helper to map a Supabase team row to the Team type
+  const mapTeam = (row: any): Team => ({
+    id: row.id,
+    leagueId: row.league_id,
+    name: row.name,
+    abbrev: row.abbrev,
+    owners: row.owners,
+    ownerNames: row.owner_names,
+    telegramUsername: row.telegram_username,
+    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
+    settings: row.settings || { maxKeepers: 8 },
+    banners: row.banners,
+  });
+
   // Fetch all league players for watchlist display and rookie picks
   useEffect(() => {
     const fetchAllPlayers = async () => {
       if (!leagueId) return;
 
       try {
-        const playersRef = collection(db, 'players');
-        // Load ALL players - no longer filter by roster.leagueId (old keeper phase data)
-        // Ownership is now tracked in regularSeasonRosters collection
-        const snapshot = await getDocs(playersRef);
-        const allPlayers = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Player[];
+        // Load ALL players (paginated past 1000-row API limit)
+        const playerRows = await fetchAllRows('players');
+
+        const allPlayers = playerRows.map(mapPlayer);
         console.log(`[OwnerDashboard] Fetched ${allPlayers.length} total players`);
         console.log(`[OwnerDashboard] Team ${teamId} roster entries:`, roster?.entries?.length || 0);
         setAllLeaguePlayers(allPlayers);
@@ -185,13 +216,14 @@ export function OwnerDashboard() {
       if (!leagueId) return;
 
       try {
-        const teamsRef = collection(db, 'teams');
-        const teamsQuery = query(teamsRef, where('leagueId', '==', leagueId));
-        const teamsSnap = await getDocs(teamsQuery);
-        const teamsData = teamsSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Team[];
+        const { data: teamRows, error } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('league_id', leagueId);
+
+        if (error) throw error;
+
+        const teamsData = (teamRows || []).map(mapTeam);
         setAllTeams(teamsData);
       } catch (error) {
         console.error('Error fetching teams:', error);
@@ -201,13 +233,23 @@ export function OwnerDashboard() {
     const fetchRookiePicks = async () => {
       if (!leagueId || !teamId) return;
       try {
-        const picksRef = collection(db, 'rookieDraftPicks');
-        const picksQuery = query(picksRef, where('leagueId', '==', leagueId), where('currentOwner', '==', teamId));
-        const picksSnap = await getDocs(picksQuery);
-        const picksData = picksSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as RookieDraftPick[];
+        const { data: picksRows, error } = await supabase
+          .from('rookie_draft_picks')
+          .select('*')
+          .eq('league_id', leagueId)
+          .eq('current_owner', teamId);
+
+        if (error) throw error;
+
+        const picksData: RookieDraftPick[] = (picksRows || []).map((row: any) => ({
+          id: row.id,
+          year: row.year,
+          round: row.round,
+          originalTeam: row.original_team,
+          originalTeamName: row.original_team_name,
+          currentOwner: row.current_owner,
+          leagueId: row.league_id,
+        }));
         setRookiePicks(picksData);
       } catch (error) {
         console.error('Error loading rookie picks:', error);
@@ -217,34 +259,52 @@ export function OwnerDashboard() {
     const fetchDraftedPlayers = async () => {
       if (!leagueId || !teamId || !league) return;
       try {
-        // NEW: Load picks from pickAssignments collection
-        const pickAssignmentsRef = collection(db, 'pickAssignments');
-        const pickAssignmentsQuery = query(
-          pickAssignmentsRef,
-          where('leagueId', '==', leagueId),
-          where('currentTeamId', '==', teamId),
-          where('seasonYear', '==', league.seasonYear)
-        );
-        const pickAssignmentsSnap = await getDocs(pickAssignmentsQuery);
+        // Load picks from pick_assignments table
+        const { data: pickAssignmentRows, error: paError } = await supabase
+          .from('pick_assignments')
+          .select('*')
+          .eq('league_id', leagueId)
+          .eq('current_team_id', teamId)
+          .eq('season_year', league.seasonYear);
 
-        const teamPickAssignments = pickAssignmentsSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as any[];
+        if (paError) throw paError;
+
+        const teamPickAssignments = (pickAssignmentRows || []).map((row: any) => ({
+          id: row.id,
+          leagueId: row.league_id,
+          seasonYear: row.season_year,
+          round: row.round,
+          pickInRound: row.pick_in_round,
+          overallPick: row.overall_pick,
+          currentTeamId: row.current_team_id,
+          originalTeamId: row.original_team_id,
+          originalTeamName: row.original_team_name,
+          originalTeamAbbrev: row.original_team_abbrev,
+          playerId: row.player_id,
+          playerName: row.player_name,
+          isKeeperSlot: row.is_keeper_slot,
+          pickedAt: row.picked_at,
+          pickedBy: row.picked_by,
+          wasTraded: row.was_traded,
+          tradeHistory: row.trade_history,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        }));
 
         // Load player data for picks with players assigned
         const playerIds = teamPickAssignments
-          .filter(pick => pick.playerId)
-          .map(pick => pick.playerId);
+          .filter((pick: any) => pick.playerId)
+          .map((pick: any) => pick.playerId);
 
         if (playerIds.length > 0) {
-          const playersRef = collection(db, 'players');
-          const playersSnap = await getDocs(playersRef);
+          const { data: playerRows, error: pError } = await supabase
+            .from('players')
+            .select('*')
+            .in('fantrax_id', playerIds);
 
-          const draftedPlayerData = playersSnap.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }) as Player)
-            .filter(p => playerIds.includes(p.fantraxId));
+          if (pError) throw pError;
 
+          const draftedPlayerData = (playerRows || []).map(mapPlayer);
           setDraftedPlayers(draftedPlayerData);
         } else {
           setDraftedPlayers([]);
@@ -254,9 +314,14 @@ export function OwnerDashboard() {
 
         // Check draft status
         const draftId = `${leagueId}_${league.seasonYear}`;
-        const draftDoc = await getDocs(query(collection(db, 'drafts'), where('__name__', '==', draftId)));
-        if (!draftDoc.empty) {
-          setDraftStatus(draftDoc.docs[0].data().status || 'setup');
+        const { data: draftRow, error: draftError } = await supabase
+          .from('drafts')
+          .select('status')
+          .eq('id', draftId)
+          .single();
+
+        if (!draftError && draftRow) {
+          setDraftStatus(draftRow.status || 'setup');
         }
 
       } catch (error) {

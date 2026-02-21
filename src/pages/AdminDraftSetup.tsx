@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team, Player, Draft, DraftPick, RosterDoc } from '../types';
@@ -35,33 +34,72 @@ export function AdminDraftSetup() {
     setLoading(true);
     try {
       // Load teams
-      const teamsRef = collection(db, 'teams');
-      const teamsQuery = query(teamsRef, where('leagueId', '==', currentLeagueId));
-      const teamsSnap = await getDocs(teamsQuery);
-      const teamsData = teamsSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Team[];
-      setTeams(teamsData);
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('league_id', currentLeagueId);
+      if (teamsError) throw teamsError;
 
-      // Load all players
-      const playersSnap = await getDocs(collection(db, 'players'));
-      const playersData = playersSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+      const mappedTeams = (teamsData || []).map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        abbrev: t.abbrev,
+        owners: t.owners,
+        leagueId: t.league_id,
+        ownerNames: t.owner_names,
+        capAdjustments: t.cap_adjustments,
+        telegramUsername: t.telegram_username,
+      })) as Team[];
+      setTeams(mappedTeams);
+
+      // Load all players (paginated past 1000-row limit)
+      const playersData = await fetchAllRows('players');
+
+      const mappedPlayers = playersData.map((row: any): Player => ({
+        id: row.id,
+        fantraxId: row.fantrax_id,
+        name: row.name,
+        position: row.position,
+        salary: row.salary,
+        nbaTeam: row.nba_team,
+        roster: {
+          leagueId: row.league_id,
+          teamId: row.team_id,
+          onIR: row.on_ir,
+          isRookie: row.is_rookie,
+          isInternationalStash: row.is_international_stash,
+          intEligible: row.int_eligible,
+          rookieDraftInfo: row.rookie_draft_info || undefined,
+        },
+        keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
+          ? {
+              priorYearRound: row.keeper_prior_year_round || undefined,
+              derivedBaseRound: row.keeper_derived_base_round || undefined,
+            }
+          : undefined,
       })) as Player[];
-      setPlayers(playersData);
+      setPlayers(mappedPlayers);
 
       // Load rosters for each team
       const rostersData: RosterDoc[] = [];
-      for (const team of teamsData) {
+      for (const team of mappedTeams) {
         const rosterId = `${currentLeagueId}_${team.id}`;
-        const rosterRef = doc(db, 'rosters', rosterId);
-        const rosterSnap = await getDoc(rosterRef);
-        if (rosterSnap.exists()) {
+        const { data: rosterRow, error: rosterError } = await supabase
+          .from('rosters')
+          .select('*')
+          .eq('id', rosterId)
+          .single();
+
+        if (!rosterError && rosterRow) {
           rostersData.push({
-            id: rosterSnap.id,
-            ...rosterSnap.data(),
+            id: rosterRow.id,
+            teamId: rosterRow.team_id,
+            leagueId: rosterRow.league_id,
+            seasonYear: rosterRow.season_year,
+            entries: rosterRow.entries,
+            status: rosterRow.status,
+            summary: rosterRow.summary,
+            savedScenarios: rosterRow.saved_scenarios,
           } as RosterDoc);
         }
       }
@@ -69,11 +107,27 @@ export function AdminDraftSetup() {
 
       // Check if draft already exists
       const draftId = `${currentLeagueId}_${currentLeague.seasonYear}`;
-      const draftRef = doc(db, 'drafts', draftId);
-      const draftSnap = await getDoc(draftRef);
+      const { data: draftRow, error: draftError } = await supabase
+        .from('drafts')
+        .select('*')
+        .eq('id', draftId)
+        .single();
 
-      if (draftSnap.exists()) {
-        const draft = { id: draftSnap.id, ...draftSnap.data() } as Draft;
+      if (!draftError && draftRow) {
+        const draft: Draft = {
+          id: draftRow.id,
+          leagueId: draftRow.league_id,
+          seasonYear: draftRow.season_year,
+          status: draftRow.status,
+          draftOrder: draftRow.draft_order,
+          currentPick: draftRow.current_pick,
+          picks: draftRow.picks,
+          settings: draftRow.settings,
+          createdAt: draftRow.created_at,
+          createdBy: draftRow.created_by,
+          startedAt: draftRow.started_at,
+          completedAt: draftRow.completed_at,
+        } as Draft;
         setExistingDraft(draft);
         setDraftOrder(draft.draftOrder);
 
@@ -82,20 +136,17 @@ export function AdminDraftSetup() {
         }
       } else {
         // Load draft order from draftPicks collection (Round 1)
-        const draftPicksRef = collection(db, 'draftPicks');
-        const draftPicksQuery = query(
-          draftPicksRef,
-          where('leagueId', '==', currentLeagueId),
-          where('round', '==', 1)
-        );
-        const draftPicksSnap = await getDocs(draftPicksQuery);
+        const { data: draftPicksData, error: draftPicksError } = await supabase
+          .from('draft_picks')
+          .select('*')
+          .eq('league_id', currentLeagueId)
+          .eq('round', 1);
 
-        if (!draftPicksSnap.empty) {
-          const round1Picks = draftPicksSnap.docs
-            .map(doc => doc.data())
-            .sort((a: any, b: any) => a.pickNumber - b.pickNumber);
+        if (!draftPicksError && draftPicksData && draftPicksData.length > 0) {
+          const round1Picks = draftPicksData
+            .sort((a: any, b: any) => a.pick_number - b.pick_number);
 
-          const loadedOrder = round1Picks.map((pick: any) => pick.originalTeam);
+          const loadedOrder = round1Picks.map((pick: any) => pick.original_team);
           console.log('[Draft Setup] Loaded draft order from draftPicks:', loadedOrder);
           setDraftOrder(loadedOrder);
         }
@@ -165,21 +216,25 @@ export function AdminDraftSetup() {
       const backupId = `draft_init_${currentLeagueId}_${timestamp}`;
 
       console.log('[Draft Setup] Creating backup before draft initialization...');
-      await setDoc(doc(db, 'backups', backupId), {
-        type: 'draft_initialization',
-        leagueId: currentLeagueId,
-        leagueName: currentLeague.name,
-        seasonYear: currentLeague.seasonYear,
-        timestamp,
-        rosters: rosters.map(r => ({
-          id: r.id,
-          teamId: r.teamId,
-          entries: r.entries,
-          status: r.status,
-          summary: r.summary,
-        })),
-        createdAt: new Date().toISOString(),
-      });
+      const { error: backupError } = await supabase
+        .from('backups')
+        .upsert({
+          id: backupId,
+          type: 'draft_initialization',
+          league_id: currentLeagueId,
+          league_name: currentLeague.name,
+          season_year: currentLeague.seasonYear,
+          timestamp,
+          rosters: rosters.map(r => ({
+            id: r.id,
+            teamId: r.teamId,
+            entries: r.entries,
+            status: r.status,
+            summary: r.summary,
+          })),
+          created_at: new Date().toISOString(),
+        });
+      if (backupError) throw backupError;
       console.log('[Draft Setup] Backup created:', backupId);
 
       // STEP 2: Generate all picks including keeper slots
@@ -234,22 +289,22 @@ export function AdminDraftSetup() {
       const draftId = `${currentLeagueId}_${currentLeague.seasonYear}`;
       const draftData: any = {
         id: draftId,
-        leagueId: currentLeagueId,
-        seasonYear: currentLeague.seasonYear,
+        league_id: currentLeagueId,
+        season_year: currentLeague.seasonYear,
         status: 'setup',
-        draftOrder,
+        draft_order: draftOrder,
         picks,
         settings: {
           allowAdminOverride: true,
           isTestDraft: isTestDraft,
         },
-        createdAt: Date.now(),
-        createdBy: user?.email || 'unknown',
+        created_at: Date.now(),
+        created_by: user?.email || 'unknown',
       };
 
       // Only add currentPick if there's an open pick
       if (firstOpenPick) {
-        draftData.currentPick = {
+        draftData.current_pick = {
           round: firstOpenPick.round,
           pickInRound: firstOpenPick.pickInRound,
           overallPick: firstOpenPick.overallPick,
@@ -258,9 +313,30 @@ export function AdminDraftSetup() {
         };
       }
 
-      await setDoc(doc(db, 'drafts', draftId), draftData);
+      const { error: draftUpsertError } = await supabase
+        .from('drafts')
+        .upsert(draftData);
+      if (draftUpsertError) throw draftUpsertError;
 
-      const draft = draftData as Draft;
+      // Map back to camelCase for local state
+      const draft: Draft = {
+        id: draftId,
+        leagueId: currentLeagueId,
+        seasonYear: currentLeague.seasonYear,
+        status: 'setup',
+        draftOrder,
+        picks,
+        settings: draftData.settings,
+        createdAt: draftData.created_at,
+        createdBy: draftData.created_by,
+        currentPick: draftData.current_pick ? {
+          round: draftData.current_pick.round,
+          pickInRound: draftData.current_pick.pickInRound,
+          overallPick: draftData.current_pick.overallPick,
+          teamId: draftData.current_pick.teamId,
+          startedAt: draftData.current_pick.startedAt,
+        } : undefined,
+      } as Draft;
       setExistingDraft(draft);
       setStep('complete');
 
@@ -281,12 +357,14 @@ export function AdminDraftSetup() {
     if (!existingDraft) return;
 
     try {
-      const draftRef = doc(db, 'drafts', existingDraft.id);
-      await setDoc(draftRef, {
-        ...existingDraft,
-        status: 'in_progress',
-        startedAt: Date.now(),
-      });
+      const { error } = await supabase
+        .from('drafts')
+        .update({
+          status: 'in_progress',
+          started_at: Date.now(),
+        })
+        .eq('id', existingDraft.id);
+      if (error) throw error;
 
       navigate(`/league/${currentLeagueId}/draft`);
     } catch (error) {
@@ -305,8 +383,11 @@ export function AdminDraftSetup() {
     if (!confirmed) return;
 
     try {
-      const draftRef = doc(db, 'drafts', existingDraft.id);
-      await deleteDoc(draftRef);
+      const { error } = await supabase
+        .from('drafts')
+        .delete()
+        .eq('id', existingDraft.id);
+      if (error) throw error;
 
       setExistingDraft(null);
       setDraftOrder([]);
@@ -338,14 +419,15 @@ export function AdminDraftSetup() {
       console.log('[AdminDraftSetup] Fixing', draftedPicks.length, 'drafted players');
 
       // Load draft pick ownership for trades
-      const draftPicksRef = collection(db, 'draftPicks');
-      const draftPicksQuery = query(draftPicksRef, where('leagueId', '==', currentLeagueId));
-      const draftPicksSnap = await getDocs(draftPicksQuery);
+      const { data: draftPicksData, error: draftPicksError } = await supabase
+        .from('draft_picks')
+        .select('*')
+        .eq('league_id', currentLeagueId);
+      if (draftPicksError) throw draftPicksError;
 
       const ownershipMap = new Map<number, string>();
-      draftPicksSnap.docs.forEach((doc) => {
-        const pick = doc.data();
-        ownershipMap.set(pick.pickNumber, pick.currentOwner);
+      (draftPicksData || []).forEach((pick: any) => {
+        ownershipMap.set(pick.pick_number, pick.current_owner);
       });
 
       // Update each player
@@ -355,22 +437,19 @@ export function AdminDraftSetup() {
           // Get actual owner (accounting for trades)
           const actualOwner = ownershipMap.get(pick.overallPick) || pick.teamId;
 
-          const playerRef = doc(db, 'players', pick.playerId!);
-          const playerSnap = await getDoc(playerRef);
+          const { error: updateError } = await supabase
+            .from('players')
+            .update({
+              team_id: actualOwner,
+              league_id: currentLeagueId,
+            })
+            .eq('id', pick.playerId!);
 
-          if (playerSnap.exists()) {
-            await setDoc(playerRef, {
-              ...playerSnap.data(),
-              roster: {
-                ...playerSnap.data().roster,
-                teamId: actualOwner,
-                leagueId: currentLeagueId
-              }
-            });
+          if (updateError) {
+            console.warn('[AdminDraftSetup] Error updating player:', pick.playerName, updateError);
+          } else {
             fixed++;
             console.log('[AdminDraftSetup] Fixed player', pick.playerName, 'assigned to', actualOwner);
-          } else {
-            console.warn('[AdminDraftSetup] Player not found:', pick.playerId);
           }
         } catch (error) {
           console.error('[AdminDraftSetup] Error fixing player:', pick.playerName, error);

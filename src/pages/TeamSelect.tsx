@@ -1,9 +1,40 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Team, League } from '../types';
+
+// Map a Supabase team row to the Team type
+function mapTeam(row: any): Team {
+  return {
+    id: row.id,
+    leagueId: row.league_id,
+    name: row.name,
+    abbrev: row.abbrev,
+    owners: row.owners,
+    ownerNames: row.owner_names,
+    telegramUsername: row.telegram_username,
+    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
+    settings: row.settings || { maxKeepers: 8 },
+    banners: row.banners,
+  };
+}
+
+// Map a Supabase league row to the League type
+function mapLeague(row: any): League {
+  return {
+    id: row.id,
+    name: row.name,
+    seasonYear: row.season_year,
+    deadlines: row.deadlines,
+    cap: row.cap,
+    keepersLocked: row.keepers_locked,
+    draftStatus: row.draft_status,
+    seasonStatus: row.season_status,
+    seasonStartedAt: row.season_started_at,
+    seasonStartedBy: row.season_started_by,
+  };
+}
 
 export function TeamSelect() {
   const { user, signOut } = useAuth();
@@ -18,36 +49,30 @@ export function TeamSelect() {
 
       try {
         // Fetch teams where user is an owner
-        const teamsRef = collection(db, 'teams');
-        const q = query(teamsRef, where('owners', 'array-contains', user.email));
-        const snapshot = await getDocs(q);
+        const { data: teamRows, error: teamError } = await supabase
+          .from('teams')
+          .select('*')
+          .contains('owners', [user.email]);
 
-        const teamData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Team[];
+        if (teamError) throw teamError;
 
+        const teamData = (teamRows || []).map(mapTeam);
         setTeams(teamData);
 
         // Fetch leagues for these teams
         const leagueIds = [...new Set(teamData.map((t) => t.leagueId))];
-        const leaguePromises = leagueIds.map(async (leagueId) => {
-          const leagueDoc = await getDocs(
-            query(collection(db, 'leagues'), where('__name__', '==', leagueId))
-          );
-          if (!leagueDoc.empty) {
-            return {
-              id: leagueDoc.docs[0].id,
-              ...leagueDoc.docs[0].data(),
-            } as League;
-          }
-          return null;
-        });
 
-        const leagueData = (await Promise.all(leaguePromises)).filter(
-          Boolean
-        ) as League[];
-        setLeagues(new Map(leagueData.map((l) => [l.id, l])));
+        if (leagueIds.length > 0) {
+          const { data: leagueRows, error: leagueError } = await supabase
+            .from('leagues')
+            .select('*')
+            .in('id', leagueIds);
+
+          if (leagueError) throw leagueError;
+
+          const leagueData = (leagueRows || []).map(mapLeague);
+          setLeagues(new Map(leagueData.map((l) => [l.id, l])));
+        }
 
         setLoading(false);
 

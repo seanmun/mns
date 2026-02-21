@@ -3,111 +3,30 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export function FinishSignIn() {
-  const { completeEmailLinkSignIn, user } = useAuth();
-  const [email, setEmail] = useState('');
+  const { user } = useAuth();
   const [error, setError] = useState('');
-  const [needsEmail, setNeedsEmail] = useState(false);
-  const [processing, setProcessing] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const finishSignIn = async () => {
-      // Get email from localStorage
-      const storedEmail = window.localStorage.getItem('emailForSignIn');
-
-      if (storedEmail) {
-        try {
-          await completeEmailLinkSignIn(storedEmail);
-          // User will be set by AuthContext, navigate happens in parent
-        } catch (err: any) {
-          setError(err.message || 'Failed to sign in');
-          setProcessing(false);
-        }
-      } else {
-        // Email not in storage, ask user to enter it
-        setNeedsEmail(true);
-        setProcessing(false);
-      }
-    };
-
-    finishSignIn();
-  }, [completeEmailLinkSignIn]);
+  // Supabase handles the magic link token exchange automatically.
+  // The onAuthStateChange listener in AuthContext picks up the session
+  // from the URL hash. We just wait and redirect.
 
   useEffect(() => {
     if (user) {
+      window.localStorage.removeItem('emailForSignIn');
       navigate('/teams');
     }
   }, [user, navigate]);
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setProcessing(true);
-
-    try {
-      await completeEmailLinkSignIn(email);
-      // User will be set, navigate happens above
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
-      setProcessing(false);
-    }
-  };
-
-  if (processing) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400 mx-auto mb-4"></div>
-          <div className="text-gray-400">Signing you in...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (needsEmail) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
-        <div className="max-w-md w-full space-y-8 p-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-2">
-              Confirm Your Email
-            </h1>
-            <p className="text-gray-300">
-              Please enter the email address you used to sign in
-            </p>
-          </div>
-
-          <div className="bg-[#121212] p-8 rounded-lg border border-gray-800">
-            <form onSubmit={handleEmailSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="sr-only">
-                  Email address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
-                />
-              </div>
-              {error && (
-                <p className="text-sm text-red-400">{error}</p>
-              )}
-              <button
-                type="submit"
-                className="w-full px-4 py-3 border-2 border-green-400 text-green-400 rounded-md hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all font-semibold cursor-pointer"
-              >
-                Sign In
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // If something goes wrong after a few seconds, show an error
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!user) {
+        setError('Sign-in link may have expired. Please try again.');
+      }
+    }, 10000);
+    return () => clearTimeout(timeout);
+  }, [user]);
 
   if (error) {
     return (
@@ -134,7 +53,7 @@ export function FinishSignIn() {
             </h3>
             <p className="text-gray-300 mb-4">{error}</p>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/login')}
               className="text-green-400 hover:text-green-300 cursor-pointer"
             >
               Back to Sign In
@@ -145,5 +64,12 @@ export function FinishSignIn() {
     );
   }
 
-  return null;
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400 mx-auto mb-4"></div>
+        <div className="text-gray-400">Signing you in...</div>
+      </div>
+    </div>
+  );
 }

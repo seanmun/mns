@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { collection, doc, getDoc, setDoc, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -28,16 +27,19 @@ export function AdminMigration() {
     setStatus('Exporting draft...');
 
     try {
-      const draftDoc = await getDoc(doc(db, 'drafts', 'XPL9dJv8BTFNAMlrNBpJ_2025'));
+      const { data: draftRow, error: draftError } = await supabase
+        .from('drafts')
+        .select('*')
+        .eq('id', 'XPL9dJv8BTFNAMlrNBpJ_2025')
+        .single();
 
-      if (!draftDoc.exists()) {
-        setStatus('❌ Draft not found');
+      if (draftError || !draftRow) {
+        setStatus('Draft not found');
         setLoading(false);
         return;
       }
 
-      const draft = draftDoc.data();
-      const picks = draft.picks;
+      const picks = draftRow.picks;
 
       let csv = 'pickId,currentTeamId,originalTeamId,playerId,playerName,round,pickInRound,overallPick,isKeeperSlot,pickedAt,pickedBy\n';
 
@@ -75,9 +77,9 @@ export function AdminMigration() {
       a.download = 'draft_picks.csv';
       a.click();
 
-      setStatus(`✅ Exported ${picks.length} picks to CSV`);
+      setStatus(`Exported ${picks.length} picks to CSV`);
     } catch (error: any) {
-      setStatus(`❌ Error: ${error.message}\n\nCode: ${error.code || 'unknown'}`);
+      setStatus(`Error: ${error.message}\n\nCode: ${error.code || 'unknown'}`);
       console.error('Full error:', error);
     } finally {
       setLoading(false);
@@ -94,13 +96,16 @@ export function AdminMigration() {
     try {
       // Load team data first to get names
       setStatus('Loading team data...');
-      const teamsSnap = await getDocs(collection(db, 'teams'));
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('*');
+      if (teamsError) throw teamsError;
+
       const teamNames: Record<string, { name: string; abbrev: string }> = {};
-      teamsSnap.docs.forEach(doc => {
-        const data = doc.data();
-        teamNames[doc.id] = {
-          name: data.name || '',
-          abbrev: data.abbrev || ''
+      (teamsData || []).forEach((row: any) => {
+        teamNames[row.id] = {
+          name: row.name || '',
+          abbrev: row.abbrev || ''
         };
       });
 
@@ -150,27 +155,31 @@ export function AdminMigration() {
         const originalTeam = teamNames[pick.originalTeamId];
         const pickDoc = {
           id: pick.pickId,
-          leagueId: 'XPL9dJv8BTFNAMlrNBpJ',
-          seasonYear: 2025,
+          league_id: 'XPL9dJv8BTFNAMlrNBpJ',
+          season_year: 2025,
           round: parseInt(pick.round),
-          pickInRound: parseInt(pick.pickInRound),
-          overallPick: parseInt(pick.overallPick),
-          currentTeamId: pick.currentTeamId,
-          originalTeamId: pick.originalTeamId,
-          originalTeamName: originalTeam?.name || '',
-          originalTeamAbbrev: originalTeam?.abbrev || '',
-          playerId: pick.playerId || null,
-          playerName: pick.playerName || null,
-          isKeeperSlot: pick.isKeeperSlot?.toLowerCase() === 'true' || pick.isKeeperSlot === true,
-          pickedAt: pick.pickedAt ? parseInt(pick.pickedAt) : null,
-          pickedBy: pick.pickedBy || null,
-          wasTraded: pick.currentTeamId !== pick.originalTeamId,
-          tradeHistory: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now()
+          pick_in_round: parseInt(pick.pickInRound),
+          overall_pick: parseInt(pick.overallPick),
+          current_team_id: pick.currentTeamId,
+          original_team_id: pick.originalTeamId,
+          original_team_name: originalTeam?.name || '',
+          original_team_abbrev: originalTeam?.abbrev || '',
+          player_id: pick.playerId || null,
+          player_name: pick.playerName || null,
+          is_keeper_slot: pick.isKeeperSlot?.toLowerCase() === 'true' || pick.isKeeperSlot === true,
+          picked_at: pick.pickedAt ? parseInt(pick.pickedAt) : null,
+          picked_by: pick.pickedBy || null,
+          was_traded: pick.currentTeamId !== pick.originalTeamId,
+          trade_history: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
 
-        await setDoc(doc(db, 'pickAssignments', pick.pickId), pickDoc);
+        const { error } = await supabase
+          .from('pick_assignments')
+          .upsert(pickDoc);
+        if (error) throw error;
+
         count++;
 
         if (count % 50 === 0) {
@@ -178,9 +187,9 @@ export function AdminMigration() {
         }
       }
 
-      setStatus(`✅ Imported ${count} picks to pickAssignments collection`);
+      setStatus(`Imported ${count} picks to pick_assignments table`);
     } catch (error: any) {
-      setStatus(`❌ Error: ${error.message}`);
+      setStatus(`Error: ${error.message}`);
       console.error(error);
     } finally {
       setLoading(false);
@@ -192,15 +201,25 @@ export function AdminMigration() {
     setStatus('Loading picks...');
 
     try {
-      const picksSnap = await getDocs(collection(db, 'pickAssignments'));
+      const { data: picksData, error: picksError } = await supabase
+        .from('pick_assignments')
+        .select('*');
+      if (picksError) throw picksError;
 
-      if (picksSnap.empty) {
-        setStatus('⚠️ No picks found in pickAssignments collection');
+      if (!picksData || picksData.length === 0) {
+        setStatus('No picks found in pick_assignments table');
         setLoading(false);
         return;
       }
 
-      const picks = picksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const picks = picksData.map((row: any) => ({
+        id: row.id,
+        round: row.round,
+        pickInRound: row.pick_in_round,
+        overallPick: row.overall_pick,
+        currentTeamId: row.current_team_id,
+        playerName: row.player_name,
+      }));
 
       // Group by round
       const byRound: any = {};
@@ -210,7 +229,7 @@ export function AdminMigration() {
       });
 
       // Format output
-      let output = `✅ Found ${picks.length} picks in pickAssignments collection\n\n`;
+      let output = `Found ${picks.length} picks in pick_assignments table\n\n`;
 
       Object.keys(byRound).sort((a, b) => parseInt(a) - parseInt(b)).forEach(round => {
         output += `\n=== ROUND ${round} ===\n`;
@@ -223,7 +242,7 @@ export function AdminMigration() {
 
       setStatus(output);
     } catch (error: any) {
-      setStatus(`❌ Error: ${error.message}`);
+      setStatus(`Error: ${error.message}`);
       console.error(error);
     } finally {
       setLoading(false);
@@ -235,7 +254,7 @@ export function AdminMigration() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Migration Tool</h1>
-          <p className="text-gray-400 mt-2">Export draft to CSV, edit, then import to create pickAssignments collection</p>
+          <p className="text-gray-400 mt-2">Export draft to CSV, edit, then import to create pick_assignments table</p>
         </div>
 
         {/* Step 1: Export */}
@@ -264,14 +283,14 @@ export function AdminMigration() {
             <li>Find pick #126 (Quentin Grimes) → change <code className="bg-[#0a0a0a] px-2 py-1 rounded">currentTeamId</code> from Raskob to Woods (Yy7xO376mKWlJ7cZYhQ1)</li>
             <li>Verify pick #102 (Naz Reid) → <code className="bg-[#0a0a0a] px-2 py-1 rounded">currentTeamId</code> should be Woods</li>
           </ul>
-          <p className="text-yellow-400 mt-4 text-sm">⚠️ Save the file after editing</p>
+          <p className="text-yellow-400 mt-4 text-sm">Save the file after editing</p>
         </div>
 
         {/* Step 3: Import */}
         <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
           <h2 className="text-xl font-bold text-white mb-4">Step 3: Import Edited CSV</h2>
           <p className="text-gray-400 mb-4">
-            Upload the edited CSV to create the new pickAssignments collection in Firebase.
+            Upload the edited CSV to create the new pick_assignments records in Supabase.
           </p>
           <input
             type="file"
@@ -286,7 +305,7 @@ export function AdminMigration() {
         <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
           <h2 className="text-xl font-bold text-white mb-4">Step 4: Verify Data</h2>
           <p className="text-gray-400 mb-4">
-            View all picks from the pickAssignments collection to verify the data looks correct.
+            View all picks from the pick_assignments table to verify the data looks correct.
           </p>
           <button
             onClick={testPicksView}

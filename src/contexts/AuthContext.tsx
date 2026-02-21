@@ -1,18 +1,17 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import type { User } from 'firebase/auth';
-import {
-  signInWithPopup,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
-} from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import type { UserRole } from '../types';
 
+// App-level user type — keeps the same interface the rest of the app expects
+export interface AppUser {
+  id: string;
+  email: string;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
   loading: boolean;
   role: UserRole | null;
   signInWithGoogle: () => Promise<void>;
@@ -24,106 +23,130 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Map Supabase user to AppUser
+  const mapUser = (supabaseUser: { id: string; email?: string; user_metadata?: Record<string, any> }): AppUser => ({
+    id: supabaseUser.id,
+    email: supabaseUser.email || '',
+    displayName: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || supabaseUser.email || null,
+    photoURL: supabaseUser.user_metadata?.avatar_url || supabaseUser.user_metadata?.picture || null,
+  });
+
+  // Fetch role from profiles table
+  const fetchRole = async (userId: string, email: string): Promise<UserRole> => {
+    // Hardcoded admin (matches existing Firebase behavior)
+    if (email === 'smunley13@gmail.com') return 'admin';
+
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      return (data?.role as UserRole) || 'owner';
+    } catch {
+      return 'owner';
+    }
+  };
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
+    // Check initial session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const appUser = mapUser(session.user);
+        setUser(appUser);
 
-      if (firebaseUser) {
-        // Get custom claims to determine role
-        const idTokenResult = await firebaseUser.getIdTokenResult();
-
-        // Temporary: Hardcode admin for specific email
-        const userRole = firebaseUser.email === 'smunley13@gmail.com'
-          ? 'admin'
-          : (idTokenResult.claims.role as UserRole) || 'owner';
-
+        const userRole = await fetchRole(session.user.id, appUser.email);
         setRole(userRole);
 
         // Preload critical routes for authenticated users
-        // These are loaded during idle time to make navigation instant
         setTimeout(() => {
-          // High priority - most users visit these immediately after login
           import('../pages/TeamSelect');
-
-          // Medium priority - common navigation paths
           setTimeout(() => {
             import('../pages/LeagueHome');
             import('../pages/OwnerDashboard');
           }, 500);
-
-          // Admin-specific preloading
           if (userRole === 'admin') {
             setTimeout(() => {
-              // Preload admin chunk by importing any admin page
               import('../pages/AdminTeams');
             }, 1000);
           }
-        }, 100); // Small delay to not interfere with initial auth flow
-      } else {
-        setRole(null);
+        }, 100);
       }
-
       setLoading(false);
     });
 
-    return unsubscribe;
+    // Listen for auth changes (sign in, sign out, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const appUser = mapUser(session.user);
+        setUser(appUser);
+
+        const userRole = await fetchRole(session.user.id, appUser.email);
+        setRole(userRole);
+      } else {
+        setUser(null);
+        setRole(null);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signInWithGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/teams',
+        },
+      });
+      if (error) throw error;
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
-      // Provide helpful error message
-      if (error.code === 'auth/popup-blocked') {
-        throw new Error('Popup was blocked by browser. Please allow popups for this site.');
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        throw new Error('Sign-in cancelled.');
-      } else if (error.code === 'auth/unauthorized-domain') {
-        throw new Error('This domain is not authorized. Please contact support.');
-      }
-      throw error;
+      throw new Error(error.message || 'Failed to sign in with Google');
     }
   };
 
   const sendEmailLink = async (email: string) => {
     try {
-      const actionCodeSettings = {
-        url: window.location.origin + '/finishSignIn',
-        handleCodeInApp: true,
-      };
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: window.location.origin + '/finishSignIn',
+        },
+      });
+      if (error) throw error;
       window.localStorage.setItem('emailForSignIn', email);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending email link:', error);
-      throw error;
+      throw new Error(error.message || 'Failed to send email link');
     }
   };
 
-  const completeEmailLinkSignIn = async (email: string) => {
-    try {
-      if (isSignInWithEmailLink(auth, window.location.href)) {
-        await signInWithEmailLink(auth, email, window.location.href);
-        window.localStorage.removeItem('emailForSignIn');
-      }
-    } catch (error) {
-      console.error('Error completing email link sign in:', error);
-      throw error;
-    }
+  // With Supabase, magic link verification is handled automatically
+  // by onAuthStateChange when the user lands on the redirect URL.
+  // This method is kept for API compatibility with FinishSignIn page.
+  const completeEmailLinkSignIn = async (_email: string) => {
+    window.localStorage.removeItem('emailForSignIn');
+    // Session is established automatically by the Supabase client
+    // when it detects the auth tokens in the URL hash/params.
   };
 
   const signOut = async () => {
     try {
-      await firebaseSignOut(auth);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       setUser(null);
       setRole(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing out:', error);
-      throw error;
+      throw new Error(error.message || 'Failed to sign out');
     }
   };
 

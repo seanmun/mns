@@ -1,13 +1,73 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, collection, getDocs, query, where, runTransaction, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
 import { CompleteDraftModal } from '../components/CompleteDraftModal';
 import type { Draft, Team, Player } from '../types';
+
+// Map Supabase snake_case row to camelCase Draft type
+function mapDraft(row: any): Draft {
+  return {
+    id: row.id,
+    leagueId: row.league_id,
+    seasonYear: row.season_year,
+    status: row.status,
+    draftOrder: row.draft_order || [],
+    currentPick: row.current_pick || undefined,
+    picks: row.picks || [],
+    settings: row.settings || { allowAdminOverride: true, isTestDraft: false },
+    createdAt: new Date(row.created_at).getTime(),
+    createdBy: row.created_by,
+    startedAt: row.started_at ? new Date(row.started_at).getTime() : undefined,
+    completedAt: row.completed_at ? new Date(row.completed_at).getTime() : undefined,
+  };
+}
+
+// Map Supabase snake_case row to camelCase Team type
+function mapTeam(row: any): Team {
+  return {
+    id: row.id,
+    leagueId: row.league_id,
+    name: row.name,
+    abbrev: row.abbrev,
+    owners: row.owners || [],
+    ownerNames: row.owner_names || undefined,
+    telegramUsername: row.telegram_username || undefined,
+    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
+    settings: row.settings || { maxKeepers: 8 },
+    banners: row.banners || undefined,
+  };
+}
+
+// Map Supabase flat row to nested Player type
+function mapPlayer(row: any): Player {
+  return {
+    id: row.id,
+    fantraxId: row.fantrax_id,
+    name: row.name,
+    position: row.position,
+    salary: row.salary,
+    nbaTeam: row.nba_team,
+    roster: {
+      leagueId: row.league_id,
+      teamId: row.team_id,
+      onIR: row.on_ir,
+      isRookie: row.is_rookie,
+      isInternationalStash: row.is_international_stash,
+      intEligible: row.int_eligible,
+      rookieDraftInfo: row.rookie_draft_info || undefined,
+    },
+    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
+      ? {
+          priorYearRound: row.keeper_prior_year_round || undefined,
+          derivedBaseRound: row.keeper_derived_base_round || undefined,
+        }
+      : undefined,
+  };
+}
 
 export function Draft() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -78,16 +138,22 @@ export function Draft() {
     loadDraftPickOwnership();
   }, [leagueId, currentLeague]);
 
+  // Real-time listener for draft updates via Supabase Realtime
   useEffect(() => {
     if (!leagueId || !currentLeague) return;
 
-    // Real-time listener for draft updates
     const draftId = `${leagueId}_${currentLeague.seasonYear}`;
-    const draftRef = doc(db, 'drafts', draftId);
 
-    const unsubscribe = onSnapshot(draftRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const draftData = { id: snapshot.id, ...snapshot.data() } as Draft;
+    // Initial fetch of draft data
+    const fetchDraft = async () => {
+      const { data, error } = await supabase
+        .from('drafts')
+        .select('*')
+        .eq('id', draftId)
+        .single();
+
+      if (!error && data) {
+        const draftData = mapDraft(data);
         setDraft(draftData);
 
         // Auto-navigate to current round when draft updates
@@ -95,25 +161,79 @@ export function Draft() {
           setSelectedRound(draftData.currentPick.round);
         }
       }
-    });
+    };
 
-    return () => unsubscribe();
+    fetchDraft();
+
+    // Subscribe to real-time changes on this draft row
+    const channel = supabase.channel(`draft-${draftId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'drafts',
+          filter: `id=eq.${draftId}`,
+        },
+        (payload) => {
+          if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
+            const draftData = mapDraft(payload.new);
+            setDraft(draftData);
+
+            // Auto-navigate to current round when draft updates
+            if (draftData.currentPick && view === 'board') {
+              setSelectedRound(draftData.currentPick.round);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [leagueId, currentLeague, view]);
 
+  // Real-time listener for player updates (to remove drafted players from pool)
   useEffect(() => {
     if (!leagueId) return;
 
-    // Real-time listener for player updates (to remove drafted players from pool)
-    const playersRef = collection(db, 'players');
-    const unsubscribe = onSnapshot(playersRef, (snapshot) => {
-      const playersData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Player[];
-      setPlayers(playersData);
-    });
+    // Initial fetch of all players (paginated past 1000-row limit)
+    const fetchPlayers = async () => {
+      try {
+        const data = await fetchAllRows('players');
+        setPlayers(data.map(mapPlayer));
+      } catch (err) {
+        console.error('Error fetching players:', err);
+      }
+    };
 
-    return () => unsubscribe();
+    fetchPlayers();
+
+    // Subscribe to real-time changes on players table
+    const channel = supabase.channel('players-draft')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'players',
+        },
+        async () => {
+          // Re-fetch all players on any change
+          try {
+            const data = await fetchAllRows('players');
+            setPlayers(data.map(mapPlayer));
+          } catch (err) {
+            console.error('Error re-fetching players:', err);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [leagueId]);
 
   const loadInitialData = async () => {
@@ -122,20 +242,23 @@ export function Draft() {
     setLoading(true);
     try {
       // Load teams
-      const teamsRef = collection(db, 'teams');
-      const teamsQuery = query(teamsRef, where('leagueId', '==', leagueId));
-      const teamsSnap = await getDocs(teamsQuery);
-      const teamsData = teamsSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Team[];
-      setTeams(teamsData);
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('league_id', leagueId);
+
+      if (teamsError) throw teamsError;
+      setTeams((teamsData || []).map(mapTeam));
 
       // Check if draft has been archived
       const draftHistoryId = `${leagueId}_${currentLeague.seasonYear}`;
-      const draftHistoryRef = doc(db, 'draftHistory', draftHistoryId);
-      const draftHistorySnap = await getDoc(draftHistoryRef);
-      setIsDraftArchived(draftHistorySnap.exists());
+      const { data: draftHistoryData } = await supabase
+        .from('draft_history')
+        .select('id')
+        .eq('id', draftHistoryId)
+        .single();
+
+      setIsDraftArchived(!!draftHistoryData);
 
       // Players are loaded via real-time listener
     } catch (error) {
@@ -149,14 +272,16 @@ export function Draft() {
     if (!leagueId) return;
 
     try {
-      const draftPicksRef = collection(db, 'draftPicks');
-      const draftPicksQuery = query(draftPicksRef, where('leagueId', '==', leagueId));
-      const draftPicksSnap = await getDocs(draftPicksQuery);
+      const { data: draftPicksData, error } = await supabase
+        .from('draft_picks')
+        .select('*')
+        .eq('league_id', leagueId);
+
+      if (error) throw error;
 
       const ownershipMap = new Map<number, string>();
-      draftPicksSnap.docs.forEach((doc) => {
-        const pick = doc.data();
-        ownershipMap.set(pick.pickNumber, pick.currentOwner);
+      (draftPicksData || []).forEach((pick: any) => {
+        ownershipMap.set(pick.pick_number, pick.current_owner);
       });
 
       console.log('[Draft] Loaded draft pick ownership:', ownershipMap.size, 'picks');
@@ -186,92 +311,112 @@ export function Draft() {
     setSubmitting(true);
 
     try {
-      const draftRef = doc(db, 'drafts', draft.id);
+      // Step 1: Read current draft state
+      const { data: currentDraftRow, error: readError } = await supabase
+        .from('drafts')
+        .select('*')
+        .eq('id', draft.id)
+        .single();
 
-      await runTransaction(db, async (transaction) => {
-        const draftSnap = await transaction.get(draftRef);
-        if (!draftSnap.exists()) {
-          throw new Error('Draft does not exist');
-        }
+      if (readError || !currentDraftRow) {
+        throw new Error('Draft does not exist');
+      }
 
-        const currentDraft = { id: draftSnap.id, ...draftSnap.data() } as Draft;
+      const currentDraft = mapDraft(currentDraftRow);
 
-        // Verify player hasn't been drafted
-        const alreadyDrafted = currentDraft.picks.some(
-          p => p.playerId === playerId && p.pickedAt
-        );
-        if (alreadyDrafted) {
-          throw new Error('Player has already been drafted');
-        }
+      // Verify player hasn't been drafted
+      const alreadyDrafted = currentDraft.picks.some(
+        p => p.playerId === playerId && p.pickedAt
+      );
+      if (alreadyDrafted) {
+        throw new Error('Player has already been drafted');
+      }
 
-        // Update current pick
-        const updatedPicks = currentDraft.picks.map(pick => {
-          if (pick.overallPick === currentDraft.currentPick?.overallPick) {
-            return {
-              ...pick,
-              playerId,
-              playerName: player.name,
-              pickedAt: Date.now(),
-              pickedBy: user.email,
-            };
-          }
-          return pick;
-        });
-
-        // Find next open pick
-        const nextOpenPick = updatedPicks.find(
-          p => p.overallPick > (currentDraft.currentPick?.overallPick || 0) && !p.isKeeperSlot
-        );
-
-        const updatedDraft: any = {
-          picks: updatedPicks,
-          status: nextOpenPick ? 'in_progress' : 'completed',
-        };
-
-        // Only add currentPick if there is one
-        if (nextOpenPick) {
-          updatedDraft.currentPick = {
-            round: nextOpenPick.round,
-            pickInRound: nextOpenPick.pickInRound,
-            overallPick: nextOpenPick.overallPick,
-            teamId: nextOpenPick.teamId,
-            startedAt: Date.now(),
+      // Update current pick
+      const updatedPicks = currentDraft.picks.map(pick => {
+        if (pick.overallPick === currentDraft.currentPick?.overallPick) {
+          return {
+            ...pick,
+            playerId,
+            playerName: player.name,
+            pickedAt: Date.now(),
+            pickedBy: user.email,
           };
         }
+        return pick;
+      });
 
-        // Only add completedAt if draft is complete
-        if (!nextOpenPick) {
-          updatedDraft.completedAt = Date.now();
-        }
+      // Find next open pick
+      const nextOpenPick = updatedPicks.find(
+        p => p.overallPick > (currentDraft.currentPick?.overallPick || 0) && !p.isKeeperSlot
+      );
 
-        transaction.update(draftRef, updatedDraft);
+      const updatedDraft: any = {
+        picks: updatedPicks,
+        status: nextOpenPick ? 'in_progress' : 'completed',
+      };
 
-        // Update the player document to assign them to the drafting team
-        const actualPickOwner = draftPickOwnership.get(currentDraft.currentPick?.overallPick || 0)
-          || currentDraft.currentPick?.teamId;
+      // Only add currentPick if there is one
+      if (nextOpenPick) {
+        updatedDraft.current_pick = {
+          round: nextOpenPick.round,
+          pickInRound: nextOpenPick.pickInRound,
+          overallPick: nextOpenPick.overallPick,
+          teamId: nextOpenPick.teamId,
+          startedAt: Date.now(),
+        };
+      } else {
+        updatedDraft.current_pick = null;
+      }
 
-        console.log('[Draft] Assigning player', playerId, 'to team', actualPickOwner);
+      // Only add completedAt if draft is complete
+      if (!nextOpenPick) {
+        updatedDraft.completed_at = new Date().toISOString();
+      }
 
-        const playerRef = doc(db, 'players', playerId);
-        transaction.update(playerRef, {
-          'roster.teamId': actualPickOwner,
-          'roster.leagueId': currentDraft.leagueId
+      // Step 2: Update draft with new pick
+      const { error: draftUpdateError } = await supabase
+        .from('drafts')
+        .update(updatedDraft)
+        .eq('id', draft.id);
+
+      if (draftUpdateError) throw draftUpdateError;
+
+      // Step 3: Update the player to assign them to the drafting team
+      const actualPickOwner = draftPickOwnership.get(currentDraft.currentPick?.overallPick || 0)
+        || currentDraft.currentPick?.teamId;
+
+      console.log('[Draft] Assigning player', playerId, 'to team', actualPickOwner);
+
+      const { error: playerUpdateError } = await supabase
+        .from('players')
+        .update({
+          team_id: actualPickOwner,
+          league_id: currentDraft.leagueId,
+        })
+        .eq('id', playerId);
+
+      if (playerUpdateError) throw playerUpdateError;
+
+      // Step 4: Update pickAssignments collection to keep team pages in sync
+      const pickAssignmentId = `${currentDraft.leagueId}_${currentDraft.seasonYear}_pick_${currentDraft.currentPick?.overallPick}`;
+
+      const { error: pickAssignmentError } = await supabase
+        .from('pick_assignments')
+        .upsert({
+          id: pickAssignmentId,
+          player_id: playerId,
+          player_name: player.name,
+          picked_at: new Date().toISOString(),
+          picked_by: user.email,
+          updated_at: new Date().toISOString(),
         });
 
-        // ALSO update pickAssignments collection to keep team pages in sync
-        const pickAssignmentId = `${currentDraft.leagueId}_${currentDraft.seasonYear}_pick_${currentDraft.currentPick?.overallPick}`;
-        const pickAssignmentRef = doc(db, 'pickAssignments', pickAssignmentId);
-
-        // Use set with merge to handle both existing and new documents
-        transaction.set(pickAssignmentRef, {
-          playerId,
-          playerName: player.name,
-          pickedAt: Date.now(),
-          pickedBy: user.email,
-          updatedAt: Date.now()
-        }, { merge: true });
-        console.log('[Draft] Also updated pickAssignments:', pickAssignmentId);
-      });
+      if (pickAssignmentError) {
+        console.warn('[Draft] Failed to update pick_assignments:', pickAssignmentError);
+      } else {
+        console.log('[Draft] Also updated pick_assignments:', pickAssignmentId);
+      }
 
       // Telegram notification is now handled server-side by Cloud Function
       console.log('[Draft] Pick saved. Cloud Function will send Telegram notification.');
@@ -308,25 +453,34 @@ export function Draft() {
 
     try {
       const draftId = `${leagueId}_${currentLeague.seasonYear}`;
-      const draftRef = doc(db, 'drafts', draftId);
 
-      await runTransaction(db, async (transaction) => {
-        const draftSnap = await transaction.get(draftRef);
-        if (!draftSnap.exists()) throw new Error('Draft not found');
+      // Read current draft state
+      const { data: currentDraftRow, error: readError } = await supabase
+        .from('drafts')
+        .select('*')
+        .eq('id', draftId)
+        .single();
 
-        const currentDraft = draftSnap.data() as Draft;
-        const updatedPicks = currentDraft.picks.map(p => {
-          if (p.overallPick === pickNumber) {
-            return {
-              ...p,
-              isKeeperSlot: false,
-            };
-          }
-          return p;
-        });
+      if (readError || !currentDraftRow) throw new Error('Draft not found');
 
-        transaction.update(draftRef, { picks: updatedPicks });
+      const currentDraft = mapDraft(currentDraftRow);
+      const updatedPicks = currentDraft.picks.map(p => {
+        if (p.overallPick === pickNumber) {
+          return {
+            ...p,
+            isKeeperSlot: false,
+          };
+        }
+        return p;
       });
+
+      // Update draft with modified picks
+      const { error: updateError } = await supabase
+        .from('drafts')
+        .update({ picks: updatedPicks })
+        .eq('id', draftId);
+
+      if (updateError) throw updateError;
 
       alert(`Pick converted to regular draft pick!`);
     } catch (error: any) {
@@ -350,54 +504,74 @@ export function Draft() {
 
     try {
       const draftId = `${leagueId}_${currentLeague.seasonYear}`;
-      const draftRef = doc(db, 'drafts', draftId);
-      const playerRef = doc(db, 'players', pickToUndo.playerId);
 
-      await runTransaction(db, async (transaction) => {
-        // ALL READS FIRST
-        const draftSnap = await transaction.get(draftRef);
-        if (!draftSnap.exists()) throw new Error('Draft not found');
+      // Read current draft state
+      const { data: currentDraftRow, error: readError } = await supabase
+        .from('drafts')
+        .select('*')
+        .eq('id', draftId)
+        .single();
 
-        let rosterSnap = null;
-        if (pickToUndo.isKeeperSlot) {
-          const rosterId = `${leagueId}_${pickToUndo.teamId}_${currentLeague.seasonYear}`;
-          const rosterRef = doc(db, 'rosters', rosterId);
-          rosterSnap = await transaction.get(rosterRef);
+      if (readError || !currentDraftRow) throw new Error('Draft not found');
+
+      const currentDraft = mapDraft(currentDraftRow);
+      const updatedPicks = currentDraft.picks.map(p => {
+        if (p.overallPick === pickNumber) {
+          return {
+            ...p,
+            playerId: null,
+            playerName: null,
+            pickedAt: null,
+            isKeeperSlot: false, // Convert keeper slot to regular pick
+          };
         }
-
-        // NOW DO WRITES
-        const currentDraft = draftSnap.data() as Draft;
-        const updatedPicks = currentDraft.picks.map(p => {
-          if (p.overallPick === pickNumber) {
-            return {
-              ...p,
-              playerId: null,
-              playerName: null,
-              pickedAt: null,
-              isKeeperSlot: false, // Convert keeper slot to regular pick
-            };
-          }
-          return p;
-        });
-
-        // Update draft with cleared pick
-        transaction.update(draftRef, { picks: updatedPicks });
-
-        // Release player back to pool
-        transaction.update(playerRef, {
-          'roster.teamId': null,
-          'roster.leagueId': null,
-        });
-
-        // If it's a keeper, also remove from roster entries
-        if (pickToUndo.isKeeperSlot && rosterSnap && rosterSnap.exists()) {
-          const rosterId = `${leagueId}_${pickToUndo.teamId}_${currentLeague.seasonYear}`;
-          const rosterRef = doc(db, 'rosters', rosterId);
-          const rosterData = rosterSnap.data();
-          const updatedEntries = rosterData.entries.filter((e: any) => e.playerId !== pickToUndo.playerId);
-          transaction.update(rosterRef, { entries: updatedEntries });
-        }
+        return p;
       });
+
+      // Update draft with cleared pick
+      const { error: draftUpdateError } = await supabase
+        .from('drafts')
+        .update({ picks: updatedPicks })
+        .eq('id', draftId);
+
+      if (draftUpdateError) throw draftUpdateError;
+
+      // Release player back to pool
+      const { error: playerUpdateError } = await supabase
+        .from('players')
+        .update({
+          team_id: null,
+          league_id: null,
+        })
+        .eq('id', pickToUndo.playerId);
+
+      if (playerUpdateError) throw playerUpdateError;
+
+      // If it's a keeper, also remove from roster entries
+      if (pickToUndo.isKeeperSlot) {
+        const { data: rosterRows, error: rosterQueryError } = await supabase
+          .from('rosters')
+          .select('*')
+          .eq('team_id', pickToUndo.teamId)
+          .eq('league_id', leagueId)
+          .eq('season_year', currentLeague.seasonYear)
+          .single();
+
+        if (!rosterQueryError && rosterRows) {
+          const updatedEntries = (rosterRows.entries || []).filter(
+            (e: any) => e.playerId !== pickToUndo.playerId
+          );
+
+          const { error: rosterUpdateError } = await supabase
+            .from('rosters')
+            .update({ entries: updatedEntries })
+            .eq('id', rosterRows.id);
+
+          if (rosterUpdateError) {
+            console.warn('[Draft] Failed to update roster:', rosterUpdateError);
+          }
+        }
+      }
 
       alert(`Pick #${pickNumber} has been undone. ${pickToUndo.playerName} is back in the player pool${pickToUndo.isKeeperSlot ? ' and removed from team roster' : ''}.`);
     } catch (error: any) {
@@ -420,63 +594,72 @@ export function Draft() {
 
     try {
       const draftId = `${leagueId}_${currentLeague.seasonYear}`;
-      const draftRef = doc(db, 'drafts', draftId);
 
-      // Find roster document by querying teamId field
-      const rostersQuery = query(
-        collection(db, 'rosters'),
-        where('teamId', '==', selectedPick.teamId),
-        where('leagueId', '==', leagueId)
-      );
-      const rostersSnap = await getDocs(rostersQuery);
+      // Find roster document by querying teamId
+      const { data: rosterRows, error: rosterQueryError } = await supabase
+        .from('rosters')
+        .select('*')
+        .eq('team_id', selectedPick.teamId)
+        .eq('league_id', leagueId);
 
-      if (rostersSnap.empty) {
+      if (rosterQueryError) throw rosterQueryError;
+      if (!rosterRows || rosterRows.length === 0) {
         throw new Error('Roster not found for this team');
       }
 
-      const rosterDoc = rostersSnap.docs[0];
-      const rosterRef = doc(db, 'rosters', rosterDoc.id);
+      const rosterDoc = rosterRows[0];
 
-      await runTransaction(db, async (transaction) => {
-        // READS FIRST
-        const draftSnap = await transaction.get(draftRef);
-        const rosterSnap = await transaction.get(rosterRef);
+      // Read current draft state
+      const { data: currentDraftRow, error: draftReadError } = await supabase
+        .from('drafts')
+        .select('*')
+        .eq('id', draftId)
+        .single();
 
-        if (!draftSnap.exists()) throw new Error('Draft not found');
-        if (!rosterSnap.exists()) throw new Error('Roster not found');
+      if (draftReadError || !currentDraftRow) throw new Error('Draft not found');
 
-        // WRITES
-        const currentDraft = draftSnap.data() as Draft;
-        const updatedPicks = currentDraft.picks.map(p => {
-          if (p.overallPick === selectedPick.overallPick) {
-            return {
-              ...p,
-              playerId: player.id,
-              playerName: player.name,
-              pickedAt: Date.now(),
-              pickedBy: 'keeper',
-              isKeeperSlot: true,
-            };
-          }
-          return p;
-        });
+      const currentDraft = mapDraft(currentDraftRow);
 
-        transaction.update(draftRef, { picks: updatedPicks });
-
-        // Update roster entry with the correct keeperRound
-        const rosterData = rosterSnap.data();
-        const updatedEntries = rosterData.entries.map((e: any) => {
-          if (e.playerId === player.id && e.decision === 'KEEP') {
-            return {
-              ...e,
-              keeperRound: selectedPick.round,
-            };
-          }
-          return e;
-        });
-
-        transaction.update(rosterRef, { entries: updatedEntries });
+      // Update picks with keeper assignment
+      const updatedPicks = currentDraft.picks.map(p => {
+        if (p.overallPick === selectedPick.overallPick) {
+          return {
+            ...p,
+            playerId: player.id,
+            playerName: player.name,
+            pickedAt: Date.now(),
+            pickedBy: 'keeper',
+            isKeeperSlot: true,
+          };
+        }
+        return p;
       });
+
+      // Update draft
+      const { error: draftUpdateError } = await supabase
+        .from('drafts')
+        .update({ picks: updatedPicks })
+        .eq('id', draftId);
+
+      if (draftUpdateError) throw draftUpdateError;
+
+      // Update roster entry with the correct keeperRound
+      const updatedEntries = (rosterDoc.entries || []).map((e: any) => {
+        if (e.playerId === player.id && e.decision === 'KEEP') {
+          return {
+            ...e,
+            keeperRound: selectedPick.round,
+          };
+        }
+        return e;
+      });
+
+      const { error: rosterUpdateError } = await supabase
+        .from('rosters')
+        .update({ entries: updatedEntries })
+        .eq('id', rosterDoc.id);
+
+      if (rosterUpdateError) throw rosterUpdateError;
 
       setShowAddKeeperModal(false);
       setSelectedPick(null);

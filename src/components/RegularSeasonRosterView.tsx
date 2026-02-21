@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import { doc, updateDoc, arrayRemove, arrayUnion } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import type { RegularSeasonRoster, Player, Team, RosterSummary, TeamFees } from '../types';
 import { CapThermometer } from './CapThermometer';
 import { SummaryCard } from './SummaryCard';
@@ -121,31 +120,46 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
     try {
       setProcessing(true);
 
-      // Update roster
-      const rosterRef = doc(db, 'regularSeasonRosters', regularSeasonRoster.id);
-      await updateDoc(rosterRef, {
-        redshirtPlayers: arrayRemove(playerId),
-        activeRoster: arrayUnion(playerId),
-        lastUpdated: Date.now(),
-      });
+      // Update roster: remove from redshirt, add to active
+      const newRedshirt = regularSeasonRoster.redshirtPlayers.filter(id => id !== playerId);
+      const newActive = [...regularSeasonRoster.activeRoster, playerId];
+
+      const { error: rosterError } = await supabase
+        .from('regular_season_rosters')
+        .update({
+          redshirt_players: newRedshirt,
+          active_roster: newActive,
+          last_updated: Date.now(),
+        })
+        .eq('id', regularSeasonRoster.id);
+
+      if (rosterError) throw rosterError;
 
       // Update fees
       const feesId = `${regularSeasonRoster.leagueId}_${regularSeasonRoster.teamId}_${regularSeasonRoster.seasonYear}`;
-      const feesRef = doc(db, 'teamFees', feesId);
       const currentUnredshirtFees = teamFees?.unredshirtFees || 0;
       const currentTotalFees = teamFees?.totalFees || 0;
+      const currentTransactions = teamFees?.feeTransactions || [];
 
-      await updateDoc(feesRef, {
-        unredshirtFees: currentUnredshirtFees + 25,
-        totalFees: currentTotalFees + 25,
-        feeTransactions: arrayUnion({
-          type: 'unredshirt',
-          amount: 25,
-          timestamp: Date.now(),
-          triggeredBy: playerId,
-          note: `Activated ${player.name} from redshirt`,
-        }),
-      });
+      const { error: feesError } = await supabase
+        .from('team_fees')
+        .update({
+          unredshirt_fees: currentUnredshirtFees + 25,
+          total_fees: currentTotalFees + 25,
+          fee_transactions: [
+            ...currentTransactions,
+            {
+              type: 'unredshirt',
+              amount: 25,
+              timestamp: Date.now(),
+              triggeredBy: playerId,
+              note: `Activated ${player.name} from redshirt`,
+            },
+          ],
+        })
+        .eq('id', feesId);
+
+      if (feesError) throw feesError;
 
       setProcessing(false);
     } catch (error) {
@@ -172,18 +186,22 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
     try {
       setProcessing(true);
 
-      const rosterRef = doc(db, 'regularSeasonRosters', regularSeasonRoster.id);
       const updates: any = {
-        lastUpdated: Date.now(),
+        last_updated: Date.now(),
       };
 
       if (location === 'active') {
-        updates.activeRoster = arrayRemove(playerId);
+        updates.active_roster = regularSeasonRoster.activeRoster.filter(id => id !== playerId);
       } else {
-        updates.irSlots = arrayRemove(playerId);
+        updates.ir_slots = regularSeasonRoster.irSlots.filter(id => id !== playerId);
       }
 
-      await updateDoc(rosterRef, updates);
+      const { error } = await supabase
+        .from('regular_season_rosters')
+        .update(updates)
+        .eq('id', regularSeasonRoster.id);
+
+      if (error) throw error;
       setProcessing(false);
     } catch (error) {
       console.error('Error dropping player:', error);
@@ -216,13 +234,19 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
     try {
       setProcessing(true);
 
-      const rosterRef = doc(db, 'regularSeasonRosters', regularSeasonRoster.id);
-      await updateDoc(rosterRef, {
-        activeRoster: arrayRemove(playerId),
-        irSlots: arrayUnion(playerId),
-        lastUpdated: Date.now(),
-      });
+      const newActive = regularSeasonRoster.activeRoster.filter(id => id !== playerId);
+      const newIR = [...regularSeasonRoster.irSlots, playerId];
 
+      const { error } = await supabase
+        .from('regular_season_rosters')
+        .update({
+          active_roster: newActive,
+          ir_slots: newIR,
+          last_updated: Date.now(),
+        })
+        .eq('id', regularSeasonRoster.id);
+
+      if (error) throw error;
       setProcessing(false);
     } catch (error) {
       console.error('Error moving to IR:', error);
@@ -248,13 +272,19 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
     try {
       setProcessing(true);
 
-      const rosterRef = doc(db, 'regularSeasonRosters', regularSeasonRoster.id);
-      await updateDoc(rosterRef, {
-        irSlots: arrayRemove(playerId),
-        activeRoster: arrayUnion(playerId),
-        lastUpdated: Date.now(),
-      });
+      const newIR = regularSeasonRoster.irSlots.filter(id => id !== playerId);
+      const newActive = [...regularSeasonRoster.activeRoster, playerId];
 
+      const { error } = await supabase
+        .from('regular_season_rosters')
+        .update({
+          ir_slots: newIR,
+          active_roster: newActive,
+          last_updated: Date.now(),
+        })
+        .eq('id', regularSeasonRoster.id);
+
+      if (error) throw error;
       setProcessing(false);
     } catch (error) {
       console.error('Error moving to active:', error);
@@ -285,21 +315,25 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
     try {
       setProcessing(true);
 
-      const rosterRef = doc(db, 'regularSeasonRosters', regularSeasonRoster.id);
+      // Swap in a single update: remove playerToRemove from IR, add to active;
+      // remove playerToAdd from active, add to IR
+      const newIR = regularSeasonRoster.irSlots
+        .filter(id => id !== playerToRemove)
+        .concat(playerToAdd);
+      const newActive = regularSeasonRoster.activeRoster
+        .filter(id => id !== playerToAdd)
+        .concat(playerToRemove);
 
-      // First, remove playerToRemove from IR and add to active
-      await updateDoc(rosterRef, {
-        irSlots: arrayRemove(playerToRemove),
-        activeRoster: arrayUnion(playerToRemove),
-        lastUpdated: Date.now(),
-      });
+      const { error } = await supabase
+        .from('regular_season_rosters')
+        .update({
+          ir_slots: newIR,
+          active_roster: newActive,
+          last_updated: Date.now(),
+        })
+        .eq('id', regularSeasonRoster.id);
 
-      // Then, remove playerToAdd from active and add to IR
-      await updateDoc(rosterRef, {
-        activeRoster: arrayRemove(playerToAdd),
-        irSlots: arrayUnion(playerToAdd),
-        lastUpdated: Date.now(),
-      });
+      if (error) throw error;
 
       setSwappingIR(false);
       setPlayerToMoveToIR(null);

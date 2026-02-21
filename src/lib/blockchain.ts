@@ -1,10 +1,9 @@
 /**
  * Blockchain utility functions for fetching ETH balance and price
- * Now uses Firebase Function to keep Alchemy API key secure
+ * Calls Supabase Edge Function to keep Alchemy API key secure
  */
 
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from './firebase';
+import { supabase } from './supabase';
 
 export interface WalletData {
   ethBalance: number;
@@ -15,18 +14,16 @@ export interface WalletData {
 
 /**
  * Fetch complete wallet data (balance + price + USD value)
- * Calls Firebase Function which securely accesses Alchemy API
+ * Calls Supabase Edge Function which securely accesses Alchemy API
  */
 export async function fetchWalletData(address: string): Promise<WalletData> {
   try {
-    const functions = getFunctions(app);
-    const getPortfolioData = httpsCallable<
-      { walletAddress: string },
-      WalletData
-    >(functions, 'getPortfolioData');
+    const { data, error } = await supabase.functions.invoke('get-portfolio-data', {
+      body: { walletAddress: address },
+    });
 
-    const result = await getPortfolioData({ walletAddress: address });
-    return result.data;
+    if (error) throw error;
+    return data as WalletData;
   } catch (error) {
     console.error('Error fetching wallet data:', error);
     throw error;

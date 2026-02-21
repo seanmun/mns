@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team } from '../types';
@@ -42,24 +41,41 @@ export function AdminRookiePicks() {
     setLoading(true);
     try {
       // Load teams
-      const teamsRef = collection(db, 'teams');
-      const teamsQuery = query(teamsRef, where('leagueId', '==', currentLeagueId));
-      const teamsSnap = await getDocs(teamsQuery);
-      const teamsData = teamsSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('league_id', currentLeagueId);
+      if (teamsError) throw teamsError;
+
+      const mappedTeams = (teamsData || []).map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        abbrev: t.abbrev,
+        owners: t.owners,
+        leagueId: t.league_id,
+        ownerNames: t.owner_names,
+        capAdjustments: t.cap_adjustments,
+        telegramUsername: t.telegram_username,
       })) as Team[];
-      setTeams(teamsData);
+      setTeams(mappedTeams);
 
       // Load rookie picks
-      const picksRef = collection(db, 'rookieDraftPicks');
-      const picksQuery = query(picksRef, where('leagueId', '==', currentLeagueId));
-      const picksSnap = await getDocs(picksQuery);
-      const picksData = picksSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as RookieDraftPick[];
-      setPicks(picksData);
+      const { data: picksData, error: picksError } = await supabase
+        .from('rookie_draft_picks')
+        .select('*')
+        .eq('league_id', currentLeagueId);
+      if (picksError) throw picksError;
+
+      const mappedPicks = (picksData || []).map((p: any): RookieDraftPick => ({
+        id: p.id,
+        year: p.year,
+        round: p.round,
+        originalTeam: p.original_team,
+        originalTeamName: p.original_team_name,
+        currentOwner: p.current_owner,
+        leagueId: p.league_id,
+      }));
+      setPicks(mappedPicks);
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -102,7 +118,19 @@ export function AdminRookiePicks() {
               leagueId: currentLeagueId,
             };
 
-            await setDoc(doc(db, 'rookieDraftPicks', pickId), pick);
+            const { error } = await supabase
+              .from('rookie_draft_picks')
+              .upsert({
+                id: pickId,
+                year,
+                round,
+                original_team: team.id,
+                original_team_name: team.name,
+                current_owner: team.id,
+                league_id: currentLeagueId,
+              });
+            if (error) throw error;
+
             newPicks.push(pick);
           }
         }
@@ -126,9 +154,12 @@ export function AdminRookiePicks() {
     if (!confirmed) return;
 
     try {
-      for (const pick of picks) {
-        await deleteDoc(doc(db, 'rookieDraftPicks', pick.id));
-      }
+      const { error } = await supabase
+        .from('rookie_draft_picks')
+        .delete()
+        .eq('league_id', currentLeagueId!);
+      if (error) throw error;
+
       setPicks([]);
       alert('All picks deleted successfully');
     } catch (error) {
@@ -146,9 +177,13 @@ export function AdminRookiePicks() {
     if (!editingPick || !newOwner) return;
 
     try {
-      const updatedPick = { ...editingPick, currentOwner: newOwner };
-      await setDoc(doc(db, 'rookieDraftPicks', editingPick.id), updatedPick);
+      const { error } = await supabase
+        .from('rookie_draft_picks')
+        .update({ current_owner: newOwner })
+        .eq('id', editingPick.id);
+      if (error) throw error;
 
+      const updatedPick = { ...editingPick, currentOwner: newOwner };
       setPicks(picks.map(p => p.id === editingPick.id ? updatedPick : p));
       setEditingPick(null);
       setNewOwner('');

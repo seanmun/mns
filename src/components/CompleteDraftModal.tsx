@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, setDoc, updateDoc, query, where } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { stackKeeperRounds } from '../lib/keeperAlgorithms';
 import type {
   Draft,
@@ -22,6 +21,29 @@ interface CompleteDraftModalProps {
   onClose: () => void;
   onComplete: () => void;
   currentUserEmail: string;
+}
+
+function mapTeam(row: any): Team {
+  return {
+    id: row.id, leagueId: row.league_id, name: row.name, abbrev: row.abbrev,
+    owners: row.owners || [], ownerNames: row.owner_names || [],
+    telegramUsername: row.telegram_username || undefined,
+    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
+    settings: row.settings || { maxKeepers: 8 }, banners: row.banners || [],
+  };
+}
+
+function mapPlayer(row: any): Player {
+  return {
+    id: row.id, fantraxId: row.fantrax_id, name: row.name, position: row.position,
+    salary: row.salary, nbaTeam: row.nba_team,
+    roster: { leagueId: row.league_id, teamId: row.team_id, onIR: row.on_ir,
+      isRookie: row.is_rookie, isInternationalStash: row.is_international_stash,
+      intEligible: row.int_eligible, rookieDraftInfo: row.rookie_draft_info || undefined },
+    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
+      ? { priorYearRound: row.keeper_prior_year_round || undefined, derivedBaseRound: row.keeper_derived_base_round || undefined }
+      : undefined,
+  };
 }
 
 export function CompleteDraftModal({
@@ -46,30 +68,40 @@ export function CompleteDraftModal({
   const loadData = async () => {
     try {
       // Load teams
-      const teamsQuery = query(collection(db, 'teams'), where('leagueId', '==', leagueId));
-      const teamsSnap = await getDocs(teamsQuery);
-      const teamsData = teamsSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Team[];
-      setTeams(teamsData);
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('league_id', leagueId);
 
-      // Load players
-      const playersSnap = await getDocs(collection(db, 'players'));
+      if (teamsError) throw teamsError;
+      setTeams((teamsData || []).map(mapTeam));
+
+      // Load players (paginated past 1000-row limit)
+      const playersData = await fetchAllRows('players');
       const playersMap = new Map<string, Player>();
-      playersSnap.docs.forEach(doc => {
-        playersMap.set(doc.id, { id: doc.id, ...doc.data() } as Player);
+      playersData.forEach((row: any) => {
+        const player = mapPlayer(row);
+        playersMap.set(player.id, player);
       });
       setPlayers(playersMap);
 
       // Load rosters
-      const rostersSnap = await getDocs(collection(db, 'rosters'));
+      const { data: rostersData, error: rostersError } = await supabase
+        .from('rosters')
+        .select('*')
+        .eq('league_id', leagueId);
+
+      if (rostersError) throw rostersError;
       const rostersMap = new Map<string, RosterDoc>();
-      rostersSnap.docs.forEach(doc => {
-        const roster = { id: doc.id, ...doc.data() } as RosterDoc;
-        if (roster.leagueId === leagueId) {
-          rostersMap.set(roster.teamId, roster);
-        }
+      (rostersData || []).forEach((row: any) => {
+        const roster = {
+          id: row.id,
+          leagueId: row.league_id,
+          teamId: row.team_id,
+          seasonYear: row.season_year,
+          entries: row.entries || [],
+        } as RosterDoc;
+        rostersMap.set(roster.teamId, roster);
       });
       setRosters(rostersMap);
 
@@ -89,34 +121,93 @@ export function CompleteDraftModal({
       // Step 1: Create Draft History
       const draftHistory = createDraftHistory();
       const draftHistoryId = `${leagueId}_${seasonYear}`;
-      await setDoc(doc(db, 'draftHistory', draftHistoryId), draftHistory);
+      const { error: historyError } = await supabase
+        .from('draft_history')
+        .upsert({
+          id: draftHistoryId,
+          league_id: draftHistory.leagueId,
+          season_year: draftHistory.seasonYear,
+          picks: draftHistory.picks,
+          keepers: draftHistory.keepers,
+          redshirt_players: draftHistory.redshirtPlayers,
+          international_players: draftHistory.internationalPlayers,
+          completed_at: draftHistory.completedAt,
+          completed_by: draftHistory.completedBy,
+        });
+
+      if (historyError) throw historyError;
 
       // Step 2: Create Regular Season Rosters for each team
       for (const team of teams) {
         const regularSeasonRoster = createRegularSeasonRoster(team);
         const rosterId = `${leagueId}_${team.id}`;
-        await setDoc(doc(db, 'regularSeasonRosters', rosterId), regularSeasonRoster);
+        const { error: rosterError } = await supabase
+          .from('regular_season_rosters')
+          .upsert({
+            id: rosterId,
+            league_id: regularSeasonRoster.leagueId,
+            team_id: regularSeasonRoster.teamId,
+            season_year: regularSeasonRoster.seasonYear,
+            active_roster: regularSeasonRoster.activeRoster,
+            ir_slots: regularSeasonRoster.irSlots,
+            redshirt_players: regularSeasonRoster.redshirtPlayers,
+            international_players: regularSeasonRoster.internationalPlayers,
+            is_legal_roster: regularSeasonRoster.isLegalRoster,
+            last_updated: regularSeasonRoster.lastUpdated,
+            updated_by: regularSeasonRoster.updatedBy,
+          });
+
+        if (rosterError) throw rosterError;
       }
 
       // Step 3: Create Team Fees documents (pre-draft fees only)
       for (const team of teams) {
-        const teamFees = createTeamFees(team);
+        const teamFeesData = createTeamFees(team);
         const feesId = `${leagueId}_${team.id}_${seasonYear}`;
-        await setDoc(doc(db, 'teamFees', feesId), teamFees);
+        const { error: feesError } = await supabase
+          .from('team_fees')
+          .upsert({
+            id: feesId,
+            league_id: teamFeesData.leagueId,
+            team_id: teamFeesData.teamId,
+            season_year: teamFeesData.seasonYear,
+            franchise_tag_fees: teamFeesData.franchiseTagFees,
+            redshirt_fees: teamFeesData.redshirtFees,
+            first_apron_fee: teamFeesData.firstApronFee,
+            second_apron_penalty: teamFeesData.secondApronPenalty,
+            unredshirt_fees: teamFeesData.unredshirtFees,
+            fees_locked: teamFeesData.feesLocked,
+            total_fees: teamFeesData.totalFees,
+            fee_transactions: teamFeesData.feeTransactions,
+            created_at: teamFeesData.createdAt,
+            updated_at: teamFeesData.updatedAt,
+          });
+
+        if (feesError) throw feesError;
       }
 
       // Step 4: Update draft status
       const draftId = `${leagueId}_${seasonYear}`;
-      await updateDoc(doc(db, 'drafts', draftId), {
-        status: 'completed',
-        completedAt: Date.now()
-      });
+      const { error: draftError } = await supabase
+        .from('drafts')
+        .update({
+          status: 'completed',
+          completed_at: Date.now()
+        })
+        .eq('id', draftId);
+
+      if (draftError) throw draftError;
 
       // Step 5: Update league status
-      await updateDoc(doc(db, 'leagues', leagueId), {
-        draftStatus: 'completed',
-        seasonStatus: 'pre_season'
-      });
+      const { error: leagueError } = await supabase
+        .from('leagues')
+        .update({
+          draft_status: 'completed',
+          season_status: 'pre_season'
+        })
+        .eq('id', leagueId);
+
+      if (leagueError) throw leagueError;
 
       setStep('complete');
       setTimeout(() => {
