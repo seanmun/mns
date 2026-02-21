@@ -23,6 +23,7 @@ const Rules = lazy(() => import('./pages/Rules').then(m => ({ default: m.Rules }
 const Prospects = lazy(() => import('./pages/Prospects').then(m => ({ default: m.Prospects })));
 const Inbox = lazy(() => import('./pages/Inbox').then(m => ({ default: m.Inbox })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
+const Changelog = lazy(() => import('./pages/Changelog').then(m => ({ default: m.Changelog })));
 
 // Admin pages (lazy loaded - not needed for most users)
 const AdminUpload = lazy(() => import('./pages/AdminUpload').then(m => ({ default: m.AdminUpload })));
@@ -91,6 +92,14 @@ function App() {
             }
           />
           <Route path="/login" element={<Login />} />
+          <Route
+            path="/changelog"
+            element={
+              <AppLayout>
+                <Changelog />
+              </AppLayout>
+            }
+          />
           <Route path="/finishSignIn" element={<FinishSignIn />} />
           <Route
             path="/teams"

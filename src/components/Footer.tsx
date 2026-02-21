@@ -21,9 +21,12 @@ export function Footer() {
             <p className="text-gray-400 text-sm mb-2">
               A dynasty fantasy basketball league with salary cap management and keeper strategy.
             </p>
-            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-purple-400/10 text-purple-400 border border-purple-400/30">
-              BETA
-            </span>
+            <Link
+              to="/changelog"
+              className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-purple-400/10 text-purple-400 border border-purple-400/30 hover:bg-purple-400/20 transition-colors"
+            >
+              v0.1.0 BETA
+            </Link>
           </div>
 
           {/* Quick Links */}
