@@ -37,6 +37,12 @@ firestore-debug.log
 ui-debug.log
 service-account.json
 
+# Supabase CLI temp files
+supabase/.temp/
+
+# Video source files (only .mp4 needed)
+*.mov
+
 # Build
 *.tsbuildinfo
 
