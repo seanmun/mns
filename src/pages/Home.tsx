@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 
@@ -28,6 +28,14 @@ export function Home() {
     }
   }, [user, userLeagues, authLoading, leaguesLoading, navigate]);
 
+  // Loop center-ball video back to start before the blank frame at ~19s
+  const handleCenterBallLoop = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = e.currentTarget;
+    if (video.currentTime >= 19.5) {
+      video.currentTime = 0;
+    }
+  }, []);
+
   // Show loading while checking auth status
   if (authLoading || (user && leaguesLoading)) {
     return (
@@ -45,6 +53,27 @@ export function Home() {
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
+        {/* Background Video - left-ball for desktop, center-ball for mobile */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-15 hidden md:block"
+        >
+          <source src="/video/left-ball.mp4" type="video/mp4" />
+        </video>
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-15 md:hidden"
+          onTimeUpdate={handleCenterBallLoop}
+        >
+          <source src="/video/center-ball.mp4" type="video/mp4" />
+        </video>
+
         {/* Gradient Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 via-purple-400/10 to-pink-400/10" />
 
