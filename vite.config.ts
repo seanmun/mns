@@ -37,14 +37,8 @@ export default defineConfig({
           // Vendor chunk - core React libraries
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
 
-          // Firebase chunk - all Firebase services
-          'vendor-firebase': [
-            'firebase/app',
-            'firebase/auth',
-            'firebase/firestore',
-            'firebase/storage',
-            'firebase/functions'
-          ],
+          // Supabase chunk
+          'vendor-supabase': ['@supabase/supabase-js'],
 
           // React Query chunk
           'vendor-query': ['@tanstack/react-query'],
