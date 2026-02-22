@@ -293,7 +293,7 @@ export function Header() {
                   <button
                     onClick={() => {
                       setIsDropdownOpen(false);
-                      navigate('/inbox');
+                      navigate(currentLeague ? `/league/${currentLeague.id}/inbox` : '/inbox');
                     }}
                     className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors flex items-center gap-2"
                   >

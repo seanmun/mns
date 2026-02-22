@@ -11,7 +11,7 @@ import { getCurrentWeek } from '../lib/scheduleUtils';
 import type { Team, League, Player, Portfolio, RegularSeasonRoster, TeamFees, LeagueWeek } from '../types';
 import { LEAGUE_PHASE_LABELS, LEAGUE_PHASE_ORDER } from '../types';
 import type { LeaguePhase } from '../types';
-import { isPhaseComplete, isPhaseActive } from '../lib/phaseGating';
+import { isPhaseComplete } from '../lib/phaseGating';
 import { PhaseDetail } from '../components/PhaseDetail';
 
 // Helper function to determine prize pool zone and calculate payouts
@@ -568,10 +568,8 @@ export function LeagueHome() {
           )}
         </div>
 
-        {/* Desktop & Mobile: Main Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Main Content */}
+        <div className="space-y-6">
             {/* Current Week Matchups */}
             {league?.leaguePhase === 'regular_season' && (() => {
               const weekNum = getCurrentWeek(leagueWeeks);
@@ -977,193 +975,6 @@ export function LeagueHome() {
             </div>
           </div>
 
-          {/* Right Column - Cards (Desktop only) */}
-          <div className="hidden lg:block space-y-6">
-            {/* My Team Card */}
-            {myTeam ? (
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
-                <h3 className="text-lg font-bold text-white mb-2">{myTeam.name}</h3>
-                <p className="text-sm text-gray-400 mb-4">{myTeam.abbrev}</p>
-                <button
-                  onClick={() => navigate(`/league/${leagueId}/team/${myTeam.id}`)}
-                  className="w-full border-2 border-green-400 text-green-400 px-4 py-3 rounded-lg font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all cursor-pointer"
-                >
-                  Manage Roster
-                </button>
-              </div>
-            ) : (
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
-                <h3 className="text-lg font-bold text-white mb-4">My Team</h3>
-                <p className="text-sm text-gray-400">You are not assigned to a team in this league.</p>
-              </div>
-            )}
-
-            {/* Free Agent Pool Card */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/baseketball-icon.webp" alt="Basketball" className="w-6 h-6 rounded-full" />
-                <h3 className="text-lg font-bold text-white">Free Agent Pool</h3>
-              </div>
-              <p className="text-sm text-gray-400 mb-4">
-                Browse available players and plan your draft strategy.
-              </p>
-              <button
-                onClick={() => navigate(`/league/${leagueId}/free-agents`)}
-                className="w-full border-2 border-pink-400 text-pink-400 px-4 py-2 rounded-lg font-semibold hover:bg-pink-400/10 hover:shadow-[0_0_15px_rgba(244,114,182,0.5)] transition-all cursor-pointer"
-              >
-                View Pool
-              </button>
-            </div>
-
-            {/* Draft Room Card - Hidden post-draft (lives in Archive instead) */}
-            {!isPhaseComplete(league?.leaguePhase, 'draft') && (
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <img src="/icons/draft-icon.webp" alt="Draft Room" className="w-6 h-6 rounded-full" />
-                  <h3 className="text-lg font-bold text-white">Draft Room</h3>
-                </div>
-                <p className="text-sm text-gray-400 mb-4">
-                  Access all draft activities
-                </p>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => navigate(`/league/${leagueId}/draft`)}
-                    className={`w-full px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer ${
-                      isPhaseActive(league?.leaguePhase, 'draft')
-                        ? 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
-                        : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                    }`}
-                    disabled={!isPhaseActive(league?.leaguePhase, 'draft')}
-                  >
-                    {isPhaseActive(league?.leaguePhase, 'draft') ? 'Enter Draft' : 'Coming Soon'}
-                  </button>
-                  <button
-                    onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
-                    className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
-                  >
-                    Rookie Draft
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Mock Draft Card */}
-            <div className="bg-[#121212] rounded-lg border border-green-400/50 p-6 shadow-[0_0_15px_rgba(74,222,128,0.2)]">
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-lg font-bold text-white">Mock Draft</h3>
-              </div>
-              <p className="text-sm text-gray-500 mb-4">
-                Powered by TrustThePick.com
-              </p>
-              <div className="space-y-2">
-                <button
-                  onClick={() => navigate(`/league/${leagueId}/mock-draft`)}
-                  className="w-full border-2 border-green-400 text-green-400 px-4 py-2 rounded-lg font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all cursor-pointer"
-                >
-                  Run Simulator
-                </button>
-                <button
-                  onClick={() => navigate(`/league/${leagueId}/prospects`)}
-                  className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
-                >
-                  View Prospects
-                </button>
-              </div>
-            </div>
-
-            {/* Trade Machine Card */}
-            <div className="bg-[#121212] rounded-lg border border-cyan-400/50 p-6 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-lg font-bold text-white">Trade Machine</h3>
-              </div>
-              <p className="text-sm text-gray-500 mb-4">
-                Build and propose trades
-              </p>
-              <button
-                onClick={() => navigate(`/league/${leagueId}/trade-machine`)}
-                className="w-full border-2 border-cyan-400 text-cyan-400 px-4 py-2 rounded-lg font-semibold hover:bg-cyan-400/10 hover:shadow-[0_0_15px_rgba(34,211,238,0.5)] transition-all cursor-pointer"
-              >
-                Open Trade Machine
-              </button>
-            </div>
-
-            {/* Rules Card */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/rules-icon.webp" alt="Rules" className="w-6 h-6 rounded-full" />
-                <h3 className="text-lg font-bold text-white">Rules</h3>
-              </div>
-              <p className="text-sm text-gray-400 mb-4">
-                League guidelines and policies
-              </p>
-              <button
-                onClick={() => navigate(`/league/${leagueId}/rules`)}
-                className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
-              >
-                View Rules
-              </button>
-            </div>
-
-            {/* Reigning Champion Card */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/trophy-icon.webp" alt="Trophy" className="w-6 h-6 rounded-full" />
-                <h3 className="text-lg font-bold text-white">Reigning Champion</h3>
-              </div>
-              <p className="text-xl font-semibold text-yellow-400 mb-4">Kirbiak</p>
-              <button
-                onClick={() => navigate(`/league/${leagueId}/record-book`)}
-                className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
-              >
-                Record Book
-              </button>
-            </div>
-
-            {/* Archive Section - Desktop */}
-            <div className="pt-6 border-t border-gray-800">
-              <div className="mb-4">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Archive</h3>
-              </div>
-              <div className="space-y-4">
-                {/* Draft Card */}
-                <div className="bg-[#121212] rounded-lg border border-gray-800 p-4 opacity-75">
-                  <div className="flex items-center gap-2 mb-2">
-                    <img src="/icons/draft-icon.webp" alt="Draft" className="w-5 h-5 rounded-full" />
-                    <h3 className="text-sm font-bold text-white">Draft</h3>
-                  </div>
-                  <p className="text-xs text-gray-400 mb-3">
-                    {isPhaseComplete(league?.leaguePhase, 'draft') ? 'Completed' : 'In Progress'}
-                  </p>
-                  <button
-                    onClick={() => navigate(`/league/${leagueId}/draft`)}
-                    className={`w-full px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                      isPhaseComplete(league?.leaguePhase, 'draft')
-                        ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
-                        : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
-                    }`}
-                  >
-                    {isPhaseComplete(league?.leaguePhase, 'draft') ? 'View Results' : 'View Draft'}
-                  </button>
-                </div>
-
-                {/* Rookie Draft Card */}
-                <div className="bg-[#121212] rounded-lg border border-gray-800 p-4 opacity-75">
-                  <div className="flex items-center gap-2 mb-2">
-                    <img src="/icons/rookie-icon.webp" alt="Rookie Draft" className="w-5 h-5 rounded-full" />
-                    <h3 className="text-sm font-bold text-white">Rookie Draft</h3>
-                  </div>
-                  <p className="text-xs text-gray-400 mb-3">June 25, 2025</p>
-                  <button
-                    onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
-                    className="w-full bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
-                  >
-                    View Results
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Propose Wager Modal */}

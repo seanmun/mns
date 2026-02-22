@@ -1,11 +1,12 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { LeagueProvider } from './contexts/LeagueContext';
+import { LeagueProvider, useLeague } from './contexts/LeagueContext';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ScrollToTop } from './components/ScrollToTop';
 import { LeagueBottomNav } from './components/LeagueBottomNav';
+import { LeagueTopNav } from './components/LeagueTopNav';
 
 // Eagerly loaded (critical for initial render)
 import { Home } from './pages/Home';
@@ -66,6 +67,16 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return user ? <>{children}</> : <Navigate to="/" />;
 }
 
+function InboxRedirect() {
+  const { user, loading: authLoading } = useAuth();
+  const { currentLeagueId, loading: leagueLoading } = useLeague();
+
+  if (authLoading || leagueLoading) return <LoadingFallback />;
+  if (!user) return <Navigate to="/" />;
+  if (currentLeagueId) return <Navigate to={`/league/${currentLeagueId}/inbox`} replace />;
+  return <Navigate to="/teams" replace />;
+}
+
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen">
@@ -82,6 +93,7 @@ function LeagueLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
+      <LeagueTopNav />
       <main className="flex-1 pb-16 lg:pb-0">
         {children}
       </main>
@@ -228,6 +240,16 @@ function App() {
             }
           />
           <Route
+            path="/league/:leagueId/inbox"
+            element={
+              <PrivateRoute>
+                <LeagueLayout>
+                  <Inbox />
+                </LeagueLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="/admin/teams"
             element={
               <PrivateRoute>
@@ -367,15 +389,10 @@ function App() {
               </PrivateRoute>
             }
           />
+          {/* Legacy /inbox redirect — now lives at /league/:leagueId/inbox */}
           <Route
             path="/inbox"
-            element={
-              <PrivateRoute>
-                <AppLayout>
-                  <Inbox />
-                </AppLayout>
-              </PrivateRoute>
-            }
+            element={<InboxRedirect />}
           />
           <Route
             path="/profile"

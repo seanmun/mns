@@ -41,7 +41,7 @@ export function LeagueBottomNav() {
   const isPlayers = path.includes('/free-agents');
   const isTrade = path.includes('/trade-machine');
   const morePages = ['/draft', '/rookie-draft', '/mock-draft', '/prospects', '/rules', '/record-book', '/inbox'];
-  const isMoreActive = morePages.some(p => path.includes(p));
+  const isMoreActive = morePages.some(p => path === `${base}${p}`);
 
   const handleNav = (to: string) => {
     setMoreOpen(false);
@@ -55,7 +55,7 @@ export function LeagueBottomNav() {
     { label: 'Rookie Draft', path: `${base}/rookie-draft`, section: 'Draft' },
     { label: 'Rules', path: `${base}/rules`, section: 'League' },
     { label: 'Record Book', path: `${base}/record-book`, section: 'League' },
-    { label: 'Inbox', path: `/inbox`, section: 'League' },
+    { label: 'Inbox', path: `${base}/inbox`, section: 'League' },
   ];
 
   return (
