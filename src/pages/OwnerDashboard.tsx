@@ -624,8 +624,8 @@ export function OwnerDashboard() {
 
   const isLocked = roster?.status === 'adminLocked' || roster?.status === 'submitted';
 
-  // Check if we're in regular season mode
-  const isRegularSeason = league?.seasonStatus === 'pre_season' || league?.seasonStatus === 'active';
+  // Check if we're in regular season mode (based on league phase)
+  const isRegularSeason = league?.leaguePhase === 'regular_season' || league?.leaguePhase === 'playoffs';
 
   if (teamLoading || playersLoading || rosterLoading || statsLoading || regularSeasonLoading || feesLoading) {
     return (
@@ -1007,9 +1007,18 @@ export function OwnerDashboard() {
         )}
 
         {/* Rookie Draft Picks */}
-        {rookiePicks.length > 0 && (
-          <div className="mt-6 bg-[#121212] rounded-lg border border-gray-800 p-6">
-            <h2 className="text-xl font-bold text-white mb-4">Rookie Draft Picks ({rookiePicks.length})</h2>
+        <div className="mt-6 bg-[#121212] rounded-lg border border-gray-800 p-6">
+          <h2 className="text-xl font-bold text-white mb-4">
+            Rookie Draft Picks
+            {rookiePicks.length > 0 && (
+              <span className="text-sm font-normal text-gray-400 ml-2">({rookiePicks.length})</span>
+            )}
+          </h2>
+          {rookiePicks.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No rookie draft picks assigned yet. The league commissioner can initialize picks from the admin panel.
+            </p>
+          ) : (
             <div className="space-y-4">
               {(() => {
                 // Group picks by year
@@ -1037,7 +1046,7 @@ export function OwnerDashboard() {
                             key={pick.id}
                             className={`p-3 rounded border ${
                               isTraded
-                                ? 'bg-yellow-400/10 border-yellow-400/30'
+                                ? 'bg-purple-400/10 border-purple-400/30'
                                 : 'bg-[#0a0a0a] border-gray-700'
                             }`}
                           >
@@ -1048,11 +1057,15 @@ export function OwnerDashboard() {
                                 Round {pick.round}
                               </span>
                               {isTraded && (
-                                <span className="text-xs text-yellow-400">Traded</span>
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-purple-400/20 text-purple-400 border border-purple-400/30">
+                                  Acquired
+                                </span>
                               )}
                             </div>
                             <div className="text-xs text-gray-400 mt-1">
-                              {pick.originalTeamName}
+                              {isTraded
+                                ? `via ${pick.originalTeamName}`
+                                : pick.originalTeamName}
                             </div>
                           </div>
                         );
@@ -1062,8 +1075,8 @@ export function OwnerDashboard() {
                 ));
               })()}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Trade Modal */}

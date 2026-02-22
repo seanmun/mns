@@ -21,6 +21,7 @@ const RecordBook = lazy(() => import('./pages/RecordBook').then(m => ({ default:
 const RookieDraft = lazy(() => import('./pages/RookieDraft').then(m => ({ default: m.RookieDraft })));
 const Rules = lazy(() => import('./pages/Rules').then(m => ({ default: m.Rules })));
 const Prospects = lazy(() => import('./pages/Prospects').then(m => ({ default: m.Prospects })));
+const MockDraft = lazy(() => import('./pages/MockDraft').then(m => ({ default: m.MockDraft })));
 const Inbox = lazy(() => import('./pages/Inbox').then(m => ({ default: m.Inbox })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 const Changelog = lazy(() => import('./pages/Changelog').then(m => ({ default: m.Changelog })));
@@ -187,6 +188,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <Prospects />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/league/:leagueId/mock-draft"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <MockDraft />
                 </AppLayout>
               </PrivateRoute>
             }

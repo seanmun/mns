@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team } from '../types';
 
@@ -18,7 +18,7 @@ interface DraftPick {
 }
 
 export function AdminDraftPicks() {
-  const { role } = useAuth();
+  const canManage = useCanManageLeague();
   const { currentLeagueId } = useLeague();
   const navigate = useNavigate();
 
@@ -31,13 +31,13 @@ export function AdminDraftPicks() {
   const [draftOrder, setDraftOrder] = useState<string[]>(Array(12).fill(''));
 
   useEffect(() => {
-    if (role !== 'admin' || !currentLeagueId) {
-      if (role !== 'admin') navigate('/');
+    if (!canManage || !currentLeagueId) {
+      if (!canManage) navigate('/');
       return;
     }
 
     loadData();
-  }, [role, currentLeagueId, navigate]);
+  }, [canManage, currentLeagueId, navigate]);
 
   const loadData = async () => {
     if (!currentLeagueId) return;
@@ -225,7 +225,7 @@ export function AdminDraftPicks() {
     }
   };
 
-  if (role !== 'admin') {
+  if (!canManage) {
     navigate('/');
     return null;
   }

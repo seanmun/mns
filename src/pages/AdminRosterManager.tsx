@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { AdminRosterManagement } from '../components/AdminRosterManagement';
 import type { League } from '../types';
 
@@ -14,21 +14,24 @@ function mapLeague(row: any): League {
     seasonYear: row.season_year,
     deadlines: row.deadlines || { keepersLockAt: '', redshirtLockAt: '', draftAt: '' },
     cap: row.cap,
+    schedule: row.schedule || undefined,
     keepersLocked: row.keepers_locked,
     draftStatus: row.draft_status,
     seasonStatus: row.season_status,
+    commissionerId: row.commissioner_id || undefined,
+    leaguePhase: row.league_phase || 'keeper_season',
   };
 }
 
 export function AdminRosterManager() {
-  const { role } = useAuth();
+  const canManage = useCanManageLeague();
   const navigate = useNavigate();
   const [leagues, setLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLeague, setSelectedLeague] = useState<League | null>(null);
 
   useEffect(() => {
-    if (role !== 'admin') {
+    if (!canManage) {
       navigate('/');
       return;
     }
@@ -50,7 +53,7 @@ export function AdminRosterManager() {
     };
 
     fetchLeagues();
-  }, [role, navigate]);
+  }, [canManage, navigate]);
 
   if (loading) {
     return (

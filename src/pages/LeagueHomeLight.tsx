@@ -22,6 +22,8 @@ function mapLeague(row: any): League {
     keepersLocked: row.keepers_locked,
     draftStatus: row.draft_status,
     seasonStatus: row.season_status,
+    leaguePhase: row.league_phase || 'keeper_season',
+    schedule: row.schedule || undefined,
     ...row,
   };
 }

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Prospect } from '../types';
 
 export function Prospects() {
   const { leagueId } = useParams<{ leagueId: string }>();
+  const navigate = useNavigate();
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPosition, setSelectedPosition] = useState<string>('ALL');
@@ -71,16 +72,32 @@ export function Prospects() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-4xl">🌟</span>
-            <h1 className="text-3xl font-bold text-white">Prospects</h1>
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-green-400 text-black">
-              2025 NBA Draft
-            </span>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-white">Prospects</h1>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-green-400 text-black">
+                  2025 NBA Draft
+                </span>
+              </div>
+              <p className="text-gray-400 mt-1">
+                Top 25 college basketball prospects for the 2025 NBA Draft
+              </p>
+            </div>
+            <button
+              onClick={() => navigate(`/league/${leagueId}/mock-draft`)}
+              className="hidden sm:flex items-center gap-2 px-5 py-2.5 border-2 border-green-400 text-green-400 rounded-lg font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all"
+            >
+              Run Mock Draft
+            </button>
           </div>
-          <p className="text-gray-400 mt-1">
-            Top 25 college basketball prospects for the 2025 NBA Draft
-          </p>
+          {/* Mobile mock draft button */}
+          <button
+            onClick={() => navigate(`/league/${leagueId}/mock-draft`)}
+            className="sm:hidden w-full mt-4 px-4 py-2.5 border-2 border-green-400 text-green-400 rounded-lg font-semibold hover:bg-green-400/10 transition-all"
+          >
+            Run Mock Draft Simulator
+          </button>
         </div>
 
         {/* Position Filter */}

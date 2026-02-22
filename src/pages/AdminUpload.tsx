@@ -1,18 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useIsSiteAdmin } from '../hooks/useCanManageLeague';
 import { baseKeeperRound } from '../lib/keeperAlgorithms';
+import { toAbbrev } from '../lib/nbaTeams';
 import Papa from 'papaparse';
 import type { Player } from '../types';
 
 export function AdminUpload() {
-  const [uploadType, setUploadType] = useState<'players' | 'projectedStats' | 'previousStats' | 'prospects'>('players');
+  const isSiteAdmin = useIsSiteAdmin();
+  const navigate = useNavigate();
+  const [uploadType, setUploadType] = useState<'players' | 'projectedStats' | 'previousStats' | 'prospects' | 'schedule'>('players');
   const [file, setFile] = useState<File | null>(null);
   const [leagueId, setLeagueId] = useState('');
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [results, setResults] = useState<{ success: number; errors: string[] } | null>(null);
-  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isSiteAdmin) {
+      navigate('/');
+    }
+  }, [isSiteAdmin, navigate]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -304,6 +313,124 @@ export function AdminUpload() {
     }
   };
 
+  const handleUploadSchedule = async () => {
+    if (!file) {
+      alert('Please select a file');
+      return;
+    }
+
+    setUploading(true);
+    const errors: string[] = [];
+    let successCount = 0;
+
+    const MONTH_MAP: Record<string, string> = {
+      Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+      Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
+    };
+
+    function parseBBRefDate(dateStr: string): string {
+      // "Tue Oct 21 2025" or "Tue, Oct 21, 2025" → "2025-10-21"
+      const cleaned = dateStr.trim().replace(/,/g, '');
+      const parts = cleaned.split(/\s+/);
+      const month = MONTH_MAP[parts[1]] || '01';
+      const day = parts[2].padStart(2, '0');
+      const year = parts[3];
+      return `${year}-${month}-${day}`;
+    }
+
+    function getSeasonYear(gameDate: string): number {
+      const month = parseInt(gameDate.split('-')[1]);
+      const year = parseInt(gameDate.split('-')[0]);
+      return month >= 10 ? year : year - 1;
+    }
+
+    try {
+      let text = await file.text();
+
+      // Basketball Reference wraps every line in quotes — strip them so PapaParse can split on commas
+      // Normalize line endings first (\r\n → \n)
+      text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      if (text.startsWith('"')) {
+        text = text
+          .split('\n')
+          .map(line => {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+              return trimmed.slice(1, -1);
+            }
+            return trimmed;
+          })
+          .join('\n');
+      }
+
+      const rows = await parseCSV(text);
+
+      setProgress({ current: 0, total: rows.length });
+
+      const batch: Array<{
+        id: string;
+        season_year: number;
+        game_date: string;
+        away_team: string;
+        home_team: string;
+        is_cup_game: boolean;
+        notes: string | null;
+      }> = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        try {
+          const dateStr = row['Date'];
+          if (!dateStr || dateStr === 'Date') continue; // skip empty rows and repeated header rows
+
+          const gameDate = parseBBRefDate(dateStr);
+          const awayName = row['Visitor/Neutral'] || '';
+          const homeName = row['Home/Neutral'] || '';
+
+          if (!awayName || !homeName) continue;
+
+          const awayAbbrev = toAbbrev(awayName);
+          const homeAbbrev = toAbbrev(homeName);
+          const seasonYear = getSeasonYear(gameDate);
+          const notes = row['Notes'] || null;
+          const isCupGame = !!(notes && notes.includes('NBA Cup'));
+
+          const id = `${seasonYear}_${gameDate}_${awayAbbrev}_${homeAbbrev}`;
+
+          batch.push({
+            id,
+            season_year: seasonYear,
+            game_date: gameDate,
+            away_team: awayAbbrev,
+            home_team: homeAbbrev,
+            is_cup_game: isCupGame,
+            notes,
+          });
+
+          successCount++;
+          setProgress({ current: i + 1, total: rows.length });
+        } catch (error: any) {
+          errors.push(`Row ${i + 2}: ${error.message}`);
+        }
+      }
+
+      // Upsert in chunks of 500
+      for (let i = 0; i < batch.length; i += 500) {
+        const chunk = batch.slice(i, i + 500);
+        const { error } = await supabase
+          .from('games')
+          .upsert(chunk, { onConflict: 'id' });
+        if (error) throw error;
+      }
+
+      setResults({ success: successCount, errors });
+    } catch (error: any) {
+      alert(`Upload failed: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (uploadType === 'projectedStats') {
       return handleUploadProjectedStats();
@@ -315,6 +442,10 @@ export function AdminUpload() {
 
     if (uploadType === 'prospects') {
       return handleUploadProspects();
+    }
+
+    if (uploadType === 'schedule') {
+      return handleUploadSchedule();
     }
 
     if (!file || !leagueId) {
@@ -424,13 +555,14 @@ export function AdminUpload() {
 
   const progressPercent = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
 
-  const handleDeleteCollection = async (collectionName: 'players' | 'projectedStats' | 'previousStats' | 'prospects') => {
+  const handleDeleteCollection = async (collectionName: 'players' | 'projectedStats' | 'previousStats' | 'prospects' | 'schedule') => {
     // Map collection names to Supabase table names
     const tableMap: Record<string, string> = {
       players: 'players',
       projectedStats: 'projected_stats',
       previousStats: 'previous_stats',
       prospects: 'prospects',
+      schedule: 'games',
     };
     const tableName = tableMap[collectionName];
 
@@ -484,6 +616,8 @@ export function AdminUpload() {
     }
   };
 
+  if (!isSiteAdmin) return null;
+
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -494,8 +628,8 @@ export function AdminUpload() {
           >
             ← Back to Teams
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Manage Players</h1>
-          <p className="text-gray-500 mt-1">Bulk import players, projected stats, or previous season stats from a CSV file</p>
+          <h1 className="text-3xl font-bold text-gray-900">Uploads</h1>
+          <p className="text-gray-500 mt-1">Bulk import players, stats, prospects, or NBA schedule from a CSV file</p>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow">
@@ -507,7 +641,7 @@ export function AdminUpload() {
             <select
               value={uploadType}
               onChange={(e) => {
-                setUploadType(e.target.value as 'players' | 'projectedStats' | 'previousStats' | 'prospects');
+                setUploadType(e.target.value as 'players' | 'projectedStats' | 'previousStats' | 'prospects' | 'schedule');
                 setFile(null);
                 setResults(null);
               }}
@@ -517,6 +651,7 @@ export function AdminUpload() {
               <option value="projectedStats">Projected Stats (2025-26)</option>
               <option value="previousStats">Previous Season Stats (2024-25)</option>
               <option value="prospects">Prospects (Draft Rankings)</option>
+              <option value="schedule">NBA Schedule (Basketball Reference)</option>
             </select>
           </div>
 
@@ -564,7 +699,7 @@ export function AdminUpload() {
           {uploading && (
             <div className="mb-6">
               <div className="flex justify-between text-sm text-gray-600 mb-2">
-                <span>Uploading players...</span>
+                <span>Uploading {uploadType === 'players' ? 'players' : uploadType === 'projectedStats' ? 'projected stats' : uploadType === 'previousStats' ? 'previous stats' : uploadType === 'prospects' ? 'prospects' : 'games'}...</span>
                 <span>{progress.current} / {progress.total}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-4">
@@ -587,7 +722,8 @@ export function AdminUpload() {
                uploadType === 'players' ? 'Upload Players' :
                uploadType === 'projectedStats' ? 'Upload Projected Stats' :
                uploadType === 'previousStats' ? 'Upload Previous Stats' :
-               'Upload Prospects'}
+               uploadType === 'prospects' ? 'Upload Prospects' :
+               'Upload Schedule'}
             </button>
 
             <button
@@ -604,7 +740,7 @@ export function AdminUpload() {
             <div className="mt-6">
               <div className="bg-green-50 border border-green-200 rounded p-4 mb-4">
                 <p className="text-green-800 font-semibold">
-                  ✓ Successfully uploaded {results.success} players
+                  ✓ Successfully uploaded {results.success} {uploadType === 'players' ? 'players' : uploadType === 'projectedStats' ? 'projected stats' : uploadType === 'previousStats' ? 'previous stats' : uploadType === 'prospects' ? 'prospects' : 'games'}
                 </p>
               </div>
 
@@ -627,7 +763,22 @@ export function AdminUpload() {
           <div className="mt-8 border-t pt-6">
             <h3 className="font-semibold text-gray-900 mb-3">CSV Format</h3>
 
-            {uploadType === 'players' ? (
+            {uploadType === 'schedule' ? (
+              <>
+                <p className="text-sm text-gray-600 mb-2">
+                  Download monthly schedule CSVs from Basketball Reference (Share &amp; Export &gt; CSV).
+                </p>
+                <div className="bg-gray-50 p-4 rounded text-xs font-mono overflow-x-auto">
+                  Date,Start (ET),Visitor/Neutral,PTS,Home/Neutral,PTS,,,Attend.,LOG,Arena,Notes
+                </div>
+                <div className="mt-4 text-sm text-gray-600 space-y-2">
+                  <p><strong>Columns used:</strong> Date, Visitor/Neutral, Home/Neutral, Notes</p>
+                  <p><strong>Cup detection:</strong> Games with "NBA Cup" in the Notes column are flagged automatically</p>
+                  <p><strong>Safe to re-upload:</strong> Uses upsert, so uploading the same month twice won't create duplicates</p>
+                  <p><strong>Upload all months:</strong> Oct through Apr for a complete season analysis</p>
+                </div>
+              </>
+            ) : uploadType === 'players' ? (
               <>
                 <p className="text-sm text-gray-600 mb-2">
                   Your CSV should have these columns (first row = headers):

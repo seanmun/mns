@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
+import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import type { Team } from '../types';
 
 // Mock player names for randomization
@@ -28,7 +29,8 @@ interface DraftPick {
 }
 
 export function AdminDraftTest() {
-  const { role, user } = useAuth();
+  const { user } = useAuth();
+  const canManage = useCanManageLeague();
   const { currentLeagueId } = useLeague();
   const navigate = useNavigate();
   const [teams, setTeams] = useState<Team[]>([]);
@@ -41,8 +43,8 @@ export function AdminDraftTest() {
 
   // Fetch real teams from Supabase
   useEffect(() => {
-    if (role !== 'admin' || !currentLeagueId) {
-      if (role !== 'admin') navigate('/');
+    if (!canManage || !currentLeagueId) {
+      if (!canManage) navigate('/');
       return;
     }
 
@@ -103,9 +105,9 @@ export function AdminDraftTest() {
     };
 
     fetchTeams();
-  }, [role, currentLeagueId, navigate]);
+  }, [canManage, currentLeagueId, navigate]);
 
-  if (role !== 'admin') {
+  if (!canManage) {
     navigate('/');
     return null;
   }

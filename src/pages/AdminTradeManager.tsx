@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, fetchAllRows } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team, Player, RosterDoc } from '../types';
 
@@ -36,7 +36,7 @@ interface TradeAsset {
 }
 
 export function AdminTradeManager() {
-  const { role } = useAuth();
+  const canManage = useCanManageLeague();
   const { currentLeagueId, currentLeague } = useLeague();
   const navigate = useNavigate();
 
@@ -51,13 +51,13 @@ export function AdminTradeManager() {
   const [isExecuting, setIsExecuting] = useState(false);
 
   useEffect(() => {
-    if (role !== 'admin' || !currentLeagueId) {
-      if (role !== 'admin') navigate('/');
+    if (!canManage || !currentLeagueId) {
+      if (!canManage) navigate('/');
       return;
     }
 
     loadData();
-  }, [role, currentLeagueId, navigate]);
+  }, [canManage, currentLeagueId, navigate]);
 
   const loadData = async () => {
     if (!currentLeagueId || !currentLeague) return;
@@ -358,7 +358,7 @@ export function AdminTradeManager() {
     }
   };
 
-  if (role !== 'admin') {
+  if (!canManage) {
     return null;
   }
 

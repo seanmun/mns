@@ -9,6 +9,7 @@ interface LeagueContextType {
   userLeagues: League[];
   loading: boolean;
   setCurrentLeagueId: (leagueId: string) => void;
+  isLeagueManager: boolean;
 }
 
 const LeagueContext = createContext<LeagueContextType | undefined>(undefined);
@@ -21,11 +22,15 @@ function mapLeague(row: any): League {
     seasonYear: row.season_year,
     deadlines: row.deadlines || {},
     cap: row.cap || {},
+    schedule: row.schedule || undefined,
     keepersLocked: row.keepers_locked || false,
     draftStatus: row.draft_status || undefined,
     seasonStatus: row.season_status || undefined,
     seasonStartedAt: row.season_started_at ? new Date(row.season_started_at).getTime() : undefined,
     seasonStartedBy: row.season_started_by || undefined,
+    commissionerId: row.commissioner_id || undefined,
+    leaguePhase: row.league_phase || 'keeper_season',
+    scoringMode: row.scoring_mode || 'category_record',
   };
 }
 
@@ -69,13 +74,24 @@ export function LeagueProvider({ children }: { children: React.ReactNode }) {
 
           if (teamsError) throw teamsError;
 
-          const leagueIds = [...new Set((teams || []).map(t => t.league_id))];
+          const teamLeagueIds = [...new Set((teams || []).map(t => t.league_id))];
 
-          if (leagueIds.length > 0) {
+          // Also find leagues where user is commissioner
+          const { data: commLeagues, error: commError } = await supabase
+            .from('leagues')
+            .select('*')
+            .eq('commissioner_id', user.id);
+
+          if (commError) throw commError;
+
+          const commLeagueIds = (commLeagues || []).map(l => l.id);
+          const allLeagueIds = [...new Set([...teamLeagueIds, ...commLeagueIds])];
+
+          if (allLeagueIds.length > 0) {
             const { data, error } = await supabase
               .from('leagues')
               .select('*')
-              .in('id', leagueIds);
+              .in('id', allLeagueIds);
 
             if (error) throw error;
             leagues = (data || []).map(mapLeague);
@@ -117,12 +133,15 @@ export function LeagueProvider({ children }: { children: React.ReactNode }) {
     setCurrentLeague(league || null);
   };
 
+  const isLeagueManager = !!(user && currentLeague?.commissionerId && user.id === currentLeague.commissionerId);
+
   const value = {
     currentLeagueId,
     currentLeague,
     userLeagues,
     loading,
     setCurrentLeagueId,
+    isLeagueManager,
   };
 
   return <LeagueContext.Provider value={value}>{children}</LeagueContext.Provider>;

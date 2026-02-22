@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import type { Team, League } from '../types';
 
 interface TeamWithRosterStatus extends Team {
@@ -27,9 +28,12 @@ function mapLeague(row: any): League {
     seasonYear: row.season_year,
     deadlines: row.deadlines || { keepersLockAt: '', redshirtLockAt: '', draftAt: '' },
     cap: row.cap,
+    schedule: row.schedule || undefined,
     keepersLocked: row.keepers_locked,
     draftStatus: row.draft_status,
     seasonStatus: row.season_status,
+    commissionerId: row.commissioner_id || undefined,
+    leaguePhase: row.league_phase || 'keeper_season',
   };
 }
 
@@ -56,6 +60,13 @@ export function AdminTeams() {
   const [showForm, setShowForm] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const navigate = useNavigate();
+  const canManage = useCanManageLeague();
+
+  useEffect(() => {
+    if (!canManage) {
+      navigate('/');
+    }
+  }, [canManage, navigate]);
 
   // Available championship years
   const championshipYears = [2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
@@ -281,6 +292,8 @@ export function AdminTeams() {
       alert('Failed to unlock team keepers');
     }
   };
+
+  if (!canManage) return null;
 
   if (loading) {
     return (

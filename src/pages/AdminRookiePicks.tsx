@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team } from '../types';
 
@@ -16,7 +16,7 @@ interface RookieDraftPick {
 }
 
 export function AdminRookiePicks() {
-  const { role } = useAuth();
+  const canManage = useCanManageLeague();
   const { currentLeagueId } = useLeague();
   const navigate = useNavigate();
 
@@ -27,13 +27,13 @@ export function AdminRookiePicks() {
   const [newOwner, setNewOwner] = useState('');
 
   useEffect(() => {
-    if (role !== 'admin' || !currentLeagueId) {
-      if (role !== 'admin') navigate('/');
+    if (!canManage || !currentLeagueId) {
+      if (!canManage) navigate('/');
       return;
     }
 
     loadData();
-  }, [role, currentLeagueId, navigate]);
+  }, [canManage, currentLeagueId, navigate]);
 
   const loadData = async () => {
     if (!currentLeagueId) return;
@@ -194,7 +194,7 @@ export function AdminRookiePicks() {
     }
   };
 
-  if (role !== 'admin') {
+  if (!canManage) {
     navigate('/');
     return null;
   }

@@ -4,8 +4,15 @@ import { supabase, fetchAllRows } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWalletData } from '../lib/blockchain';
 import { useWagers } from '../hooks/useWagers';
+import { useMatchups } from '../hooks/useMatchups';
 import { ProposeWagerModal } from '../components/ProposeWagerModal';
-import type { Team, League, Player, Portfolio, RegularSeasonRoster, TeamFees } from '../types';
+import { MatchupCard } from '../components/MatchupCard';
+import { getCurrentWeek } from '../lib/scheduleUtils';
+import type { Team, League, Player, Portfolio, RegularSeasonRoster, TeamFees, LeagueWeek } from '../types';
+import { LEAGUE_PHASE_LABELS, LEAGUE_PHASE_ORDER } from '../types';
+import type { LeaguePhase } from '../types';
+import { isPhaseComplete, isPhaseActive } from '../lib/phaseGating';
+import { PhaseDetail } from '../components/PhaseDetail';
 
 // Helper function to determine prize pool zone and calculate payouts
 function calculatePrizePayouts(totalPrizePool: number, totalCollected: number) {
@@ -107,6 +114,15 @@ export function LeagueHome() {
     includeAll: true,
   });
 
+  // Fetch matchups for the season (W-L records + current week display)
+  const { matchups: allMatchups, records: teamRecords } = useMatchups({
+    leagueId,
+    seasonYear: league?.seasonYear,
+    scoringMode: league?.scoringMode,
+  });
+
+  const [leagueWeeks, setLeagueWeeks] = useState<LeagueWeek[]>([]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -162,11 +178,13 @@ export function LeagueHome() {
     seasonYear: row.season_year,
     deadlines: row.deadlines,
     cap: row.cap,
+    schedule: row.schedule || undefined,
     keepersLocked: row.keepers_locked,
     draftStatus: row.draft_status,
     seasonStatus: row.season_status,
     seasonStartedAt: row.season_started_at,
     seasonStartedBy: row.season_started_by,
+    leaguePhase: row.league_phase || 'keeper_season',
   });
 
   useEffect(() => {
@@ -325,6 +343,28 @@ export function LeagueHome() {
 
         // Load portfolio data
         await loadPortfolioData();
+
+        // Fetch league weeks for current week calculation
+        const { data: weekRows } = await supabase
+          .from('league_weeks')
+          .select('*')
+          .eq('league_id', leagueId)
+          .eq('season_year', leagueData.seasonYear)
+          .order('week_number', { ascending: true });
+
+        if (weekRows) {
+          setLeagueWeeks(weekRows.map((row: any) => ({
+            id: row.id,
+            leagueId: row.league_id,
+            seasonYear: row.season_year,
+            weekNumber: row.week_number,
+            matchupWeek: row.matchup_week ?? row.week_number,
+            startDate: row.start_date,
+            endDate: row.end_date,
+            isTradeDeadlineWeek: row.is_trade_deadline_week,
+            label: row.label || undefined,
+          })));
+        }
 
         setLoading(false);
       } catch (error) {
@@ -494,12 +534,37 @@ export function LeagueHome() {
               )}
             </div>
           </div>
-          <p className="text-gray-400 mt-1">
-            {currentSeason === league?.seasonYear
-              ? 'Welcome back! Manage your team and prepare for the draft.'
-              : 'Viewing past season data (read-only).'
-            }
-          </p>
+          {currentSeason !== league?.seasonYear ? (
+            <p className="text-gray-400 mt-1">Viewing past season data (read-only).</p>
+          ) : (
+            <>
+              <div className="flex items-center gap-1 mt-2 flex-wrap">
+                {LEAGUE_PHASE_ORDER.map((phase: LeaguePhase, idx: number) => {
+                  const isCurrent = league?.leaguePhase === phase;
+                  const isComplete = isPhaseComplete(league?.leaguePhase, phase);
+                  return (
+                    <div key={phase} className="flex items-center gap-1">
+                      {idx > 0 && (
+                        <div className={`w-4 h-px ${isComplete || isCurrent ? 'bg-green-400/40' : 'bg-gray-700'}`} />
+                      )}
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${
+                          isCurrent
+                            ? 'bg-green-400/20 text-green-400 border border-green-400/50 shadow-[0_0_8px_rgba(74,222,128,0.3)]'
+                            : isComplete
+                              ? 'bg-gray-800 text-gray-500 border border-gray-700'
+                              : 'bg-gray-900 text-gray-600 border border-gray-800'
+                        }`}
+                      >
+                        {LEAGUE_PHASE_LABELS[phase]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {league && <PhaseDetail league={league} />}
+            </>
+          )}
         </div>
 
         {/* Mobile: Cards in 2x2 grid */}
@@ -538,49 +603,56 @@ export function LeagueHome() {
             </button>
           </div>
 
-          {/* Draft Room Card - Consolidated */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-4 col-span-2">
-            <div className="flex items-center gap-2 mb-1">
-              <img src="/icons/draft-icon.webp" alt="Draft Room" className="w-5 h-5 rounded-full" />
-              <h3 className="text-sm font-bold text-white">Draft Room</h3>
+          {/* Draft Room Card - Hidden post-draft (lives in Archive instead) */}
+          {!isPhaseComplete(league?.leaguePhase, 'draft') && (
+            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4 col-span-2">
+              <div className="flex items-center gap-2 mb-1">
+                <img src="/icons/draft-icon.webp" alt="Draft Room" className="w-5 h-5 rounded-full" />
+                <h3 className="text-sm font-bold text-white">Draft Room</h3>
+              </div>
+              <p className="text-xs text-gray-400 mb-3">Access all draft activities</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => navigate(`/league/${leagueId}/draft`)}
+                  className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                    isPhaseActive(league?.leaguePhase, 'draft')
+                      ? 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
+                      : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                  }`}
+                  disabled={!isPhaseActive(league?.leaguePhase, 'draft')}
+                >
+                  {isPhaseActive(league?.leaguePhase, 'draft') ? 'Enter Draft' : 'Coming Soon'}
+                </button>
+                <button
+                  onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
+                  className="bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
+                >
+                  Rookie Draft
+                </button>
+              </div>
             </div>
-            <p className="text-xs text-gray-400 mb-3">Access all draft activities</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => navigate(`/league/${leagueId}/draft`)}
-                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                  league?.draftStatus === 'completed'
-                    ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
-                    : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
-                }`}
-              >
-                Draft
-              </button>
-              <button
-                onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
-                className="bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
-              >
-                Rookie Draft
-              </button>
-            </div>
-          </div>
+          )}
 
-          {/* Prospects Card - NEW PRIORITY SECTION */}
+          {/* Mock Draft Card */}
           <div className="bg-[#121212] rounded-lg border border-green-400/50 p-4 col-span-2">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xl">🌟</span>
-              <h3 className="text-sm font-bold text-white">Prospects</h3>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-400 text-black">
-                NEW
-              </span>
+              <h3 className="text-sm font-bold text-white">Mock Draft</h3>
             </div>
-            <p className="text-xs text-gray-400 mb-3">Scouting reports and prospect rankings</p>
-            <button
-              onClick={() => navigate(`/league/${leagueId}/prospects`)}
-              className="w-full border-2 border-green-400 text-green-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all cursor-pointer"
-            >
-              View Prospects
-            </button>
+            <p className="text-xs text-gray-500 mb-3">Powered by TrustThePick.com</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => navigate(`/league/${leagueId}/prospects`)}
+                className="bg-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors cursor-pointer"
+              >
+                View Prospects
+              </button>
+              <button
+                onClick={() => navigate(`/league/${leagueId}/mock-draft`)}
+                className="border-2 border-green-400 text-green-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all cursor-pointer"
+              >
+                Run Simulator
+              </button>
+            </div>
           </div>
 
           {/* Rules Card */}
@@ -627,17 +699,17 @@ export function LeagueHome() {
                 <h3 className="text-sm font-bold text-white">Draft</h3>
               </div>
               <p className="text-xs text-gray-400 mb-3">
-                {league?.draftStatus === 'completed' ? 'Completed' : 'In Progress'}
+                {isPhaseComplete(league?.leaguePhase, 'draft') ? 'Completed' : 'In Progress'}
               </p>
               <button
                 onClick={() => navigate(`/league/${leagueId}/draft`)}
                 className={`w-full px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                  league?.draftStatus === 'completed'
+                  isPhaseComplete(league?.leaguePhase, 'draft')
                     ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
                     : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
                 }`}
               >
-                {league?.draftStatus === 'completed' ? 'View Results' : 'View Draft'}
+                {isPhaseComplete(league?.leaguePhase, 'draft') ? 'View Results' : 'View Draft'}
               </button>
             </div>
 
@@ -662,6 +734,23 @@ export function LeagueHome() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Current Week Matchups */}
+            {league?.leaguePhase === 'regular_season' && (() => {
+              const weekNum = getCurrentWeek(leagueWeeks);
+              const matchupWeek = weekNum
+                ? leagueWeeks.find(w => w.weekNumber === weekNum)?.matchupWeek ?? weekNum
+                : null;
+              const weekMatchups = allMatchups.filter(m => m.matchupWeek === matchupWeek);
+              return weekMatchups.length > 0 ? (
+                <MatchupCard
+                  matchups={weekMatchups}
+                  teams={teams}
+                  records={teamRecords}
+                  myTeamId={myTeam?.id}
+                  currentWeek={matchupWeek}
+                />
+              ) : null;
+            })()}
             {/* Portfolio Section */}
             {portfolio && portfolio.walletAddress && portfolio.cachedUsdValue !== undefined && (
               <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
@@ -962,39 +1051,86 @@ export function LeagueHome() {
               </div>
             )}
 
-            {/* All Teams Section */}
+            {/* Standings Section */}
             <div className="bg-[#121212] rounded-lg border border-gray-800">
               <div className="p-6 border-b border-gray-800">
-                <h2 className="text-xl font-bold text-white">All Teams</h2>
+                <h2 className="text-xl font-bold text-white">Standings</h2>
                 <p className="text-sm text-gray-400 mt-1">
-                  View team rosters and keeper selections.
+                  {league?.scoringMode === 'category_record' ? 'Category record' : 'Matchup record'} rankings
                 </p>
               </div>
+              {/* Table Header */}
+              <div className="hidden sm:grid grid-cols-[2.5rem_1fr_6rem_4rem_6rem] px-6 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-800">
+                <span>#</span>
+                <span>Team</span>
+                <span className="text-center">Record</span>
+                <span className="text-center">Pct</span>
+                <span className="text-right">Salary</span>
+              </div>
               <div className="divide-y divide-gray-800">
-                {teams.map((team) => {
+                {[...teams]
+                  .sort((a, b) => {
+                    const recA = teamRecords.get(a.id);
+                    const recB = teamRecords.get(b.id);
+                    const totalA = (recA?.wins || 0) + (recA?.losses || 0) + (recA?.ties || 0);
+                    const totalB = (recB?.wins || 0) + (recB?.losses || 0) + (recB?.ties || 0);
+                    const pctA = totalA > 0 ? (recA!.wins + (recA!.ties * 0.5)) / totalA : 0;
+                    const pctB = totalB > 0 ? (recB!.wins + (recB!.ties * 0.5)) / totalB : 0;
+                    if (pctB !== pctA) return pctB - pctA;
+                    return (recB?.wins || 0) - (recA?.wins || 0);
+                  })
+                  .map((team, idx) => {
                   const totalSalary = teamSalaries.get(team.id) || 0;
                   const firstApron = 195_000_000;
                   const isOverApron = totalSalary > firstApron;
+                  const record = teamRecords.get(team.id);
+                  const wins = record?.wins || 0;
+                  const losses = record?.losses || 0;
+                  const ties = record?.ties || 0;
+                  const total = wins + losses + ties;
+                  const pct = total > 0 ? ((wins + ties * 0.5) / total) : 0;
+                  const rank = idx + 1;
+                  const isMyTeam = team.id === myTeam?.id;
 
                   return (
                     <button
                       key={team.id}
                       onClick={() => handleTeamClick(team.id)}
-                      className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors text-left"
+                      className={`w-full px-6 py-3 flex items-center sm:grid sm:grid-cols-[2.5rem_1fr_6rem_4rem_6rem] gap-2 hover:bg-gray-800/50 transition-colors text-left ${isMyTeam ? 'bg-green-400/5' : ''}`}
                     >
-                      <div className="flex-1">
-                        <div className="font-semibold text-white">{team.name}</div>
-                        <div className="text-sm text-gray-400 mt-1">
-                          Total Salary: <span className={isOverApron ? 'text-yellow-400' : 'text-green-400'}>${(totalSalary / 1_000_000).toFixed(1)}M</span>
+                      {/* Rank */}
+                      <span className={`text-lg font-bold ${rank <= 3 ? 'text-green-400' : rank <= 6 ? 'text-gray-300' : 'text-gray-500'}`}>
+                        {rank}
+                      </span>
+
+                      {/* Team name + owner */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-white truncate">
+                          {team.name}
+                          {isMyTeam && <span className="ml-2 text-xs text-green-400/70">(You)</span>}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {team.ownerNames?.[0] || team.abbrev}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="inline-flex items-center px-3 py-1 rounded text-xs font-medium bg-green-400/10 text-green-400 border border-green-400/30">
-                          View Team
+
+                      {/* Record */}
+                      <div className="text-center">
+                        <span className="text-sm font-semibold text-white">
+                          {wins}-{losses}{ties > 0 ? `-${ties}` : ''}
                         </span>
-                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                      </div>
+
+                      {/* Win Pct */}
+                      <div className="hidden sm:block text-center">
+                        <span className="text-sm text-gray-400">{total > 0 ? pct.toFixed(3).replace(/^0/, '') : '-'}</span>
+                      </div>
+
+                      {/* Salary */}
+                      <div className="hidden sm:block text-right">
+                        <span className={`text-sm ${isOverApron ? 'text-yellow-400' : 'text-gray-400'}`}>
+                          ${(totalSalary / 1_000_000).toFixed(1)}M
+                        </span>
                       </div>
                     </button>
                   );
@@ -1041,53 +1177,60 @@ export function LeagueHome() {
               </button>
             </div>
 
-            {/* Draft Room Card - Consolidated */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <img src="/icons/draft-icon.webp" alt="Draft Room" className="w-6 h-6 rounded-full" />
-                <h3 className="text-lg font-bold text-white">Draft Room</h3>
+            {/* Draft Room Card - Hidden post-draft (lives in Archive instead) */}
+            {!isPhaseComplete(league?.leaguePhase, 'draft') && (
+              <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <img src="/icons/draft-icon.webp" alt="Draft Room" className="w-6 h-6 rounded-full" />
+                  <h3 className="text-lg font-bold text-white">Draft Room</h3>
+                </div>
+                <p className="text-sm text-gray-400 mb-4">
+                  Access all draft activities
+                </p>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => navigate(`/league/${leagueId}/draft`)}
+                    className={`w-full px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer ${
+                      isPhaseActive(league?.leaguePhase, 'draft')
+                        ? 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
+                        : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                    }`}
+                    disabled={!isPhaseActive(league?.leaguePhase, 'draft')}
+                  >
+                    {isPhaseActive(league?.leaguePhase, 'draft') ? 'Enter Draft' : 'Coming Soon'}
+                  </button>
+                  <button
+                    onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
+                    className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
+                  >
+                    Rookie Draft
+                  </button>
+                </div>
               </div>
-              <p className="text-sm text-gray-400 mb-4">
-                Access all draft activities
+            )}
+
+            {/* Mock Draft Card */}
+            <div className="bg-[#121212] rounded-lg border border-green-400/50 p-6 shadow-[0_0_15px_rgba(74,222,128,0.2)]">
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-bold text-white">Mock Draft</h3>
+              </div>
+              <p className="text-sm text-gray-500 mb-4">
+                Powered by TrustThePick.com
               </p>
               <div className="space-y-2">
                 <button
-                  onClick={() => navigate(`/league/${leagueId}/draft`)}
-                  className={`w-full px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer ${
-                    league?.draftStatus === 'completed'
-                      ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
-                      : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
-                  }`}
+                  onClick={() => navigate(`/league/${leagueId}/mock-draft`)}
+                  className="w-full border-2 border-green-400 text-green-400 px-4 py-2 rounded-lg font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all cursor-pointer"
                 >
-                  Draft
+                  Run Simulator
                 </button>
                 <button
-                  onClick={() => navigate(`/league/${leagueId}/rookie-draft`)}
+                  onClick={() => navigate(`/league/${leagueId}/prospects`)}
                   className="w-full bg-gray-800 text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors cursor-pointer"
                 >
-                  Rookie Draft
+                  View Prospects
                 </button>
               </div>
-            </div>
-
-            {/* Prospects Card - NEW PRIORITY SECTION */}
-            <div className="bg-[#121212] rounded-lg border border-green-400/50 p-6 shadow-[0_0_15px_rgba(74,222,128,0.2)]">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">🌟</span>
-                <h3 className="text-lg font-bold text-white">Prospects</h3>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-400 text-black">
-                  NEW
-                </span>
-              </div>
-              <p className="text-sm text-gray-400 mb-4">
-                Scouting reports and prospect rankings
-              </p>
-              <button
-                onClick={() => navigate(`/league/${leagueId}/prospects`)}
-                className="w-full border-2 border-green-400 text-green-400 px-4 py-2 rounded-lg font-semibold hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all cursor-pointer"
-              >
-                View Prospects
-              </button>
             </div>
 
             {/* Rules Card */}
@@ -1135,17 +1278,17 @@ export function LeagueHome() {
                     <h3 className="text-sm font-bold text-white">Draft</h3>
                   </div>
                   <p className="text-xs text-gray-400 mb-3">
-                    {league?.draftStatus === 'completed' ? 'Completed' : 'In Progress'}
+                    {isPhaseComplete(league?.leaguePhase, 'draft') ? 'Completed' : 'In Progress'}
                   </p>
                   <button
                     onClick={() => navigate(`/league/${leagueId}/draft`)}
                     className={`w-full px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                      league?.draftStatus === 'completed'
+                      isPhaseComplete(league?.leaguePhase, 'draft')
                         ? 'bg-gray-800 text-gray-200 hover:bg-gray-700'
                         : 'border-2 border-purple-400 text-purple-400 hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)]'
                     }`}
                   >
-                    {league?.draftStatus === 'completed' ? 'View Results' : 'View Draft'}
+                    {isPhaseComplete(league?.leaguePhase, 'draft') ? 'View Results' : 'View Draft'}
                   </button>
                 </div>
 

@@ -20,17 +20,63 @@ export interface LeagueDeadlines {
   draftAt: string;         // ISO timestamp
 }
 
+export interface LeagueSchedule {
+  numWeeks: number;              // Total weeks in regular season (e.g., 24)
+  seasonStartDate: string;       // ISO date (Monday of week 1)
+  tradeDeadlineWeek: number;     // Week number when trade deadline occurs
+  tradeDeadlineDate: string;     // ISO date of trade deadline
+  playoffTeams?: number;         // Even number, 2 to league size
+  playoffWeeks?: number;         // Number of playoff rounds (2, 3, or 4)
+  playoffByeTeams?: number;      // Seeds that skip round 1
+  consolationWeeks?: number;     // Weeks for consolation bracket (non-playoff teams, best cat record wins top rookie draft odds)
+}
+
+export interface LeagueWeek {
+  id: string;
+  leagueId: string;
+  seasonYear: number;
+  weekNumber: number;
+  matchupWeek: number;           // Which matchup period this week belongs to (same = combined)
+  startDate: string;
+  endDate: string;
+  isTradeDeadlineWeek: boolean;
+  label?: string;                // Optional label (e.g., "All-Star", "IST")
+}
+
+export interface Matchup {
+  id: string;
+  leagueId: string;
+  seasonYear: number;
+  matchupWeek: number;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeScore: number | null;
+  awayScore: number | null;
+}
+
+export interface TeamRecord {
+  wins: number;
+  losses: number;
+  ties: number;
+}
+
+export type ScoringMode = 'matchup_record' | 'category_record';
+
 export interface League {
   id: string;
   name: string;
   seasonYear: number;
   deadlines: LeagueDeadlines;
   cap: LeagueCapSettings;
+  schedule?: LeagueSchedule;   // Season schedule config (weeks, trade deadline)
   keepersLocked?: boolean;  // When true, rosters are locked and visible to all
-  draftStatus?: DraftStatus;  // Status of the draft
-  seasonStatus?: SeasonStatus;  // Status of the regular season
+  leaguePhase: LeaguePhase;  // Current phase of the league lifecycle
+  draftStatus?: DraftStatus;  // DEPRECATED — kept for migration, use leaguePhase
+  seasonStatus?: SeasonStatus;  // DEPRECATED — kept for migration, use leaguePhase
   seasonStartedAt?: number;  // Timestamp when season was started
   seasonStartedBy?: string;  // Admin who started the season
+  commissionerId?: string;   // UUID of the league's commissioner (auto-set on creation)
+  scoringMode: ScoringMode;  // How W-L-T records are computed
 }
 
 // Team
@@ -217,6 +263,22 @@ export interface PreviousStats {
   assistToTurnover: number; // A/TO
   seasonYear: string;     // "2024-25"
 }
+
+// League phases (linear progression)
+export type LeaguePhase = 'keeper_season' | 'draft' | 'regular_season' | 'playoffs' | 'champion' | 'rookie_draft';
+
+export const LEAGUE_PHASE_ORDER: LeaguePhase[] = [
+  'keeper_season', 'draft', 'regular_season', 'playoffs', 'champion', 'rookie_draft',
+];
+
+export const LEAGUE_PHASE_LABELS: Record<LeaguePhase, string> = {
+  keeper_season: 'Keeper Season',
+  draft: 'Draft',
+  regular_season: 'Regular Season',
+  playoffs: 'Playoffs',
+  champion: 'Champion',
+  rookie_draft: 'Rookie Draft',
+};
 
 // Draft types
 export type DraftStatus = "setup" | "in_progress" | "paused" | "completed";

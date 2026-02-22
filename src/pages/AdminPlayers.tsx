@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, fetchAllRows } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useIsSiteAdmin } from '../hooks/useCanManageLeague';
 import type { Player, Team } from '../types';
 
 // --- Mapping helpers ---
@@ -68,13 +69,20 @@ function playerToSupabase(player: Player): any {
 }
 
 export function AdminPlayers() {
+  const isSiteAdmin = useIsSiteAdmin();
+  const navigate = useNavigate();
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeamFilter, setSelectedTeamFilter] = useState<string>('all');
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
-  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isSiteAdmin) {
+      navigate('/');
+    }
+  }, [isSiteAdmin, navigate]);
 
   useEffect(() => {
     loadData();
@@ -137,6 +145,8 @@ export function AdminPlayers() {
                        player.roster?.teamId === selectedTeamFilter;
     return matchesSearch && matchesTeam;
   });
+
+  if (!isSiteAdmin) return null;
 
   if (loading) {
     return (

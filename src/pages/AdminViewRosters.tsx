@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, fetchAllRows } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team, Player, RosterDoc } from '../types';
 import { stackKeeperRounds, computeSummary } from '../lib/keeperAlgorithms';
@@ -86,7 +86,7 @@ function mapRookiePick(row: any): RookieDraftPick {
 }
 
 export function AdminViewRosters() {
-  const { role } = useAuth();
+  const canManage = useCanManageLeague();
   const { currentLeagueId, currentLeague } = useLeague();
   const navigate = useNavigate();
 
@@ -98,13 +98,13 @@ export function AdminViewRosters() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (role !== 'admin' || !currentLeagueId) {
-      if (role !== 'admin') navigate('/');
+    if (!canManage || !currentLeagueId) {
+      if (!canManage) navigate('/');
       return;
     }
 
     loadData();
-  }, [role, currentLeagueId, navigate]);
+  }, [canManage, currentLeagueId, navigate]);
 
   const handleSubmitRoster = async () => {
     if (!currentLeagueId || !selectedTeamId) return;
@@ -283,7 +283,7 @@ export function AdminViewRosters() {
     }
   };
 
-  if (role !== 'admin') {
+  if (!canManage) {
     return null;
   }
 

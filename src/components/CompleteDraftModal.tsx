@@ -203,7 +203,8 @@ export function CompleteDraftModal({
         .from('leagues')
         .update({
           draft_status: 'completed',
-          season_status: 'pre_season'
+          season_status: 'pre_season',
+          league_phase: 'regular_season',
         })
         .eq('id', leagueId);
 

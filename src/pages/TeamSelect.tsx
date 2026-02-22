@@ -28,11 +28,13 @@ function mapLeague(row: any): League {
     seasonYear: row.season_year,
     deadlines: row.deadlines,
     cap: row.cap,
+    schedule: row.schedule || undefined,
     keepersLocked: row.keepers_locked,
     draftStatus: row.draft_status,
     seasonStatus: row.season_status,
     seasonStartedAt: row.season_started_at,
     seasonStartedBy: row.season_started_by,
+    leaguePhase: row.league_phase || 'keeper_season',
   };
 }
 

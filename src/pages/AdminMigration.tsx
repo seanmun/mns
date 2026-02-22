@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useIsSiteAdmin } from '../hooks/useCanManageLeague';
 import { useNavigate } from 'react-router-dom';
 
 export function AdminMigration() {
-  const { role, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
+  const isSiteAdmin = useIsSiteAdmin();
   const navigate = useNavigate();
   const [status, setStatus] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -17,7 +19,7 @@ export function AdminMigration() {
     );
   }
 
-  if (role !== 'admin') {
+  if (!isSiteAdmin) {
     navigate('/');
     return null;
   }

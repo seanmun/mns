@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, fetchAllRows } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
+import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import type { Team, Player, Draft, DraftPick, RosterDoc } from '../types';
 
 export function AdminDraftSetup() {
-  const { role, user } = useAuth();
+  const { user } = useAuth();
+  const canManage = useCanManageLeague();
   const { currentLeagueId, currentLeague } = useLeague();
   const navigate = useNavigate();
 
@@ -20,13 +22,13 @@ export function AdminDraftSetup() {
   const [isTestDraft, setIsTestDraft] = useState(true);
 
   useEffect(() => {
-    if (role !== 'admin' || !currentLeagueId) {
-      if (role !== 'admin') navigate('/');
+    if (!canManage || !currentLeagueId) {
+      if (!canManage) navigate('/');
       return;
     }
 
     loadData();
-  }, [role, currentLeagueId, navigate]);
+  }, [canManage, currentLeagueId, navigate]);
 
   const loadData = async () => {
     if (!currentLeagueId || !currentLeague) return;
@@ -159,7 +161,7 @@ export function AdminDraftSetup() {
     }
   };
 
-  if (role !== 'admin') {
+  if (!canManage) {
     navigate('/');
     return null;
   }

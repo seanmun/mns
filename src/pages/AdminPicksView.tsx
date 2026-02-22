@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useIsSiteAdmin } from '../hooks/useCanManageLeague';
 import { useNavigate } from 'react-router-dom';
 
 interface Pick {
@@ -17,7 +18,8 @@ interface Pick {
 }
 
 export function AdminPicksView() {
-  const { role, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
+  const isSiteAdmin = useIsSiteAdmin();
   const navigate = useNavigate();
   const [picks, setPicks] = useState<Pick[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,7 @@ export function AdminPicksView() {
     );
   }
 
-  if (role !== 'admin') {
+  if (!isSiteAdmin) {
     navigate('/');
     return null;
   }

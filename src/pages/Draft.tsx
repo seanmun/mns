@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase, fetchAllRows } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
+import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
 import { CompleteDraftModal } from '../components/CompleteDraftModal';
@@ -71,8 +72,9 @@ function mapPlayer(row: any): Player {
 
 export function Draft() {
   const { leagueId } = useParams<{ leagueId: string }>();
-  const { user, role } = useAuth();
+  const { user } = useAuth();
   const { currentLeague } = useLeague();
+  const canManageLeague = useCanManageLeague();
   const navigate = useNavigate();
 
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -100,7 +102,7 @@ export function Draft() {
     userTeamId || undefined
   );
 
-  const isAdmin = role === 'admin';
+  const isAdmin = canManageLeague;
 
   // Find user's team
   const userTeamIds = teams
@@ -124,12 +126,12 @@ export function Draft() {
     }
   }, [teams, leagueId, user]);
 
-  // Redirect non-admins if this is a test draft
+  // Redirect non-admins/non-commissioners if this is a test draft
   useEffect(() => {
-    if (draft && draft.settings.isTestDraft && role !== 'admin' && role !== null) {
+    if (draft && draft.settings.isTestDraft && !canManageLeague && user !== null) {
       navigate(`/league/${leagueId}`);
     }
-  }, [draft, role, navigate, leagueId]);
+  }, [draft, canManageLeague, user, navigate, leagueId]);
 
   useEffect(() => {
     if (!leagueId || !currentLeague) return;

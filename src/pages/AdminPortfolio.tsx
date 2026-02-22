@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Portfolio } from '../types';
 
 export function AdminPortfolio() {
-  const { role } = useAuth();
+  const canManage = useCanManageLeague();
   const { currentLeagueId } = useLeague();
   const navigate = useNavigate();
 
@@ -17,13 +17,13 @@ export function AdminPortfolio() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (role !== 'admin') {
+    if (!canManage) {
       navigate('/');
       return;
     }
 
     loadPortfolio();
-  }, [role, currentLeagueId, navigate]);
+  }, [canManage, currentLeagueId, navigate]);
 
   const loadPortfolio = async () => {
     if (!currentLeagueId) return;
