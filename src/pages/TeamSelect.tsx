@@ -35,6 +35,7 @@ function mapLeague(row: any): League {
     seasonStartedAt: row.season_started_at,
     seasonStartedBy: row.season_started_by,
     leaguePhase: row.league_phase || 'keeper_season',
+    scoringMode: row.scoring_mode || 'category_record',
   };
 }
 

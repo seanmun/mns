@@ -395,7 +395,6 @@ export function MockDraft() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {lotteryResults.slice(0, Math.min(4, lotteryResults.length)).map((result) => {
                 const movedUp = result.movement > 0;
-                const movedDown = result.movement < 0;
                 return (
                   <div
                     key={result.pick}
@@ -525,7 +524,6 @@ export function MockDraft() {
                     {mockPicks.map((pick) => {
                       const diff = pick.prospect.rank - pick.pick;
                       const isReach = diff > 0; // drafted higher than consensus
-                      const isSlide = diff < 0; // slid past consensus
                       return (
                         <tr
                           key={pick.pick}

@@ -34,6 +34,7 @@ function mapLeague(row: any): League {
     seasonStatus: row.season_status,
     commissionerId: row.commissioner_id || undefined,
     leaguePhase: row.league_phase || 'keeper_season',
+    scoringMode: row.scoring_mode || 'category_record',
   };
 }
 
