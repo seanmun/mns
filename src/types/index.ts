@@ -538,6 +538,51 @@ export interface Wager {
   updatedAt: number;
 }
 
+// Trade Machine
+export type TradeAssetType = 'keeper' | 'redshirt' | 'int_stash' | 'rookie_pick';
+export type TradeProposalStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'expired' | 'executed';
+export type TradeResponseStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface TradeAsset {
+  type: TradeAssetType;
+  id: string;
+  displayName: string;
+  salary: number;
+  fromTeamId: string;
+  fromTeamName: string;
+  toTeamId: string;
+  toTeamName: string;
+}
+
+export interface TradeProposal {
+  id: string;
+  leagueId: string;
+  seasonYear: number;
+  proposedByTeamId: string;
+  proposedByEmail: string;
+  status: TradeProposalStatus;
+  assets: TradeAsset[];
+  involvedTeamIds: string[];
+  note?: string;
+  expiresAt?: number;
+  executedAt?: number;
+  executedBy?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface TradeProposalResponse {
+  id: string;
+  proposalId: string;
+  teamId: string;
+  teamName: string;
+  status: TradeResponseStatus;
+  respondedBy?: string;
+  respondedAt?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 // Prospects
 export interface Prospect {
   id: string;  // Auto-generated or derived ID

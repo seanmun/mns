@@ -4,7 +4,9 @@ import { supabase } from '../lib/supabase';
 import { getDailyQuote } from '../data/hinkieQuotes';
 import { useAuth } from '../contexts/AuthContext';
 import { useWagers } from '../hooks/useWagers';
+import { useTradeProposals } from '../hooks/useTradeProposals';
 import { WagerProposal } from '../components/WagerProposal';
+import { TradeProposalCard } from '../components/TradeProposalCard';
 import type { Team } from '../types';
 
 function mapTeam(row: any): Team {
@@ -30,6 +32,13 @@ export function Inbox() {
     leagueId,
     teamId: myTeam?.id,
   });
+
+  // Fetch trade proposals involving the user's team
+  const { proposals: tradeProposals, responses: tradeResponses } = useTradeProposals(
+    leagueId,
+    myTeam?.id
+  );
+  const pendingTrades = tradeProposals.filter(p => p.status === 'pending');
 
   // Debug logging
   useEffect(() => {
@@ -206,8 +215,24 @@ export function Inbox() {
           </div>
         )}
 
+        {/* Trade Proposals */}
+        {pendingTrades.length > 0 && (
+          <div className="mt-6 space-y-4">
+            <h2 className="text-xl font-bold text-white">Trade Proposals</h2>
+            {pendingTrades.map((proposal) => (
+              <TradeProposalCard
+                key={proposal.id}
+                proposal={proposal}
+                responses={tradeResponses.get(proposal.id) || []}
+                userTeamId={myTeam?.id || null}
+                userEmail={user?.email || ''}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Empty State / Future Messages */}
-        {wagers.length === 0 && (
+        {wagers.length === 0 && pendingTrades.length === 0 && (
           <div className="mt-6 text-center py-12">
             <svg
               className="w-16 h-16 text-gray-600 mx-auto mb-4"
@@ -223,10 +248,10 @@ export function Inbox() {
               />
             </svg>
             <p className="text-gray-400 text-sm">
-              No wager proposals
+              No new proposals
             </p>
             <p className="text-gray-500 text-xs mt-2">
-              Propose a wager to another team from the league home page
+              Wager and trade proposals will appear here
             </p>
           </div>
         )}

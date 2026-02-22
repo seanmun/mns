@@ -656,6 +656,20 @@ export function LeagueHome() {
             </div>
           </div>
 
+          {/* Trade Machine Card */}
+          <div className="bg-[#121212] rounded-lg border border-cyan-400/50 p-4 col-span-2">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-sm font-bold text-white">Trade Machine</h3>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Build and propose trades</p>
+            <button
+              onClick={() => navigate(`/league/${leagueId}/trade-machine`)}
+              className="w-full border-2 border-cyan-400 text-cyan-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-cyan-400/10 hover:shadow-[0_0_15px_rgba(34,211,238,0.5)] transition-all cursor-pointer"
+            >
+              Open Trade Machine
+            </button>
+          </div>
+
           {/* Rules Card */}
           <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -1232,6 +1246,22 @@ export function LeagueHome() {
                   View Prospects
                 </button>
               </div>
+            </div>
+
+            {/* Trade Machine Card */}
+            <div className="bg-[#121212] rounded-lg border border-cyan-400/50 p-6 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-bold text-white">Trade Machine</h3>
+              </div>
+              <p className="text-sm text-gray-500 mb-4">
+                Build and propose trades
+              </p>
+              <button
+                onClick={() => navigate(`/league/${leagueId}/trade-machine`)}
+                className="w-full border-2 border-cyan-400 text-cyan-400 px-4 py-2 rounded-lg font-semibold hover:bg-cyan-400/10 hover:shadow-[0_0_15px_rgba(34,211,238,0.5)] transition-all cursor-pointer"
+              >
+                Open Trade Machine
+              </button>
             </div>
 
             {/* Rules Card */}
