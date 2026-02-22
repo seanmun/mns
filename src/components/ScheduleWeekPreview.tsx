@@ -86,65 +86,83 @@ export function ScheduleWeekPreview({
     });
   }
 
+  const regularTiles = tiles.filter(t => !t.isPlayoff && !t.isConsolation);
+  const postSeasonTiles = tiles.filter(t => t.isPlayoff || t.isConsolation);
+
+  const renderTile = (tile: typeof tiles[0]) => {
+    let borderClass = 'border-gray-700';
+    let bgClass = 'bg-[#0a0a0a]';
+
+    if (tile.isPlayoff && tile.isConsolation) {
+      borderClass = 'border-purple-400/50';
+      bgClass = 'bg-purple-400/5';
+    } else if (tile.isPlayoff) {
+      borderClass = 'border-purple-400/50';
+      bgClass = 'bg-purple-400/5';
+    } else if (tile.isConsolation) {
+      borderClass = 'border-amber-400/50';
+      bgClass = 'bg-amber-400/5';
+    } else if (tile.isCombined) {
+      borderClass = 'border-orange-400/50';
+      bgClass = 'bg-orange-400/5';
+    }
+
+    if (tile.isTradeDeadline) {
+      borderClass = 'border-red-400/50';
+      bgClass = tile.isCombined ? 'bg-orange-400/5' : 'bg-red-400/5';
+    }
+
+    return (
+      <div
+        key={tile.matchupWeek}
+        className={`rounded-md border p-1.5 text-center ${borderClass} ${bgClass}`}
+      >
+        <div className="text-xs font-bold text-white">
+          {tile.isPlayoff || tile.isConsolation
+            ? (tile.label || 'PO')
+            : `Wk ${tile.matchupWeek}`}
+        </div>
+        <div className="text-[10px] text-gray-400 leading-tight">
+          {formatDate(tile.startDate)}
+        </div>
+        {tile.isCombined && (
+          <div className="text-[9px] text-orange-400/70 leading-tight">
+            {tile.weekNumbers.length}wk
+          </div>
+        )}
+        {tile.label && !tile.isPlayoff && !tile.isConsolation && (
+          <div className="text-[9px] text-orange-400/70 leading-tight truncate">
+            {tile.label}
+          </div>
+        )}
+        {tile.isConsolation && tile.isPlayoff && (
+          <div className="text-[9px] text-amber-400/70 leading-tight">+Con</div>
+        )}
+        {tile.isTradeDeadline && (
+          <div className="text-[9px] text-red-400/70 leading-tight">TDL</div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
       <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
-        {tiles.map((tile) => {
-          let borderClass = 'border-gray-700';
-          let bgClass = 'bg-[#0a0a0a]';
-
-          if (tile.isPlayoff && tile.isConsolation) {
-            borderClass = 'border-purple-400/50';
-            bgClass = 'bg-purple-400/5';
-          } else if (tile.isPlayoff) {
-            borderClass = 'border-purple-400/50';
-            bgClass = 'bg-purple-400/5';
-          } else if (tile.isConsolation) {
-            borderClass = 'border-amber-400/50';
-            bgClass = 'bg-amber-400/5';
-          } else if (tile.isCombined) {
-            borderClass = 'border-orange-400/50';
-            bgClass = 'bg-orange-400/5';
-          }
-
-          if (tile.isTradeDeadline) {
-            borderClass = 'border-red-400/50';
-            bgClass = tile.isCombined ? 'bg-orange-400/5' : 'bg-red-400/5';
-          }
-
-          return (
-            <div
-              key={tile.matchupWeek}
-              className={`rounded-md border p-1.5 text-center ${borderClass} ${bgClass}`}
-            >
-              <div className="text-xs font-bold text-white">
-                {tile.isPlayoff || tile.isConsolation
-                  ? (tile.label || 'PO')
-                  : `Wk ${tile.matchupWeek}`}
-              </div>
-              <div className="text-[10px] text-gray-400 leading-tight">
-                {formatDate(tile.startDate)}
-              </div>
-              {tile.isCombined && (
-                <div className="text-[9px] text-orange-400/70 leading-tight">
-                  {tile.weekNumbers.length}wk
-                </div>
-              )}
-              {tile.label && !tile.isPlayoff && !tile.isConsolation && (
-                <div className="text-[9px] text-orange-400/70 leading-tight truncate">
-                  {tile.label}
-                </div>
-              )}
-              {tile.isConsolation && tile.isPlayoff && (
-                <div className="text-[9px] text-amber-400/70 leading-tight">+Con</div>
-              )}
-              {tile.isTradeDeadline && (
-                <div className="text-[9px] text-red-400/70 leading-tight">TDL</div>
-              )}
-            </div>
-          );
-        })}
+        {regularTiles.map(renderTile)}
       </div>
+
+      {postSeasonTiles.length > 0 && (
+        <>
+          <div className="flex items-center gap-3 my-3">
+            <div className="flex-1 border-t border-gray-700" />
+            <span className="text-gray-500 text-xs font-bold tracking-wider">POSTSEASON</span>
+            <div className="flex-1 border-t border-gray-700" />
+          </div>
+          <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
+            {postSeasonTiles.map(renderTile)}
+          </div>
+        </>
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap gap-4 mt-3 text-[10px] text-gray-500">

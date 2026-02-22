@@ -5,6 +5,7 @@ import { LeagueProvider } from './contexts/LeagueContext';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ScrollToTop } from './components/ScrollToTop';
+import { LeagueBottomNav } from './components/LeagueBottomNav';
 
 // Eagerly loaded (critical for initial render)
 import { Home } from './pages/Home';
@@ -77,6 +78,19 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function LeagueLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-1 pb-16 lg:pb-0">
+        {children}
+      </main>
+      <Footer />
+      <LeagueBottomNav />
+    </div>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -117,9 +131,9 @@ function App() {
             path="/league/:leagueId"
             element={
               <PrivateRoute>
-                <AppLayout>
+                <LeagueLayout>
                   <LeagueHome />
-                </AppLayout>
+                </LeagueLayout>
               </PrivateRoute>
             }
           />
@@ -127,9 +141,9 @@ function App() {
             path="/league/:leagueId/team/:teamId"
             element={
               <PrivateRoute>
-                <AppLayout>
+                <LeagueLayout>
                   <OwnerDashboard />
-                </AppLayout>
+                </LeagueLayout>
               </PrivateRoute>
             }
           />
@@ -137,9 +151,9 @@ function App() {
             path="/league/:leagueId/draft"
             element={
               <PrivateRoute>
-                <AppLayout>
+                <LeagueLayout>
                   <Draft />
-                </AppLayout>
+                </LeagueLayout>
               </PrivateRoute>
             }
           />
@@ -147,9 +161,9 @@ function App() {
             path="/league/:leagueId/free-agents"
             element={
               <PrivateRoute>
-                <AppLayout>
+                <LeagueLayout>
                   <FreeAgents />
-                </AppLayout>
+                </LeagueLayout>
               </PrivateRoute>
             }
           />
@@ -157,9 +171,9 @@ function App() {
             path="/league/:leagueId/record-book"
             element={
               <PrivateRoute>
-                <AppLayout>
+                <LeagueLayout>
                   <RecordBook />
-                </AppLayout>
+                </LeagueLayout>
               </PrivateRoute>
             }
           />
@@ -167,9 +181,9 @@ function App() {
             path="/league/:leagueId/rookie-draft"
             element={
               <PrivateRoute>
-                <AppLayout>
+                <LeagueLayout>
                   <RookieDraft />
-                </AppLayout>
+                </LeagueLayout>
               </PrivateRoute>
             }
           />
@@ -177,9 +191,9 @@ function App() {
             path="/league/:leagueId/rules"
             element={
               <PrivateRoute>
-                <AppLayout>
+                <LeagueLayout>
                   <Rules />
-                </AppLayout>
+                </LeagueLayout>
               </PrivateRoute>
             }
           />
@@ -187,9 +201,9 @@ function App() {
             path="/league/:leagueId/prospects"
             element={
               <PrivateRoute>
-                <AppLayout>
+                <LeagueLayout>
                   <Prospects />
-                </AppLayout>
+                </LeagueLayout>
               </PrivateRoute>
             }
           />
@@ -197,9 +211,9 @@ function App() {
             path="/league/:leagueId/mock-draft"
             element={
               <PrivateRoute>
-                <AppLayout>
+                <LeagueLayout>
                   <MockDraft />
-                </AppLayout>
+                </LeagueLayout>
               </PrivateRoute>
             }
           />
@@ -207,9 +221,9 @@ function App() {
             path="/league/:leagueId/trade-machine"
             element={
               <PrivateRoute>
-                <AppLayout>
+                <LeagueLayout>
                   <TradeMachine />
-                </AppLayout>
+                </LeagueLayout>
               </PrivateRoute>
             }
           />

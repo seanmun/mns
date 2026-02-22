@@ -149,30 +149,40 @@ function RegularSeasonDetail({
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
-        {weeks.map((week) => {
+        {weeks.map((week, idx) => {
           const isCurrent = week.weekNumber === currentWeek;
           const isPast = currentWeek !== null && week.weekNumber < currentWeek;
           const isDeadline = week.isTradeDeadlineWeek;
           const isCombined = week.matchupWeek !== week.weekNumber || !!week.label;
+          const numRegular = league.schedule?.numWeeks ?? weeks.length;
+          const isPostSeason = week.weekNumber > numRegular;
+          const prevWeek = idx > 0 ? weeks[idx - 1] : null;
+          const isFirstPostSeason = isPostSeason && prevWeek && prevWeek.weekNumber <= numRegular;
 
           return (
-            <div
-              key={week.id}
-              className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all cursor-default ${
-                isCurrent
-                  ? 'bg-green-400 text-black font-bold shadow-[0_0_8px_rgba(74,222,128,0.4)]'
-                  : isPast
-                    ? 'bg-gray-800 text-gray-500'
-                    : 'bg-gray-900 text-gray-600 border border-gray-800'
-              } ${isDeadline && !isCurrent ? 'ring-1 ring-red-400/50' : ''} ${
-                isCombined && !isCurrent ? 'ring-1 ring-orange-400/40' : ''
-              }`}
-              title={`Week ${week.weekNumber}: ${week.startDate} – ${week.endDate}${
-                isDeadline ? ' (Trade Deadline)' : ''
-              }${week.label ? ` [${week.label}]` : ''
-              }${week.matchupWeek !== week.weekNumber ? ` (combined with Week ${week.matchupWeek})` : ''}`}
-            >
-              {week.weekNumber}
+            <div key={week.id} className="flex items-center gap-1">
+              {isFirstPostSeason && (
+                <span className="text-gray-600 text-sm font-bold mx-1 flex-shrink-0">|</span>
+              )}
+              <div
+                className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all cursor-default ${
+                  isCurrent
+                    ? 'bg-green-400 text-black font-bold shadow-[0_0_8px_rgba(74,222,128,0.4)]'
+                    : isPostSeason
+                      ? 'bg-purple-400/10 text-purple-400 border border-purple-400/30'
+                      : isPast
+                        ? 'bg-gray-800 text-gray-500'
+                        : 'bg-gray-900 text-gray-600 border border-gray-800'
+                } ${isDeadline && !isCurrent ? 'ring-1 ring-red-400/50' : ''} ${
+                  isCombined && !isCurrent && !isPostSeason ? 'ring-1 ring-orange-400/40' : ''
+                }`}
+                title={`${isPostSeason ? (week.label || 'Playoff') : `Week ${week.weekNumber}`}: ${week.startDate} – ${week.endDate}${
+                  isDeadline ? ' (Trade Deadline)' : ''
+                }${week.label ? ` [${week.label}]` : ''
+                }${week.matchupWeek !== week.weekNumber ? ` (combined with Week ${week.matchupWeek})` : ''}`}
+              >
+                {isPostSeason ? (week.label?.[0] || 'P') : week.weekNumber}
+              </div>
             </div>
           );
         })}
