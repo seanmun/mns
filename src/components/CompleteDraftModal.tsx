@@ -18,6 +18,7 @@ interface CompleteDraftModalProps {
   draft: Draft;
   leagueId: string;
   seasonYear: number;
+  maxActive?: number;
   onClose: () => void;
   onComplete: () => void;
   currentUserEmail: string;
@@ -52,7 +53,8 @@ export function CompleteDraftModal({
   seasonYear,
   onClose,
   onComplete,
-  currentUserEmail
+  currentUserEmail,
+  maxActive = 13
 }: CompleteDraftModalProps) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [players, setPlayers] = useState<Map<string, Player>>(new Map());
@@ -342,7 +344,8 @@ export function CompleteDraftModal({
       irSlots: [],
       redshirtPlayers,
       internationalPlayers,
-      isLegalRoster: activeRoster.length <= 13,
+      benchedPlayers: [],
+      isLegalRoster: activeRoster.length <= maxActive,
       lastUpdated: Date.now(),
       updatedBy: currentUserEmail
     };

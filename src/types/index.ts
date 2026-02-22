@@ -62,6 +62,18 @@ export interface TeamRecord {
 
 export type ScoringMode = 'matchup_record' | 'category_record';
 
+export interface LeagueRosterSettings {
+  maxActive: number;       // default 13 — max players on active roster
+  maxStarters: number;     // default 10 — max that can start (rest must bench)
+  maxIR: number;           // default 2  — IR slots
+}
+
+export const DEFAULT_ROSTER_SETTINGS: LeagueRosterSettings = {
+  maxActive: 13,
+  maxStarters: 10,
+  maxIR: 2,
+};
+
 export interface League {
   id: string;
   name: string;
@@ -77,6 +89,7 @@ export interface League {
   seasonStartedBy?: string;  // Admin who started the season
   commissionerId?: string;   // UUID of the league's commissioner (auto-set on creation)
   scoringMode: ScoringMode;  // How W-L-T records are computed
+  roster: LeagueRosterSettings;  // Roster slot limits
 }
 
 // Team
@@ -466,9 +479,39 @@ export interface RegularSeasonRoster {
   irSlots: string[];  // Player IDs - max 2
   redshirtPlayers: string[];  // Player IDs - unlimited, doesn't count toward salary
   internationalPlayers: string[];  // Player IDs - unlimited, doesn't count toward salary
+  benchedPlayers: string[];  // Player IDs currently benched (subset of activeRoster)
   isLegalRoster: boolean;  // false if activeRoster.length > 13
   lastUpdated: number;
   updatedBy: string;  // Email of user who made last update
+}
+
+// Daily Lineup (10 active players per team per game date)
+export interface DailyLineup {
+  id: string;  // {leagueId}_{teamId}_{YYYY-MM-DD}
+  leagueId: string;
+  teamId: string;
+  gameDate: string;  // "YYYY-MM-DD"
+  activePlayerIds: string[];  // up to 10 player IDs
+  updatedAt: number;
+  updatedBy: string;
+}
+
+// NBA Game (from the games table)
+export interface NBAGame {
+  id: string;
+  seasonYear: number;
+  gameDate: string;  // "YYYY-MM-DD"
+  awayTeam: string;  // 3-letter abbreviation
+  homeTeam: string;
+  isCupGame: boolean;
+  notes: string | null;
+}
+
+// Game info for a specific player's NBA team on a specific date
+export interface PlayerGameInfo {
+  opponent: string;  // 3-letter abbreviation
+  isHome: boolean;
+  isCupGame: boolean;
 }
 
 // Team Fees (tracked per season)

@@ -7,6 +7,7 @@ import { usePreviousStats } from '../hooks/usePreviousStats';
 import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
 import { PlayerModal } from '../components/PlayerModal';
 import type { Player, RegularSeasonRoster } from '../types';
+import { DEFAULT_ROSTER_SETTINGS } from '../types';
 
 type SortColumn = 'score' | 'salary' | 'points' | 'rebounds' | 'assists' | 'steals' | 'blocks' | 'fgPercent' | 'ftPercent' | 'threePointMade';
 
@@ -33,6 +34,7 @@ function mapRegularSeasonRoster(row: any): RegularSeasonRoster {
     irSlots: row.ir_slots || [],
     redshirtPlayers: row.redshirt_players || [],
     internationalPlayers: row.international_players || [],
+    benchedPlayers: row.benched_players || [],
     isLegalRoster: row.is_legal_roster,
     lastUpdated: row.last_updated,
     updatedBy: row.updated_by,
@@ -45,6 +47,7 @@ export function FreeAgents() {
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [ownedPlayerIds, setOwnedPlayerIds] = useState<Set<string>>(new Set());
   const [seasonYear, setSeasonYear] = useState<number>(2025);
+  const [maxActive, setMaxActive] = useState<number>(DEFAULT_ROSTER_SETTINGS.maxActive);
   const [userTeamId, setUserTeamId] = useState<string | null>(null);
   const [userRoster, setUserRoster] = useState<RegularSeasonRoster | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,13 +109,14 @@ export function FreeAgents() {
       try {
         const { data, error } = await supabase
           .from('leagues')
-          .select('season_year')
+          .select('season_year, roster')
           .eq('id', leagueId)
           .single();
 
         if (error) throw error;
         if (data) {
           setSeasonYear(data.season_year);
+          setMaxActive(data.roster?.maxActive ?? DEFAULT_ROSTER_SETTINGS.maxActive);
         }
       } catch (error) {
         console.error('Error fetching league:', error);
@@ -634,8 +638,8 @@ export function FreeAgents() {
                 <div className="mb-6">
                   <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
                     <div className="text-sm text-gray-400">Active Roster</div>
-                    <div className={`text-2xl font-bold ${userRoster.activeRoster.length >= 13 ? 'text-pink-400' : 'text-white'}`}>
-                      {userRoster.activeRoster.length}/13
+                    <div className={`text-2xl font-bold ${userRoster.activeRoster.length >= maxActive ? 'text-pink-400' : 'text-white'}`}>
+                      {userRoster.activeRoster.length}/{maxActive}
                     </div>
                   </div>
                 </div>

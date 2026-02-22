@@ -7,7 +7,7 @@ import { AdminMatchupManager } from '../components/AdminMatchupManager';
 import { ScheduleWeekPreview } from '../components/ScheduleWeekPreview';
 import { PlayoffConfig } from '../components/PlayoffConfig';
 import type { League, RegularSeasonRoster, Player, TeamFees } from '../types';
-import { LEAGUE_PHASE_ORDER, LEAGUE_PHASE_LABELS } from '../types';
+import { LEAGUE_PHASE_ORDER, LEAGUE_PHASE_LABELS, DEFAULT_ROSTER_SETTINGS } from '../types';
 import { getNextPhase } from '../lib/phaseGating';
 import { generateWeeks, analyzeSchedule } from '../lib/scheduleUtils';
 import type { CombinedWeekConfig, ScheduleAnalysis } from '../lib/scheduleUtils';
@@ -30,6 +30,7 @@ function mapLeague(row: any): League {
     commissionerId: row.commissioner_id || undefined,
     leaguePhase: row.league_phase || 'keeper_season',
     scoringMode: row.scoring_mode || 'category_record',
+    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
   };
 }
 
@@ -88,6 +89,9 @@ export function AdminLeague() {
     'schedule.playoffWeeks': 3,
     'schedule.playoffByeTeams': 2,
     'schedule.consolationWeeks': 3,
+    'roster.maxActive': 13,
+    'roster.maxStarters': 10,
+    'roster.maxIR': 2,
   });
   const [generatingWeeks, setGeneratingWeeks] = useState(false);
   const [weeksGenerated, setWeeksGenerated] = useState(false);
@@ -186,6 +190,9 @@ export function AdminLeague() {
       'schedule.playoffWeeks': league.schedule?.playoffWeeks || 3,
       'schedule.playoffByeTeams': league.schedule?.playoffByeTeams || 2,
       'schedule.consolationWeeks': league.schedule?.consolationWeeks || 3,
+      'roster.maxActive': league.roster?.maxActive ?? 13,
+      'roster.maxStarters': league.roster?.maxStarters ?? 10,
+      'roster.maxIR': league.roster?.maxIR ?? 2,
     });
     setWeeksGenerated(false);
     setCombineCup(false);
@@ -224,6 +231,11 @@ export function AdminLeague() {
             playoffByeTeams: editForm['schedule.playoffByeTeams'],
             consolationWeeks: editForm['schedule.consolationWeeks'],
           },
+          roster: {
+            maxActive: editForm['roster.maxActive'],
+            maxStarters: editForm['roster.maxStarters'],
+            maxIR: editForm['roster.maxIR'],
+          },
         })
         .eq('id', selectedLeague.id);
       if (error) throw error;
@@ -255,6 +267,11 @@ export function AdminLeague() {
                   playoffWeeks: editForm['schedule.playoffWeeks'],
                   playoffByeTeams: editForm['schedule.playoffByeTeams'],
                   consolationWeeks: editForm['schedule.consolationWeeks'],
+                },
+                roster: {
+                  maxActive: editForm['roster.maxActive'],
+                  maxStarters: editForm['roster.maxStarters'],
+                  maxIR: editForm['roster.maxIR'],
                 },
               }
             : league
@@ -438,6 +455,7 @@ export function AdminLeague() {
           irSlots: rosterRow.ir_slots || [],
           redshirtPlayers: rosterRow.redshirt_players || [],
           internationalPlayers: rosterRow.international_players || [],
+          benchedPlayers: rosterRow.benched_players || [],
           isLegalRoster: rosterRow.is_legal_roster ?? true,
           lastUpdated: rosterRow.last_updated ? new Date(rosterRow.last_updated).getTime() : Date.now(),
           updatedBy: rosterRow.updated_by || '',
@@ -739,6 +757,31 @@ export function AdminLeague() {
               </div>
             </div>
 
+            {/* Roster Settings */}
+            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Roster Settings</h2>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Max Active</label>
+                  <input type="number" min={1} max={30} value={editForm['roster.maxActive']}
+                    onChange={(e) => setEditForm({ ...editForm, 'roster.maxActive': parseInt(e.target.value) || 13 })}
+                    className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Max Starters</label>
+                  <input type="number" min={0} max={editForm['roster.maxActive']} value={editForm['roster.maxStarters']}
+                    onChange={(e) => setEditForm({ ...editForm, 'roster.maxStarters': parseInt(e.target.value) || 10 })}
+                    className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">IR Slots</label>
+                  <input type="number" min={0} max={10} value={editForm['roster.maxIR']}
+                    onChange={(e) => setEditForm({ ...editForm, 'roster.maxIR': parseInt(e.target.value) || 2 })}
+                    className={inputClass} />
+                </div>
+              </div>
+            </div>
+
             {/* Schedule + Week Preview */}
             <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Schedule</h2>
@@ -894,6 +937,7 @@ export function AdminLeague() {
         <AdminRosterManagement
           leagueId={selectedLeague.id}
           seasonYear={selectedLeague.seasonYear}
+          rosterSettings={selectedLeague.roster}
           onClose={() => setShowRosterManagement(false)}
         />
       )}

@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase, fetchAllRows } from '../lib/supabase';
-import type { Team, Player, RegularSeasonRoster } from '../types';
+import type { Team, Player, RegularSeasonRoster, LeagueRosterSettings } from '../types';
+import { DEFAULT_ROSTER_SETTINGS } from '../types';
 
 interface AdminRosterManagementProps {
   leagueId: string;
   seasonYear: number;
+  rosterSettings?: LeagueRosterSettings;
   onClose: () => void;
 }
 
@@ -43,13 +45,14 @@ function mapRegularSeasonRoster(row: any): RegularSeasonRoster {
     irSlots: row.ir_slots || [],
     redshirtPlayers: row.redshirt_players || [],
     internationalPlayers: row.international_players || [],
+    benchedPlayers: row.benched_players || [],
     isLegalRoster: row.is_legal_roster,
     lastUpdated: row.last_updated,
     updatedBy: row.updated_by,
   };
 }
 
-export function AdminRosterManagement({ leagueId, seasonYear, onClose }: AdminRosterManagementProps) {
+export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = DEFAULT_ROSTER_SETTINGS, onClose }: AdminRosterManagementProps) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [rosters, setRosters] = useState<Map<string, RegularSeasonRoster>>(new Map());
@@ -185,9 +188,9 @@ export function AdminRosterManagement({ leagueId, seasonYear, onClose }: AdminRo
 
       switch (actionType) {
         case 'add_to_ir': {
-          // Move from active to IR (max 2)
-          if (roster.irSlots.length >= 2) {
-            alert('IR is full (max 2 players)');
+          // Move from active to IR
+          if (roster.irSlots.length >= rosterSettings.maxIR) {
+            alert(`IR is full (max ${rosterSettings.maxIR} players)`);
             setProcessing(false);
             return;
           }
@@ -362,11 +365,11 @@ export function AdminRosterManagement({ leagueId, seasonYear, onClose }: AdminRo
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <div className="text-gray-400">Active</div>
-                  <div className="text-white font-semibold">{currentRoster.activeRoster.length}/13</div>
+                  <div className="text-white font-semibold">{currentRoster.activeRoster.length}/{rosterSettings.maxActive}</div>
                 </div>
                 <div>
                   <div className="text-gray-400">IR</div>
-                  <div className="text-white font-semibold">{currentRoster.irSlots.length}/2</div>
+                  <div className="text-white font-semibold">{currentRoster.irSlots.length}/{rosterSettings.maxIR}</div>
                 </div>
                 <div>
                   <div className="text-gray-400">Redshirt</div>

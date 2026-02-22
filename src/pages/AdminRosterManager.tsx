@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { AdminRosterManagement } from '../components/AdminRosterManagement';
 import type { League } from '../types';
+import { DEFAULT_ROSTER_SETTINGS } from '../types';
 
 // --- Mapping helper ---
 
@@ -21,6 +22,7 @@ function mapLeague(row: any): League {
     commissionerId: row.commissioner_id || undefined,
     leaguePhase: row.league_phase || 'keeper_season',
     scoringMode: row.scoring_mode || 'category_record',
+    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
   };
 }
 
@@ -117,6 +119,7 @@ export function AdminRosterManager() {
         <AdminRosterManagement
           leagueId={selectedLeague.id}
           seasonYear={selectedLeague.seasonYear}
+          rosterSettings={selectedLeague.roster}
           onClose={() => setSelectedLeague(null)}
         />
       )}

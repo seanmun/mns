@@ -693,7 +693,9 @@ export function OwnerDashboard() {
             allPlayers={allLeaguePlayers}
             team={team}
             teamFees={teamFees}
-            isOwner={true}
+            isOwner={isOwner}
+            league={league!}
+            userEmail={user?.email || ''}
           />
         ) : (
           <>

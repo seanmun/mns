@@ -11,6 +11,7 @@ import {
 } from '../lib/lottery';
 import type { TeamStanding, LotteryOdds, LotteryResult, MockPick } from '../lib/lottery';
 import type { Team, League, Prospect } from '../types';
+import { DEFAULT_ROSTER_SETTINGS } from '../types';
 
 type Phase = 'odds' | 'lottery' | 'draft';
 
@@ -78,6 +79,7 @@ export function MockDraft() {
             seasonStartedBy: leagueRes.data.season_started_by,
             leaguePhase: leagueRes.data.league_phase || 'keeper_season',
             scoringMode: leagueRes.data.scoring_mode || 'category_record',
+            roster: leagueRes.data.roster || DEFAULT_ROSTER_SETTINGS,
           });
         }
 

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Team, League } from '../types';
+import { DEFAULT_ROSTER_SETTINGS } from '../types';
 
 function mapTeam(row: any): Team {
   return {
@@ -24,6 +25,7 @@ function mapLeague(row: any): League {
     seasonStatus: row.season_status,
     leaguePhase: row.league_phase || 'keeper_season',
     schedule: row.schedule || undefined,
+    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
     ...row,
   };
 }

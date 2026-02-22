@@ -9,7 +9,7 @@ import { ProposeWagerModal } from '../components/ProposeWagerModal';
 import { MatchupCard } from '../components/MatchupCard';
 import { getCurrentWeek } from '../lib/scheduleUtils';
 import type { Team, League, Player, Portfolio, RegularSeasonRoster, TeamFees, LeagueWeek } from '../types';
-import { LEAGUE_PHASE_LABELS, LEAGUE_PHASE_ORDER } from '../types';
+import { LEAGUE_PHASE_LABELS, LEAGUE_PHASE_ORDER, DEFAULT_ROSTER_SETTINGS } from '../types';
 import type { LeaguePhase } from '../types';
 import { isPhaseComplete } from '../lib/phaseGating';
 import { PhaseDetail } from '../components/PhaseDetail';
@@ -186,6 +186,7 @@ export function LeagueHome() {
     seasonStartedBy: row.season_started_by,
     leaguePhase: row.league_phase || 'keeper_season',
     scoringMode: row.scoring_mode || 'category_record',
+    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
   });
 
   useEffect(() => {
@@ -252,6 +253,7 @@ export function LeagueHome() {
             irSlots: row.ir_slots || [],
             redshirtPlayers: row.redshirt_players || [],
             internationalPlayers: row.international_players || [],
+            benchedPlayers: row.benched_players || [],
             isLegalRoster: row.is_legal_roster,
             lastUpdated: row.last_updated,
             updatedBy: row.updated_by,

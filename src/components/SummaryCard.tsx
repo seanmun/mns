@@ -5,10 +5,11 @@ import { CAP_CONSTANTS } from '../types';
 interface SummaryCardProps {
   summary: RosterSummary;
   maxKeepers?: number;
+  maxActive?: number;
   isRegularSeason?: boolean;
 }
 
-export function SummaryCard({ summary, maxKeepers = 8, isRegularSeason = false }: SummaryCardProps) {
+export function SummaryCard({ summary, maxKeepers = 8, maxActive = 13, isRegularSeason = false }: SummaryCardProps) {
   const formatMoney = (cents: number) => `$${cents.toFixed(0)}`;
 
   return (
@@ -21,10 +22,10 @@ export function SummaryCard({ summary, maxKeepers = 8, isRegularSeason = false }
           <span className="text-gray-400">Roster</span>
           <span
             className={`font-semibold ${
-              summary.keepersCount + summary.draftedCount > 13 ? 'text-red-400' : 'text-white'
+              summary.keepersCount + summary.draftedCount > maxActive ? 'text-red-400' : 'text-white'
             }`}
           >
-            {summary.keepersCount + summary.draftedCount} / 13
+            {summary.keepersCount + summary.draftedCount} / {maxActive}
           </span>
         </div>
 

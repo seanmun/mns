@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import type { Team, League } from '../types';
+import { DEFAULT_ROSTER_SETTINGS } from '../types';
 
 interface TeamWithRosterStatus extends Team {
   rosterStatus?: 'draft' | 'submitted' | 'adminLocked';
@@ -35,6 +36,7 @@ function mapLeague(row: any): League {
     commissionerId: row.commissioner_id || undefined,
     leaguePhase: row.league_phase || 'keeper_season',
     scoringMode: row.scoring_mode || 'category_record',
+    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
   };
 }
 

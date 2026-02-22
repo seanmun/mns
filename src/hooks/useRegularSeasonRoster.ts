@@ -12,8 +12,9 @@ function mapRegularSeasonRoster(row: any): RegularSeasonRoster {
     irSlots: row.ir_slots || [],
     redshirtPlayers: row.redshirt_players || [],
     internationalPlayers: row.international_players || [],
+    benchedPlayers: row.benched_players || [],
     isLegalRoster: row.is_legal_roster ?? true,
-    lastUpdated: new Date(row.last_updated).getTime(),
+    lastUpdated: new Date(row.updated_at).getTime(),
     updatedBy: row.updated_by || '',
   };
 }

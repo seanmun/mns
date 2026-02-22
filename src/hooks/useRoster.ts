@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { RosterDoc, RosterEntry, Player, Team, League } from '../types';
+import { DEFAULT_ROSTER_SETTINGS } from '../types';
 import { stackKeeperRounds, computeSummary } from '../lib/keeperAlgorithms';
 
 // Map Supabase row → RosterDoc
@@ -76,6 +77,7 @@ function mapLeague(row: any): League {
     seasonStartedBy: row.season_started_by || undefined,
     leaguePhase: row.league_phase || 'keeper_season',
     scoringMode: row.scoring_mode || 'category_record',
+    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
   };
 }
 
