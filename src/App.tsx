@@ -28,6 +28,7 @@ const TradeMachine = lazy(() => import('./pages/TradeMachine').then(m => ({ defa
 const Inbox = lazy(() => import('./pages/Inbox').then(m => ({ default: m.Inbox })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 const Changelog = lazy(() => import('./pages/Changelog').then(m => ({ default: m.Changelog })));
+const MatchupDetail = lazy(() => import('./pages/MatchupDetail').then(m => ({ default: m.MatchupDetail })));
 
 // Admin pages (lazy loaded - not needed for most users)
 const AdminUpload = lazy(() => import('./pages/AdminUpload').then(m => ({ default: m.AdminUpload })));
@@ -145,6 +146,16 @@ function App() {
               <PrivateRoute>
                 <LeagueLayout>
                   <LeagueHome />
+                </LeagueLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/league/:leagueId/matchup/:matchupId"
+            element={
+              <PrivateRoute>
+                <LeagueLayout>
+                  <MatchupDetail />
                 </LeagueLayout>
               </PrivateRoute>
             }

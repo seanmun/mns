@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { Matchup, Team, TeamRecord } from '../types';
 
 interface MatchupCardProps {
@@ -6,9 +7,10 @@ interface MatchupCardProps {
   records: Map<string, TeamRecord>;
   myTeamId?: string;
   currentWeek: number | null;
+  leagueId: string;
 }
 
-export function MatchupCard({ matchups, teams, records, myTeamId, currentWeek }: MatchupCardProps) {
+export function MatchupCard({ matchups, teams, records, myTeamId, currentWeek, leagueId }: MatchupCardProps) {
   if (matchups.length === 0 || currentWeek === null) return null;
 
   const teamMap = new Map(teams.map(t => [t.id, t]));
@@ -22,7 +24,7 @@ export function MatchupCard({ matchups, teams, records, myTeamId, currentWeek }:
   return (
     <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-white">Week {currentWeek} Matchups</h2>
+        <h2 className="text-xl font-bold text-white">Matchup {currentWeek}</h2>
         <span className="text-xs text-gray-500">{matchups.length} matchups</span>
       </div>
 
@@ -34,12 +36,13 @@ export function MatchupCard({ matchups, teams, records, myTeamId, currentWeek }:
           const hasScores = matchup.homeScore !== null && matchup.awayScore !== null;
 
           return (
-            <div
+            <Link
               key={matchup.id}
-              className={`rounded-lg p-3 border transition-all ${
+              to={`/league/${leagueId}/matchup/${matchup.id}`}
+              className={`block rounded-lg p-3 border transition-all hover:brightness-125 cursor-pointer ${
                 isMyMatchup
                   ? 'border-green-400/50 bg-green-400/5 shadow-[0_0_8px_rgba(74,222,128,0.15)]'
-                  : 'border-gray-800 bg-[#0a0a0a]'
+                  : 'border-gray-800 bg-[#0a0a0a] hover:border-gray-700'
               }`}
             >
               {/* Away team */}
@@ -82,7 +85,7 @@ export function MatchupCard({ matchups, teams, records, myTeamId, currentWeek }:
                   {hasScores ? Math.round(matchup.homeScore!) : ''}
                 </span>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>

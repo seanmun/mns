@@ -579,13 +579,20 @@ export function LeagueHome() {
                 ? leagueWeeks.find(w => w.weekNumber === weekNum)?.matchupWeek ?? weekNum
                 : null;
               const weekMatchups = allMatchups.filter(m => m.matchupWeek === matchupWeek);
-              return weekMatchups.length > 0 ? (
+              // Sort user's matchup to top
+              const sorted = [...weekMatchups].sort((a, b) => {
+                const aIsMine = (a.homeTeamId === myTeam?.id || a.awayTeamId === myTeam?.id) ? -1 : 0;
+                const bIsMine = (b.homeTeamId === myTeam?.id || b.awayTeamId === myTeam?.id) ? -1 : 0;
+                return aIsMine - bIsMine;
+              });
+              return sorted.length > 0 ? (
                 <MatchupCard
-                  matchups={weekMatchups}
+                  matchups={sorted}
                   teams={teams}
                   records={teamRecords}
                   myTeamId={myTeam?.id}
                   currentWeek={matchupWeek}
+                  leagueId={leagueId!}
                 />
               ) : null;
             })()}

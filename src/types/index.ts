@@ -62,6 +62,12 @@ export interface TeamRecord {
 
 export type ScoringMode = 'matchup_record' | 'category_record';
 
+export const MATCHUP_CATEGORIES = [
+  'FG%', 'FT%', 'PTS', 'REB', 'AST', 'STL', 'BLK', '3PM', 'A/TO',
+] as const;
+
+export type MatchupCategory = typeof MATCHUP_CATEGORIES[number];
+
 export interface LeagueRosterSettings {
   maxActive: number;       // default 13 — max players on active roster
   maxStarters: number;     // default 10 — max that can start (rest must bench)
