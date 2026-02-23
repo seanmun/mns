@@ -10,6 +10,22 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
   {
+    version: '0.2.0',
+    date: '2026-02-22',
+    type: 'minor',
+    title: 'Waitlist & Public Pages',
+    changes: [
+      'Added waitlist flow for new signups with auto-join, marketing opt-in, and roadmap preview',
+      'Updated Home page and Login page copy for public-facing messaging',
+      'Added Privacy, About, and Roadmap as standalone pages',
+      'Overhauled footer with useful navigation links (About, Roadmap, Privacy, Changelog)',
+      'Fixed matchup date ranges — removed incorrect Mon-Sun snapping',
+      'Renamed "Week" to "Matchup" throughout matchup views',
+      'Fixed matchup numbering to use position-based index instead of raw week numbers',
+      'Interactive matchup detail — click team names to view roster stats',
+    ],
+  },
+  {
     version: '0.1.0',
     date: '2026-02-20',
     type: 'minor',

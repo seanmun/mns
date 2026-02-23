@@ -28,6 +28,9 @@ const TradeMachine = lazy(() => import('./pages/TradeMachine').then(m => ({ defa
 const Inbox = lazy(() => import('./pages/Inbox').then(m => ({ default: m.Inbox })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 const Changelog = lazy(() => import('./pages/Changelog').then(m => ({ default: m.Changelog })));
+const Privacy = lazy(() => import('./pages/Privacy').then(m => ({ default: m.Privacy })));
+const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
+const Roadmap = lazy(() => import('./pages/Roadmap').then(m => ({ default: m.Roadmap })));
 const MatchupDetail = lazy(() => import('./pages/MatchupDetail').then(m => ({ default: m.MatchupDetail })));
 
 // Admin pages (lazy loaded - not needed for most users)
@@ -126,6 +129,30 @@ function App() {
             element={
               <AppLayout>
                 <Changelog />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/privacy"
+            element={
+              <AppLayout>
+                <Privacy />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/about"
+            element={
+              <AppLayout>
+                <About />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/roadmap"
+            element={
+              <AppLayout>
+                <Roadmap />
               </AppLayout>
             }
           />
