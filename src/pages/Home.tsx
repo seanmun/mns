@@ -107,7 +107,7 @@ export function Home() {
                 onClick={() => navigate('/login')}
                 className="w-full sm:w-auto px-8 py-4 border-2 border-green-400 text-green-400 rounded-lg text-lg font-bold hover:bg-green-400/10 hover:shadow-[0_0_30px_rgba(74,222,128,0.6)] transition-all cursor-pointer"
               >
-                Enter League
+                Join Waitlist
               </button>
               <button
                 onClick={() => {
@@ -357,10 +357,10 @@ export function Home() {
           onClick={() => navigate('/login')}
           className="px-12 py-5 border-2 border-green-400 text-green-400 rounded-lg text-xl font-bold hover:bg-green-400/10 hover:shadow-[0_0_40px_rgba(74,222,128,0.8)] transition-all cursor-pointer"
         >
-          Get Started
+          Join Waitlist
         </button>
         <p className="text-sm text-gray-500 mt-4">
-          Sign in with Google to access your team
+          Sign in with Google to reserve your spot
         </p>
       </div>
 
