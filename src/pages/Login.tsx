@@ -45,13 +45,13 @@ export function Login() {
               <img src="/icons/moneyneversleeps-icon.webp" alt="MNS" className="w-60 h-60 rounded-lg" />
             </div>
             <h1 className="text-4xl font-bold text-white mb-2">
-              MNS Keeper Manager
+              Money Never Sleeps
             </h1>
             <p className="text-lg text-gray-300">
-              Master your draft strategy
+              Fantasy basketball, reimagined
             </p>
             <p className="text-sm text-gray-400 mt-2">
-              Track keepers • Manage cap space • Plan scenarios
+              Keeper leagues • Live drafts • Cap management
             </p>
           </div>
         </div>
@@ -168,7 +168,7 @@ export function Login() {
           )}
 
           <p className="text-xs text-gray-400 text-center">
-            Only authorized team owners can access this application
+            Sign in to access your league or join the waitlist
           </p>
         </div>
       </div>
