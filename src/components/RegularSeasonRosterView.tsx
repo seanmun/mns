@@ -21,6 +21,7 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
   const [processing, setProcessing] = useState(false);
   const [swappingIR, setSwappingIR] = useState(false);
   const [playerToMoveToIR, setPlayerToMoveToIR] = useState<string | null>(null);
+  const [mobileCapTab, setMobileCapTab] = useState(0);
 
   // Date navigation for game info
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -543,17 +544,44 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
       {/* Desktop: Side by side layout */}
       <div className="hidden lg:grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <CapThermometer summary={summary} maxKeepers={team.settings.maxKeepers} />
+          <CapThermometer summary={summary} maxKeepers={team.settings.maxKeepers} isRegularSeason={true} />
         </div>
         <div>
           <SummaryCard summary={summary} maxKeepers={team.settings.maxKeepers} maxActive={rosterSettings.maxActive} isRegularSeason={true} />
         </div>
       </div>
 
-      {/* Mobile: Stack vertically */}
-      <div className="lg:hidden space-y-6">
-        <CapThermometer summary={summary} maxKeepers={team.settings.maxKeepers} />
-        <SummaryCard summary={summary} maxKeepers={team.settings.maxKeepers} maxActive={rosterSettings.maxActive} isRegularSeason={true} />
+      {/* Mobile: Tab bar */}
+      <div className="lg:hidden mb-6">
+        <div className="flex rounded-lg border border-gray-800 overflow-hidden mb-4">
+          <button
+            onClick={() => setMobileCapTab(0)}
+            className={`flex-1 px-4 py-2.5 text-sm font-semibold transition-colors ${
+              mobileCapTab === 0
+                ? 'bg-green-400/10 text-green-400 border-b-2 border-green-400'
+                : 'bg-[#121212] text-gray-400 hover:text-white'
+            }`}
+          >
+            Salary Cap
+          </button>
+          <button
+            onClick={() => setMobileCapTab(1)}
+            className={`flex-1 px-4 py-2.5 text-sm font-semibold transition-colors ${
+              mobileCapTab === 1
+                ? 'bg-green-400/10 text-green-400 border-b-2 border-green-400'
+                : 'bg-[#121212] text-gray-400 hover:text-white'
+            }`}
+          >
+            Fees & Roster
+          </button>
+        </div>
+
+        {mobileCapTab === 0 && (
+          <CapThermometer summary={summary} maxKeepers={team.settings.maxKeepers} isRegularSeason={true} />
+        )}
+        {mobileCapTab === 1 && (
+          <SummaryCard summary={summary} maxKeepers={team.settings.maxKeepers} maxActive={rosterSettings.maxActive} isRegularSeason={true} />
+        )}
       </div>
 
       {/* Active Roster */}
