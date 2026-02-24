@@ -10,6 +10,19 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
   {
+    version: '0.2.1',
+    date: '2026-02-23',
+    type: 'patch',
+    title: 'Roster Page Improvements',
+    changes: [
+      'Added mobile tab switcher for Salary Cap and Fees & Roster panels',
+      'Phase-aware labels — shows "Players" instead of "Keepers" during regular season',
+      'Hides keeper-specific draft budget stats during regular season',
+      'Removed Propose Trade and Propose Wager buttons',
+      'Added branded email templates with Resend SMTP integration',
+    ],
+  },
+  {
     version: '0.2.0',
     date: '2026-02-22',
     type: 'minor',
