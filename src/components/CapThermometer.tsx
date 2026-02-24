@@ -3,9 +3,10 @@ import type { RosterSummary } from '../types';
 interface CapThermometerProps {
   summary: RosterSummary;
   maxKeepers?: number;
+  isRegularSeason?: boolean;
 }
 
-export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps) {
+export function CapThermometer({ summary, maxKeepers = 13, isRegularSeason = false }: CapThermometerProps) {
   const { capUsed, capEffective, overSecondApronByM, keepersCount } = summary;
   const firstApron = 195_000_000;
   const secondApron = 225_000_000;
@@ -90,9 +91,9 @@ export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps
         </div>
 
         <div>
-          <div className="text-gray-400">Keepers</div>
+          <div className="text-gray-400">{isRegularSeason ? 'Players' : 'Keepers'}</div>
           <div className="font-semibold text-lg text-white">
-            {keepersCount} / {maxKeepers}
+            {keepersCount} / {isRegularSeason ? totalRosterSize : maxKeepers}
           </div>
         </div>
 
@@ -118,37 +119,41 @@ export function CapThermometer({ summary, maxKeepers = 13 }: CapThermometerProps
       </div>
 
       {/* Average Salary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm pt-4 border-t border-gray-800">
+      <div className={`grid grid-cols-1 ${isRegularSeason ? '' : 'md:grid-cols-3'} gap-4 text-sm pt-4 border-t border-gray-800`}>
         <div>
-          <div className="text-gray-400">Avg Salary Per Keeper</div>
+          <div className="text-gray-400">{isRegularSeason ? 'Avg Salary Per Player' : 'Avg Salary Per Keeper'}</div>
           <div className="font-semibold text-lg text-green-400">
             {keepersCount > 0 ? formatCap(capUsed / keepersCount) : '-'}
           </div>
         </div>
 
-        <div>
-          <div className="text-gray-400">Avg/Spot (Before 1st Apron)</div>
-          <div className="font-semibold text-lg text-yellow-400">
-            {(() => {
-              const draftSpots = totalRosterSize - keepersCount;
-              if (draftSpots <= 0) return '-';
-              const roomToFirstApron = Math.max(0, firstApron - capUsed);
-              return formatCap(roomToFirstApron / draftSpots);
-            })()}
+        {!isRegularSeason && (
+          <div>
+            <div className="text-gray-400">Avg/Spot (Before 1st Apron)</div>
+            <div className="font-semibold text-lg text-yellow-400">
+              {(() => {
+                const draftSpots = totalRosterSize - keepersCount;
+                if (draftSpots <= 0) return '-';
+                const roomToFirstApron = Math.max(0, firstApron - capUsed);
+                return formatCap(roomToFirstApron / draftSpots);
+              })()}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div>
-          <div className="text-gray-400">Avg/Spot (Before 2nd Apron)</div>
-          <div className="font-semibold text-lg text-orange-400">
-            {(() => {
-              const draftSpots = totalRosterSize - keepersCount;
-              if (draftSpots <= 0) return '-';
-              const roomToSecondApron = Math.max(0, secondApron - capUsed);
-              return formatCap(roomToSecondApron / draftSpots);
-            })()}
+        {!isRegularSeason && (
+          <div>
+            <div className="text-gray-400">Avg/Spot (Before 2nd Apron)</div>
+            <div className="font-semibold text-lg text-orange-400">
+              {(() => {
+                const draftSpots = totalRosterSize - keepersCount;
+                if (draftSpots <= 0) return '-';
+                const roomToSecondApron = Math.max(0, secondApron - capUsed);
+                return formatCap(roomToSecondApron / draftSpots);
+              })()}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Warning messages */}

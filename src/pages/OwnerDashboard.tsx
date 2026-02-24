@@ -14,9 +14,9 @@ import { SummaryCard } from '../components/SummaryCard';
 import { DraftBoardView } from '../components/DraftBoardView';
 import { WatchListView } from '../components/WatchListView';
 import { RegularSeasonRosterView } from '../components/RegularSeasonRosterView';
-import { ProposeWagerModal } from '../components/ProposeWagerModal';
+
 import { baseKeeperRound, stackKeeperRounds, computeSummary, validateRoster } from '../lib/keeperAlgorithms';
-import type { RosterEntry, Decision, Player, SavedScenario, Team } from '../types';
+import type { RosterEntry, Decision, Player, SavedScenario } from '../types';
 
 interface RookieDraftPick {
   id: string;
@@ -42,13 +42,10 @@ export function OwnerDashboard() {
   const { previousStats } = usePreviousStats();
   const { watchList } = useWatchList(user?.email || '', leagueId!, teamId!);
   const [allLeaguePlayers, setAllLeaguePlayers] = useState<Player[]>([]);
-  const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [rookiePicks, setRookiePicks] = useState<RookieDraftPick[]>([]);
   const [draftedPlayers, setDraftedPlayers] = useState<Player[]>([]);
   const [teamDraftPicks, setTeamDraftPicks] = useState<any[]>([]);
   const [draftStatus, setDraftStatus] = useState<string>('setup');
-  const [showTradeModal, setShowTradeModal] = useState(false);
-  const [showWagerModal, setShowWagerModal] = useState(false);
 
   // Check if current user is the owner of this team
   const isOwner = team?.owners.includes(user?.email || '') || false;
@@ -79,21 +76,6 @@ export function OwnerDashboard() {
 
   const onTouchMove = (e: React.TouchEvent) => {
     setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe && carouselIndex < 1) {
-      setCarouselIndex(1);
-    }
-    if (isRightSwipe && carouselIndex > 0) {
-      setCarouselIndex(0);
-    }
   };
 
   const onDraftTouchEnd = () => {
@@ -180,20 +162,6 @@ export function OwnerDashboard() {
       : undefined,
   });
 
-  // Helper to map a Supabase team row to the Team type
-  const mapTeam = (row: any): Team => ({
-    id: row.id,
-    leagueId: row.league_id,
-    name: row.name,
-    abbrev: row.abbrev,
-    owners: row.owners,
-    ownerNames: row.owner_names,
-    telegramUsername: row.telegram_username,
-    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
-    settings: row.settings || { maxKeepers: 8 },
-    banners: row.banners,
-  });
-
   // Fetch all league players for watchlist display and rookie picks
   useEffect(() => {
     const fetchAllPlayers = async () => {
@@ -209,24 +177,6 @@ export function OwnerDashboard() {
         setAllLeaguePlayers(allPlayers);
       } catch (error) {
         console.error('Error fetching league players:', error);
-      }
-    };
-
-    const fetchAllTeams = async () => {
-      if (!leagueId) return;
-
-      try {
-        const { data: teamRows, error } = await supabase
-          .from('teams')
-          .select('*')
-          .eq('league_id', leagueId);
-
-        if (error) throw error;
-
-        const teamsData = (teamRows || []).map(mapTeam);
-        setAllTeams(teamsData);
-      } catch (error) {
-        console.error('Error fetching teams:', error);
       }
     };
 
@@ -330,7 +280,6 @@ export function OwnerDashboard() {
     };
 
     fetchAllPlayers();
-    fetchAllTeams();
     fetchRookiePicks();
     fetchDraftedPlayers();
   }, [leagueId, teamId, league]);
@@ -670,21 +619,6 @@ export function OwnerDashboard() {
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 mb-6">
-          <button
-            onClick={() => setShowTradeModal(true)}
-            className="flex-1 px-4 py-3 border-2 border-purple-400 text-purple-400 rounded-lg font-semibold hover:bg-purple-400/10 hover:shadow-[0_0_15px_rgba(192,132,252,0.5)] transition-all"
-          >
-            Propose Trade
-          </button>
-          <button
-            onClick={() => setShowWagerModal(true)}
-            className="flex-1 px-4 py-3 border-2 border-pink-400 text-pink-400 rounded-lg font-semibold hover:bg-pink-400/10 hover:shadow-[0_0_15px_rgba(244,114,182,0.5)] transition-all"
-          >
-            Propose Wager
-          </button>
-        </div>
 
         {/* Regular Season Roster View */}
         {isRegularSeason && regularSeasonRoster && team ? (
@@ -702,82 +636,45 @@ export function OwnerDashboard() {
         {/* Desktop: Side by side layout */}
         <div className="hidden lg:grid lg:grid-cols-3 gap-6 mb-6">
           <div className="lg:col-span-2">
-            <CapThermometer summary={currentSummary} maxKeepers={team?.settings.maxKeepers} />
+            <CapThermometer summary={currentSummary} maxKeepers={team?.settings.maxKeepers} isRegularSeason={isRegularSeason} />
           </div>
           <div>
-            <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} />
+            <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} isRegularSeason={isRegularSeason} />
           </div>
         </div>
 
-        {/* Mobile: Quick stats cards and swipeable carousel */}
+        {/* Mobile: Tab bar with show/hide panels */}
         <div className="lg:hidden mb-6">
-            {/* Quick Stats Cards - clickable toggles */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            {/* Tab Bar */}
+            <div className="flex rounded-lg border border-gray-800 overflow-hidden mb-4">
               <button
                 onClick={() => setCarouselIndex(0)}
-                className={`p-4 rounded-lg shadow-sm text-left transition-all ${
+                className={`flex-1 px-4 py-2.5 text-sm font-semibold transition-colors ${
                   carouselIndex === 0
-                    ? 'bg-green-400 text-black ring-2 ring-green-400'
-                    : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
+                    ? 'bg-green-400/10 text-green-400 border-b-2 border-green-400'
+                    : 'bg-[#121212] text-gray-400 hover:text-white'
                 }`}
               >
-                <div className="text-xs font-medium opacity-80">Total Salary</div>
-                <div className="text-2xl font-bold mt-1">
-                  ${(currentSummary.capUsed / 1_000_000).toFixed(1)}M
-                </div>
+                Salary Cap
               </button>
               <button
                 onClick={() => setCarouselIndex(1)}
-                className={`p-4 rounded-lg shadow-sm text-left transition-all ${
+                className={`flex-1 px-4 py-2.5 text-sm font-semibold transition-colors ${
                   carouselIndex === 1
-                    ? 'bg-green-400 text-black ring-2 ring-green-400'
-                    : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
+                    ? 'bg-green-400/10 text-green-400 border-b-2 border-green-400'
+                    : 'bg-[#121212] text-gray-400 hover:text-white'
                 }`}
               >
-                <div className="text-xs font-medium opacity-80">Total Fees</div>
-                <div className="text-2xl font-bold mt-1">
-                  ${(currentSummary.totalFees + 50).toFixed(0)}
-                </div>
+                Fees & Roster
               </button>
             </div>
 
-            <div className="relative overflow-hidden">
-              {/* Carousel container */}
-              <div
-                className="flex transition-transform duration-300 ease-out"
-                style={{ transform: `translateX(-${carouselIndex * 100}%)` }}
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
-              >
-                {/* Slide 1: Salary Cap Status */}
-                <div className="w-full flex-shrink-0 px-2">
-                  <CapThermometer summary={currentSummary} maxKeepers={team?.settings.maxKeepers} />
-                </div>
-                {/* Slide 2: Roster Summary and Fees */}
-                <div className="w-full flex-shrink-0 px-2">
-                  <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} />
-                </div>
-              </div>
-
-              {/* Dots indicator */}
-              <div className="flex justify-center gap-2 mt-4">
-                <button
-                  onClick={() => setCarouselIndex(0)}
-                  className={`h-2 w-2 rounded-full transition-colors ${
-                    carouselIndex === 0 ? 'bg-green-400' : 'bg-gray-700'
-                  }`}
-                  aria-label="View Salary Cap Status"
-                />
-                <button
-                  onClick={() => setCarouselIndex(1)}
-                  className={`h-2 w-2 rounded-full transition-colors ${
-                    carouselIndex === 1 ? 'bg-green-400' : 'bg-gray-700'
-                  }`}
-                  aria-label="View Roster Summary"
-                />
-              </div>
-            </div>
+            {carouselIndex === 0 && (
+              <CapThermometer summary={currentSummary} maxKeepers={team?.settings.maxKeepers} isRegularSeason={isRegularSeason} />
+            )}
+            {carouselIndex === 1 && (
+              <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} isRegularSeason={isRegularSeason} />
+            )}
         </div>
 
 
@@ -1081,38 +978,6 @@ export function OwnerDashboard() {
         </div>
       </div>
 
-      {/* Trade Modal */}
-      {showTradeModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowTradeModal(false)}>
-          <div className="bg-[#121212] border border-gray-800 rounded-lg max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">Propose Trade</h2>
-              <button onClick={() => setShowTradeModal(false)} className="text-gray-400 hover:text-white">
-                ✕
-              </button>
-            </div>
-            <div className="text-center">
-              <img src="/icons/stayTuned.webp" alt="Stay Tuned" className="w-full max-w-sm mx-auto mb-4 rounded-lg" />
-              <p className="text-gray-400 text-lg">
-                The chefs are hard at work on this feature! 👨‍🍳
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Propose Wager Modal */}
-      {team && user && league && (
-        <ProposeWagerModal
-          isOpen={showWagerModal}
-          onClose={() => setShowWagerModal(false)}
-          leagueId={leagueId!}
-          seasonYear={league.seasonYear}
-          myTeam={team}
-          allTeams={allTeams}
-          userEmail={user.email || ''}
-        />
-      )}
     </div>
   );
 }
