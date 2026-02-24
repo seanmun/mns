@@ -49,6 +49,7 @@ const AdminTradeManager = lazy(() => import('./pages/AdminTradeManager').then(m 
 const AdminPortfolio = lazy(() => import('./pages/AdminPortfolio').then(m => ({ default: m.AdminPortfolio })));
 const AdminMigration = lazy(() => import('./pages/AdminMigration').then(m => ({ default: m.AdminMigration })));
 const AdminPicksView = lazy(() => import('./pages/AdminPicksView').then(m => ({ default: m.AdminPicksView })));
+const AdminEmailTemplates = lazy(() => import('./pages/AdminEmailTemplates').then(m => ({ default: m.AdminEmailTemplates })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -372,6 +373,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <AdminPicksView />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/email-templates"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminEmailTemplates />
                 </AppLayout>
               </PrivateRoute>
             }
