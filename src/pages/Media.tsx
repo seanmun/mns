@@ -1,22 +1,22 @@
 import { Link } from 'react-router-dom';
 
 const coreColors = [
-  { name: 'Neon Green', value: 'oklch(79.2% 0.209 151.711)', css: 'green-400', usage: 'Primary accent, CTAs, links, highlights' },
-  { name: 'Dark BG', value: '#0a0a0a', css: '[#0a0a0a]', usage: 'Page backgrounds' },
-  { name: 'Card BG', value: '#121212', css: '[#121212]', usage: 'Cards, panels, elevated surfaces' },
-  { name: 'Border', value: 'oklch(27.8% 0.033 256.848)', css: 'gray-800', usage: 'Borders, dividers' },
-  { name: 'Primary Text', value: '#ffffff', css: 'white', usage: 'Headlines, important text' },
-  { name: 'Secondary Text', value: 'oklch(70.7% 0.022 261.325)', css: 'gray-400', usage: 'Body text, descriptions' },
-  { name: 'Muted Text', value: 'oklch(55.1% 0.027 264.364)', css: 'gray-500', usage: 'Captions, timestamps' },
+  { name: 'Neon Green', hex: '#39FF14', usage: 'Primary accent, CTAs, links, highlights' },
+  { name: 'Dark BG', hex: '#0a0a0a', usage: 'Page backgrounds, email body' },
+  { name: 'Card BG', hex: '#121212', usage: 'Cards, panels, elevated surfaces' },
+  { name: 'Border', hex: '#1e293b', usage: 'Borders, dividers, separators' },
+  { name: 'White', hex: '#ffffff', usage: 'Headlines, important text' },
+  { name: 'Light Gray', hex: '#9ca3af', usage: 'Body text, descriptions' },
+  { name: 'Mid Gray', hex: '#6b7280', usage: 'Captions, timestamps, muted text' },
 ];
 
 const accentColors = [
-  { name: 'Green', value: 'oklch(79.2% 0.209 151.711)', css: 'green-400', usage: 'Salary Cap, primary actions' },
-  { name: 'Purple', value: 'oklch(71.4% 0.203 305.504)', css: 'purple-400', usage: 'Keepers, version badges' },
-  { name: 'Pink', value: 'oklch(71.8% 0.176 22.768)', css: 'pink-400', usage: 'Rookies, development' },
-  { name: 'Blue', value: 'oklch(70.7% 0.165 254.624)', css: 'blue-400', usage: 'Draft, real-time features' },
-  { name: 'Yellow', value: 'oklch(85.2% 0.199 91.936)', css: 'yellow-400', usage: 'Prize pool, payouts' },
-  { name: 'Emerald', value: 'oklch(76.5% 0.177 163.223)', css: 'emerald-400', usage: 'Analytics, metrics' },
+  { name: 'Green', hex: '#39FF14', usage: 'Salary Cap, primary actions' },
+  { name: 'Purple', hex: '#BF40FF', usage: 'Keepers, version badges' },
+  { name: 'Pink', hex: '#FF6EC7', usage: 'Rookies, development' },
+  { name: 'Blue', hex: '#00BFFF', usage: 'Draft, real-time features' },
+  { name: 'Yellow', hex: '#FFD300', usage: 'Prize pool, payouts' },
+  { name: 'Emerald', hex: '#00FFAB', usage: 'Analytics, metrics' },
 ];
 
 export function Media() {
@@ -73,15 +73,15 @@ export function Media() {
                 <h3 className="text-sm font-semibold text-gray-300 mb-3">Core Palette</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {coreColors.map((color) => (
-                    <div key={color.css} className="flex items-center gap-3">
+                    <div key={color.hex} className="flex items-center gap-3">
                       <div
                         className="w-10 h-10 rounded-md shrink-0 border border-gray-700"
-                        style={{ backgroundColor: color.value }}
+                        style={{ backgroundColor: color.hex }}
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-white text-sm font-medium">{color.name}</span>
-                          <span className="text-gray-500 text-xs font-mono">{color.css}</span>
+                          <span className="text-gray-500 text-xs font-mono">{color.hex}</span>
                         </div>
                         <p className="text-gray-500 text-xs truncate">{color.usage}</p>
                       </div>
@@ -93,15 +93,15 @@ export function Media() {
                 <h3 className="text-sm font-semibold text-gray-300 mb-3">Feature Accents</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {accentColors.map((color) => (
-                    <div key={color.css} className="flex items-center gap-3">
+                    <div key={color.hex} className="flex items-center gap-3">
                       <div
                         className="w-10 h-10 rounded-md shrink-0 border border-gray-700"
-                        style={{ backgroundColor: color.value }}
+                        style={{ backgroundColor: color.hex }}
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-white text-sm font-medium">{color.name}</span>
-                          <span className="text-gray-500 text-xs font-mono">{color.css}</span>
+                          <span className="text-gray-500 text-xs font-mono">{color.hex}</span>
                         </div>
                         <p className="text-gray-500 text-xs truncate">{color.usage}</p>
                       </div>
