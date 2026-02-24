@@ -39,6 +39,10 @@ export function Footer() {
               Privacy
             </Link>
             <span className="text-gray-700">·</span>
+            <Link to="/media" className="text-gray-400 hover:text-green-400 transition-colors">
+              Media
+            </Link>
+            <span className="text-gray-700">·</span>
             <Link to="/changelog" className="text-gray-400 hover:text-green-400 transition-colors">
               Changelog
             </Link>

@@ -31,6 +31,7 @@ const Changelog = lazy(() => import('./pages/Changelog').then(m => ({ default: m
 const Privacy = lazy(() => import('./pages/Privacy').then(m => ({ default: m.Privacy })));
 const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
 const Roadmap = lazy(() => import('./pages/Roadmap').then(m => ({ default: m.Roadmap })));
+const Media = lazy(() => import('./pages/Media').then(m => ({ default: m.Media })));
 const MatchupDetail = lazy(() => import('./pages/MatchupDetail').then(m => ({ default: m.MatchupDetail })));
 
 // Admin pages (lazy loaded - not needed for most users)
@@ -153,6 +154,14 @@ function App() {
             element={
               <AppLayout>
                 <Roadmap />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/media"
+            element={
+              <AppLayout>
+                <Media />
               </AppLayout>
             }
           />
