@@ -1,52 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import type { DailyLineup } from '../types';
-
-function mapDailyLineup(row: any): DailyLineup {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    teamId: row.team_id,
-    gameDate: row.game_date,
-    activePlayerIds: row.active_player_ids || [],
-    updatedAt: new Date(row.updated_at).getTime(),
-    updatedBy: row.updated_by || '',
-  };
-}
+import { mapDailyLineup } from '../lib/mappers';
 
 export function useDailyLineup(leagueId: string, teamId: string, gameDate: string) {
-  const [lineup, setLineup] = useState<DailyLineup | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const lineupId = `${leagueId}_${teamId}_${gameDate}`;
 
+  const { data: lineup = null, isLoading: loading } = useQuery({
+    queryKey: ['dailyLineup', lineupId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('daily_lineups')
+        .select('*')
+        .eq('id', lineupId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data ? mapDailyLineup(data) : null;
+    },
+    enabled: !!leagueId && !!teamId && !!gameDate,
+  });
+
+  // Realtime subscription — update React Query cache
   useEffect(() => {
-    if (!leagueId || !teamId || !gameDate) {
-      setLoading(false);
-      return;
-    }
+    if (!leagueId || !teamId || !gameDate) return;
 
-    const lineupId = `${leagueId}_${teamId}_${gameDate}`;
-
-    const fetchLineup = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('daily_lineups')
-          .select('*')
-          .eq('id', lineupId)
-          .maybeSingle();
-
-        if (error) throw error;
-        setLineup(data ? mapDailyLineup(data) : null);
-      } catch (err) {
-        console.error('Error fetching daily lineup:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLineup();
-
-    // Realtime subscription
     const channel = supabase
       .channel(`daily-lineup-${lineupId}`)
       .on('postgres_changes', {
@@ -56,9 +35,9 @@ export function useDailyLineup(leagueId: string, teamId: string, gameDate: strin
         filter: `id=eq.${lineupId}`,
       }, (payload) => {
         if (payload.eventType === 'DELETE') {
-          setLineup(null);
+          queryClient.setQueryData(['dailyLineup', lineupId], null);
         } else {
-          setLineup(mapDailyLineup(payload.new));
+          queryClient.setQueryData(['dailyLineup', lineupId], mapDailyLineup(payload.new));
         }
       })
       .subscribe();
@@ -66,7 +45,7 @@ export function useDailyLineup(leagueId: string, teamId: string, gameDate: strin
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [leagueId, teamId, gameDate]);
+  }, [lineupId, leagueId, teamId, gameDate, queryClient]);
 
   return { lineup, loading };
 }

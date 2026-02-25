@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team } from '../types';
@@ -84,8 +86,8 @@ export function AdminDraftPicks() {
       setPicks(mappedPicks.sort((a, b) => a.pickNumber - b.pickNumber));
 
     } catch (error) {
-      console.error('Error loading data:', error);
-      alert('Failed to load data');
+      logger.error('Error loading data:', error);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -96,14 +98,14 @@ export function AdminDraftPicks() {
 
     // Validate all slots are filled
     if (draftOrder.some(id => !id)) {
-      alert('Please select a team for all 12 draft positions');
+      toast.error('Please select a team for all 12 draft positions');
       return;
     }
 
     // Check for duplicates
     const uniqueTeams = new Set(draftOrder);
     if (uniqueTeams.size !== 12) {
-      alert('Each team can only be selected once');
+      toast.error('Each team can only be selected once');
       return;
     }
 
@@ -168,10 +170,10 @@ export function AdminDraftPicks() {
       }
 
       setPicks(newPicks);
-      alert(`Successfully created ${newPicks.length} draft picks!`);
+      toast.success(`Successfully created ${newPicks.length} draft picks!`);
     } catch (error) {
-      console.error('Error initializing picks:', error);
-      alert('Failed to initialize picks');
+      logger.error('Error initializing picks:', error);
+      toast.error('Failed to initialize picks');
     }
   };
 
@@ -192,10 +194,10 @@ export function AdminDraftPicks() {
       if (error) throw error;
 
       setPicks([]);
-      alert('All picks deleted successfully');
+      toast.success('All picks deleted successfully');
     } catch (error) {
-      console.error('Error deleting picks:', error);
-      alert('Failed to delete picks');
+      logger.error('Error deleting picks:', error);
+      toast.error('Failed to delete picks');
     }
   };
 
@@ -218,10 +220,10 @@ export function AdminDraftPicks() {
       setPicks(picks.map(p => p.id === editingPick.id ? updatedPick : p));
       setEditingPick(null);
       setNewOwner('');
-      alert('Pick ownership updated!');
+      toast.success('Pick ownership updated!');
     } catch (error) {
-      console.error('Error updating pick:', error);
-      alert('Failed to update pick');
+      logger.error('Error updating pick:', error);
+      toast.error('Failed to update pick');
     }
   };
 

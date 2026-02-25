@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { MATCHUP_CATEGORIES } from '../types';
 import type { Matchup, Player, RegularSeasonRoster, ProjectedStats } from '../types';
+import { mapMatchup, mapPlayer, mapRegularSeasonRoster } from '../lib/mappers';
 
 type MatchupView = 'totals' | 'away' | 'home';
 type DayView = 'week' | string; // 'week' for week totals, or 'YYYY-MM-DD' for a specific day
@@ -13,63 +14,6 @@ interface TeamInfo {
   id: string;
   name: string;
   owners: string[];
-}
-
-function mapMatchup(row: any): Matchup {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    seasonYear: row.season_year,
-    matchupWeek: row.matchup_week,
-    homeTeamId: row.home_team_id,
-    awayTeamId: row.away_team_id,
-    homeScore: row.home_score != null ? Number(row.home_score) : null,
-    awayScore: row.away_score != null ? Number(row.away_score) : null,
-  };
-}
-
-function mapPlayer(row: any): Player {
-  return {
-    id: row.id,
-    fantraxId: row.fantrax_id,
-    name: row.name,
-    position: row.position,
-    salary: row.salary,
-    nbaTeam: row.nba_team,
-    roster: {
-      leagueId: row.league_id,
-      teamId: row.team_id,
-      onIR: row.on_ir,
-      isRookie: row.is_rookie,
-      isInternationalStash: row.is_international_stash,
-      intEligible: row.int_eligible,
-      rookieDraftInfo: row.rookie_draft_info || undefined,
-    },
-    keeper:
-      row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
-        ? {
-            priorYearRound: row.keeper_prior_year_round || undefined,
-            derivedBaseRound: row.keeper_derived_base_round || undefined,
-          }
-        : undefined,
-  };
-}
-
-function mapRoster(row: any): RegularSeasonRoster {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    teamId: row.team_id,
-    seasonYear: row.season_year,
-    activeRoster: row.active_roster || [],
-    irSlots: row.ir_slots || [],
-    redshirtPlayers: row.redshirt_players || [],
-    internationalPlayers: row.international_players || [],
-    benchedPlayers: row.benched_players || [],
-    isLegalRoster: row.is_legal_roster ?? true,
-    lastUpdated: new Date(row.updated_at).getTime(),
-    updatedBy: row.updated_by || '',
-  };
 }
 
 // Get the projected stat value for a category
@@ -425,8 +369,8 @@ export function MatchupDetail() {
           supabase.from('regular_season_rosters').select('*').eq('id', awayRosterId).maybeSingle(),
         ]);
 
-        if (homeRes.data) setHomeRoster(mapRoster(homeRes.data));
-        if (awayRes.data) setAwayRoster(mapRoster(awayRes.data));
+        if (homeRes.data) setHomeRoster(mapRegularSeasonRoster(homeRes.data));
+        if (awayRes.data) setAwayRoster(mapRegularSeasonRoster(awayRes.data));
 
         // Fetch league weeks to get date range for this matchup week
         const { data: weekData } = await supabase

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Portfolio } from '../types';
@@ -51,7 +53,7 @@ export function AdminPortfolio() {
         setUsdInvested(mapped.usdInvested.toString());
       }
     } catch (error) {
-      console.error('Error loading portfolio:', error);
+      logger.error('Error loading portfolio:', error);
     } finally {
       setLoading(false);
     }
@@ -62,12 +64,12 @@ export function AdminPortfolio() {
 
     const invested = parseFloat(usdInvested);
     if (isNaN(invested) || invested < 0) {
-      alert('Please enter a valid USD amount');
+      toast.error('Please enter a valid USD amount');
       return;
     }
 
     if (!walletAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
-      alert('Please enter a valid Ethereum wallet address');
+      toast.error('Please enter a valid Ethereum wallet address');
       return;
     }
 
@@ -94,10 +96,10 @@ export function AdminPortfolio() {
         lastUpdated: 0,
       };
       setPortfolio(mapped);
-      alert('Portfolio saved successfully!');
+      toast.success('Portfolio saved successfully!');
     } catch (error: any) {
-      console.error('Error saving portfolio:', error);
-      alert(`Failed to save: ${error.message}`);
+      logger.error('Error saving portfolio:', error);
+      toast.error(`Failed to save: ${error.message}`);
     } finally {
       setSaving(false);
     }

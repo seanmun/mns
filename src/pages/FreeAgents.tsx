@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { supabase, fetchAllRows } from '../lib/supabase';
+import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { usePreviousStats } from '../hooks/usePreviousStats';
@@ -8,38 +10,9 @@ import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
 import { PlayerModal } from '../components/PlayerModal';
 import type { Player, RegularSeasonRoster } from '../types';
 import { DEFAULT_ROSTER_SETTINGS } from '../types';
+import { mapPlayer, mapRegularSeasonRoster } from '../lib/mappers';
 
 type SortColumn = 'score' | 'salary' | 'points' | 'rebounds' | 'assists' | 'steals' | 'blocks' | 'fgPercent' | 'ftPercent' | 'threePointMade';
-
-function mapPlayer(row: any): Player {
-  return {
-    id: row.id, fantraxId: row.fantrax_id, name: row.name, position: row.position,
-    salary: row.salary, nbaTeam: row.nba_team,
-    roster: { leagueId: row.league_id, teamId: row.team_id, onIR: row.on_ir,
-      isRookie: row.is_rookie, isInternationalStash: row.is_international_stash,
-      intEligible: row.int_eligible, rookieDraftInfo: row.rookie_draft_info || undefined },
-    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
-      ? { priorYearRound: row.keeper_prior_year_round || undefined, derivedBaseRound: row.keeper_derived_base_round || undefined }
-      : undefined,
-  };
-}
-
-function mapRegularSeasonRoster(row: any): RegularSeasonRoster {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    teamId: row.team_id,
-    seasonYear: row.season_year,
-    activeRoster: row.active_roster || [],
-    irSlots: row.ir_slots || [],
-    redshirtPlayers: row.redshirt_players || [],
-    internationalPlayers: row.international_players || [],
-    benchedPlayers: row.benched_players || [],
-    isLegalRoster: row.is_legal_roster,
-    lastUpdated: row.last_updated,
-    updatedBy: row.updated_by,
-  };
-}
 
 export function FreeAgents() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -82,7 +55,7 @@ export function FreeAgents() {
     e.stopPropagation(); // Prevent row click from opening modal
 
     if (!user?.email || !leagueId || !userTeamId) {
-      alert('Please sign in to add players to your watchlist');
+      toast.error('Please sign in to add players to your watchlist');
       return;
     }
 
@@ -96,8 +69,8 @@ export function FreeAgents() {
       );
       setWatchList(updatedWatchList);
     } catch (error) {
-      console.error('Error toggling watchlist:', error);
-      alert('Failed to update watchlist');
+      logger.error('Error toggling watchlist:', error);
+      toast.error('Failed to update watchlist');
     }
   };
 
@@ -119,7 +92,7 @@ export function FreeAgents() {
           setMaxActive(data.roster?.maxActive ?? DEFAULT_ROSTER_SETTINGS.maxActive);
         }
       } catch (error) {
-        console.error('Error fetching league:', error);
+        logger.error('Error fetching league:', error);
       }
     };
 
@@ -147,7 +120,7 @@ export function FreeAgents() {
           setUserTeamId(userTeam.id);
         }
       } catch (error) {
-        console.error('Error fetching user team:', error);
+        logger.error('Error fetching user team:', error);
       }
     };
 
@@ -158,14 +131,18 @@ export function FreeAgents() {
   useEffect(() => {
     if (!leagueId || !seasonYear) return;
 
-    // Load all players (one-time, players collection doesn't change often)
+    // Load all players for this league
     const loadPlayers = async () => {
       try {
-        const data = await fetchAllRows('players');
-        const playerData = data.map(mapPlayer);
+        const { data: rows = [], error: playersErr } = await supabase
+          .from('players')
+          .select('*')
+          .eq('league_id', leagueId);
+        if (playersErr) throw playersErr;
+        const playerData = (rows || []).map(mapPlayer);
         setAllPlayers(playerData);
       } catch (error) {
-        console.error('Error loading players:', error);
+        logger.error('Error loading players:', error);
       }
     };
 
@@ -198,7 +175,7 @@ export function FreeAgents() {
         setOwnedPlayerIds(ownedIds);
         setLoading(false);
       } catch (error) {
-        console.error('Error loading rosters:', error);
+        logger.error('Error loading rosters:', error);
         setLoading(false);
       }
     };
@@ -343,7 +320,7 @@ export function FreeAgents() {
 
   const handleAddPlayer = (player: Player) => {
     if (!userRoster || !userTeamId) {
-      alert('You must be a team owner to add players');
+      toast.error('You must be a team owner to add players');
       return;
     }
     setAddingPlayer(player);
@@ -358,7 +335,7 @@ export function FreeAgents() {
       // If roster is at 13, must drop a player first
       if (userRoster.activeRoster.length >= 13) {
         if (!playerToDrop) {
-          alert('You must select a player to drop');
+          toast.error('You must select a player to drop');
           setProcessing(false);
           return;
         }
@@ -405,8 +382,8 @@ export function FreeAgents() {
       setPlayerToDrop(null);
       setProcessing(false);
     } catch (error) {
-      console.error('Error adding player:', error);
-      alert(`Error adding player: ${error}`);
+      logger.error('Error adding player:', error);
+      toast.error(`Error adding player: ${error}`);
       setProcessing(false);
     }
   };

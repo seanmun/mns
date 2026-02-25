@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { useNavigate } from 'react-router-dom';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import type { Team, League } from '../types';
-import { DEFAULT_ROSTER_SETTINGS } from '../types';
+import { mapLeague, mapTeam } from '../lib/mappers';
 
 interface TeamWithRosterStatus extends Team {
   rosterStatus?: 'draft' | 'submitted' | 'adminLocked';
@@ -18,41 +20,6 @@ interface Backup {
   createdAt: string;
   rosters: any[];
   players: any[];
-}
-
-// --- Mapping helpers ---
-
-function mapLeague(row: any): League {
-  return {
-    id: row.id,
-    name: row.name,
-    seasonYear: row.season_year,
-    deadlines: row.deadlines || { keepersLockAt: '', redshirtLockAt: '', draftAt: '' },
-    cap: row.cap,
-    schedule: row.schedule || undefined,
-    keepersLocked: row.keepers_locked,
-    draftStatus: row.draft_status,
-    seasonStatus: row.season_status,
-    commissionerId: row.commissioner_id || undefined,
-    leaguePhase: row.league_phase || 'keeper_season',
-    scoringMode: row.scoring_mode || 'category_record',
-    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
-  };
-}
-
-function mapTeam(row: any): Team {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    name: row.name,
-    abbrev: row.abbrev,
-    owners: row.owners || [],
-    ownerNames: row.owner_names || [],
-    telegramUsername: row.telegram_username || undefined,
-    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
-    settings: row.settings || { maxKeepers: 8 },
-    banners: row.banners || [],
-  };
 }
 
 export function AdminTeams() {
@@ -143,8 +110,8 @@ export function AdminTeams() {
         setBackups([]);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
-      alert('Failed to load data');
+      logger.error('Error loading data:', error);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -170,7 +137,7 @@ export function AdminTeams() {
     e.preventDefault();
 
     if (!formData.name || !formData.abbrev || !formData.leagueId) {
-      alert('Please fill in all required fields');
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -212,14 +179,14 @@ export function AdminTeams() {
           .update(teamData)
           .eq('id', editingTeam.id);
         if (error) throw error;
-        alert('Team updated successfully!');
+        toast.success('Team updated successfully!');
       } else {
         // Create new team
         const { error } = await supabase
           .from('teams')
           .insert(teamData);
         if (error) throw error;
-        alert('Team created successfully!');
+        toast.success('Team created successfully!');
       }
 
       // Reset form
@@ -240,8 +207,8 @@ export function AdminTeams() {
       // Reload teams
       loadData();
     } catch (error: any) {
-      console.error('Error saving team:', error);
-      alert(`Failed to save team: ${error?.message || 'Unknown error'}`);
+      logger.error('Error saving team:', error);
+      toast.error(`Failed to save team: ${error?.message || 'Unknown error'}`);
     }
   };
 
@@ -256,7 +223,7 @@ export function AdminTeams() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+    toast.success('Copied to clipboard!');
   };
 
   const unlockTeamKeepers = async (team: TeamWithRosterStatus) => {
@@ -275,7 +242,7 @@ export function AdminTeams() {
       if (findErr) throw findErr;
 
       if (!rosterRows || rosterRows.length === 0) {
-        alert('No roster found for this team');
+        toast.error('No roster found for this team');
         return;
       }
 
@@ -286,13 +253,13 @@ export function AdminTeams() {
         .eq('id', rosterRows[0].id);
       if (error) throw error;
 
-      alert(`Keepers unlocked for ${team.name}!`);
+      toast.success(`Keepers unlocked for ${team.name}!`);
 
       // Reload data
       await loadData();
     } catch (error) {
-      console.error('Error unlocking team keepers:', error);
-      alert('Failed to unlock team keepers');
+      logger.error('Error unlocking team keepers:', error);
+      toast.error('Failed to unlock team keepers');
     }
   };
 
@@ -456,16 +423,16 @@ export function AdminTeams() {
                         }
                       }
 
-                      alert(`Keepers locked successfully!\n\nBackup created: ${new Date().toLocaleString()}\n${droppedCount} players dropped to free agency.`);
+                      toast.success(`Keepers locked successfully!\n\nBackup created: ${new Date().toLocaleString()}\n${droppedCount} players dropped to free agency.`);
                     } else {
-                      alert('Keepers unlocked successfully!');
+                      toast.success('Keepers unlocked successfully!');
                     }
 
                     // Reload data
                     await loadData();
                   } catch (error) {
-                    console.error('Error updating league:', error);
-                    alert('Failed to update league settings. Backup may have been created - check backups table.');
+                    logger.error('Error updating league:', error);
+                    toast.error('Failed to update league settings. Backup may have been created - check backups table.');
                   }
                 }}
                   className={`px-4 py-2 rounded-md font-medium transition-colors ${
@@ -516,7 +483,7 @@ export function AdminTeams() {
                       try {
                         // Validate backup has data
                         if (!backup.players || !backup.rosters) {
-                          alert('This backup is missing player or roster data and cannot be restored.');
+                          toast.error('This backup is missing player or roster data and cannot be restored.');
                           return;
                         }
 
@@ -543,11 +510,11 @@ export function AdminTeams() {
                           .update({ keepers_locked: false })
                           .eq('id', backup.leagueId);
 
-                        alert(`Backup restored successfully!\n\n${backup.players.length} players and ${backup.rosters.length} rosters restored.`);
+                        toast.success(`Backup restored successfully!\n\n${backup.players.length} players and ${backup.rosters.length} rosters restored.`);
                         await loadData();
                       } catch (error) {
-                        console.error('Error restoring backup:', error);
-                        alert('Failed to restore backup. Check console for details.');
+                        logger.error('Error restoring backup:', error);
+                        toast.error('Failed to restore backup. Check console for details.');
                       }
                     }}
                     className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 font-medium transition-all"

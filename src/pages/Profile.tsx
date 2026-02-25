@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 
 interface Team {
   id: string;
@@ -49,7 +51,7 @@ export function Profile() {
         const userTeams = (teamRows || []).map(mapTeam);
         setTeams(userTeams);
       } catch (error) {
-        console.error('Error loading teams:', error);
+        logger.error('Error loading teams:', error);
       } finally {
         setLoading(false);
       }
@@ -99,8 +101,8 @@ export function Profile() {
       setEditingTeam(null);
       setFormData({ name: '', abbreviation: '', newOwnerEmail: '' });
     } catch (error) {
-      console.error('Error updating team:', error);
-      alert('Failed to update team. Please try again.');
+      logger.error('Error updating team:', error);
+      toast.error('Failed to update team. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -113,7 +115,7 @@ export function Profile() {
     if (!team) return;
 
     if (team.owners.includes(formData.newOwnerEmail.trim())) {
-      alert('This email is already an owner of this team.');
+      toast.error('This email is already an owner of this team.');
       return;
     }
 
@@ -137,8 +139,8 @@ export function Profile() {
 
       setFormData({ ...formData, newOwnerEmail: '' });
     } catch (error) {
-      console.error('Error adding owner:', error);
-      alert('Failed to add owner. Please try again.');
+      logger.error('Error adding owner:', error);
+      toast.error('Failed to add owner. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -149,7 +151,7 @@ export function Profile() {
     if (!team) return;
 
     if (team.owners.length <= 1) {
-      alert('Cannot remove the last owner from a team.');
+      toast.error('Cannot remove the last owner from a team.');
       return;
     }
 
@@ -173,8 +175,8 @@ export function Profile() {
           : t
       ));
     } catch (error) {
-      console.error('Error removing owner:', error);
-      alert('Failed to remove owner. Please try again.');
+      logger.error('Error removing owner:', error);
+      toast.error('Failed to remove owner. Please try again.');
     } finally {
       setSaving(false);
     }

@@ -1,4 +1,4 @@
-
+import { memo } from 'react';
 import type { RosterSummary } from '../types';
 import { CAP_CONSTANTS } from '../types';
 
@@ -9,7 +9,7 @@ interface SummaryCardProps {
   isRegularSeason?: boolean;
 }
 
-export function SummaryCard({ summary, maxKeepers = 8, maxActive = 13, isRegularSeason = false }: SummaryCardProps) {
+export const SummaryCard = memo(function SummaryCard({ summary, maxKeepers = 8, maxActive = 13, isRegularSeason = false }: SummaryCardProps) {
   const formatMoney = (cents: number) => `$${cents.toFixed(0)}`;
 
   return (
@@ -150,4 +150,4 @@ export function SummaryCard({ summary, maxKeepers = 8, maxActive = 13, isRegular
       )}
     </div>
   );
-}
+});

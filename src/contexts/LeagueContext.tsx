@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import type { League } from '../types';
-import { DEFAULT_ROSTER_SETTINGS } from '../types';
+import { mapLeague } from '../lib/mappers';
 
 interface LeagueContextType {
   currentLeagueId: string | null;
@@ -14,27 +14,6 @@ interface LeagueContextType {
 }
 
 const LeagueContext = createContext<LeagueContextType | undefined>(undefined);
-
-// Map Supabase row (snake_case) to League type (camelCase)
-function mapLeague(row: any): League {
-  return {
-    id: row.id,
-    name: row.name,
-    seasonYear: row.season_year,
-    deadlines: row.deadlines || {},
-    cap: row.cap || {},
-    schedule: row.schedule || undefined,
-    keepersLocked: row.keepers_locked || false,
-    draftStatus: row.draft_status || undefined,
-    seasonStatus: row.season_status || undefined,
-    seasonStartedAt: row.season_started_at ? new Date(row.season_started_at).getTime() : undefined,
-    seasonStartedBy: row.season_started_by || undefined,
-    commissionerId: row.commissioner_id || undefined,
-    leaguePhase: row.league_phase || 'keeper_season',
-    scoringMode: row.scoring_mode || 'category_record',
-    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
-  };
-}
 
 export function LeagueProvider({ children }: { children: React.ReactNode }) {
   const { user, role } = useAuth();
@@ -68,25 +47,17 @@ export function LeagueProvider({ children }: { children: React.ReactNode }) {
           if (error) throw error;
           leagues = (data || []).map(mapLeague);
         } else {
-          // Regular user: find leagues where they own a team
-          const { data: teams, error: teamsError } = await supabase
-            .from('teams')
-            .select('league_id')
-            .contains('owners', [user.email]);
+          // Regular user: find leagues where they own a team or are commissioner (single parallel fetch)
+          const [teamsResult, commResult] = await Promise.all([
+            supabase.from('teams').select('league_id').contains('owners', [user.email]),
+            supabase.from('leagues').select('*').eq('commissioner_id', user.id),
+          ]);
 
-          if (teamsError) throw teamsError;
+          if (teamsResult.error) throw teamsResult.error;
+          if (commResult.error) throw commResult.error;
 
-          const teamLeagueIds = [...new Set((teams || []).map(t => t.league_id))];
-
-          // Also find leagues where user is commissioner
-          const { data: commLeagues, error: commError } = await supabase
-            .from('leagues')
-            .select('*')
-            .eq('commissioner_id', user.id);
-
-          if (commError) throw commError;
-
-          const commLeagueIds = (commLeagues || []).map(l => l.id);
+          const teamLeagueIds = [...new Set((teamsResult.data || []).map(t => t.league_id))];
+          const commLeagueIds = (commResult.data || []).map(l => l.id);
           const allLeagueIds = [...new Set([...teamLeagueIds, ...commLeagueIds])];
 
           if (allLeagueIds.length > 0) {
@@ -128,23 +99,24 @@ export function LeagueProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentLeagueId, userLeagues]);
 
-  const setCurrentLeagueId = (leagueId: string) => {
+  const setCurrentLeagueId = useCallback((leagueId: string) => {
     setCurrentLeagueIdState(leagueId);
     localStorage.setItem('currentLeagueId', leagueId);
-    const league = userLeagues.find(l => l.id === leagueId);
-    setCurrentLeague(league || null);
-  };
+  }, []);
 
-  const isLeagueManager = !!(user && currentLeague?.commissionerId && user.id === currentLeague.commissionerId);
+  const isLeagueManager = useMemo(
+    () => !!(user && currentLeague?.commissionerId && user.id === currentLeague.commissionerId),
+    [user, currentLeague]
+  );
 
-  const value = {
+  const value = useMemo(() => ({
     currentLeagueId,
     currentLeague,
     userLeagues,
     loading,
     setCurrentLeagueId,
     isLeagueManager,
-  };
+  }), [currentLeagueId, currentLeague, userLeagues, loading, setCurrentLeagueId, isLeagueManager]);
 
   return <LeagueContext.Provider value={value}>{children}</LeagueContext.Provider>;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { mapPlayer } from '../lib/mappers';
 import type { Player, Team } from '../types';
 
 interface RookiePick {
@@ -13,19 +14,6 @@ interface RookiePick {
 interface RookieDraftResultsProps {
   leagueId: string;
   teams: Team[];
-}
-
-function mapPlayer(row: any): Player {
-  return {
-    id: row.id, fantraxId: row.fantrax_id, name: row.name, position: row.position,
-    salary: row.salary, nbaTeam: row.nba_team,
-    roster: { leagueId: row.league_id, teamId: row.team_id, onIR: row.on_ir,
-      isRookie: row.is_rookie, isInternationalStash: row.is_international_stash,
-      intEligible: row.int_eligible, rookieDraftInfo: row.rookie_draft_info || undefined },
-    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
-      ? { priorYearRound: row.keeper_prior_year_round || undefined, derivedBaseRound: row.keeper_derived_base_round || undefined }
-      : undefined,
-  };
 }
 
 export function RookieDraftResults({ leagueId, teams }: RookieDraftResultsProps) {

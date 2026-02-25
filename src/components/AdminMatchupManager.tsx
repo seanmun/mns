@@ -1,35 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import type { Team, Matchup, TeamRecord, ScoringMode } from '../types';
+import { mapTeam, mapMatchup } from '../lib/mappers';
 
 interface AdminMatchupManagerProps {
   leagueId: string;
   seasonYear: number;
   scoringMode: ScoringMode;
   onClose: () => void;
-}
-
-function mapTeam(row: any): Team {
-  return {
-    id: row.id, leagueId: row.league_id, name: row.name, abbrev: row.abbrev,
-    owners: row.owners || [], ownerNames: row.owner_names || [],
-    telegramUsername: row.telegram_username || undefined,
-    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
-    settings: row.settings || { maxKeepers: 8 }, banners: row.banners || [],
-  };
-}
-
-function mapMatchup(row: any): Matchup {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    seasonYear: row.season_year,
-    matchupWeek: row.matchup_week,
-    homeTeamId: row.home_team_id,
-    awayTeamId: row.away_team_id,
-    homeScore: row.home_score != null ? Number(row.home_score) : null,
-    awayScore: row.away_score != null ? Number(row.away_score) : null,
-  };
 }
 
 type Tab = 'matchups' | 'scores';
@@ -87,7 +67,7 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
           .order('matchup_week', { ascending: true });
         setMatchups((matchupRows || []).map(mapMatchup));
       } catch (err) {
-        console.error('Error loading matchup data:', err);
+        logger.error('Error loading matchup data:', err);
       } finally {
         setLoading(false);
       }
@@ -123,15 +103,15 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
     const usedTeams = new Set<string>();
     for (const row of editRows) {
       if (!row.homeTeamId || !row.awayTeamId) {
-        alert('Please fill in all matchup slots.');
+        toast.error('Please fill in all matchup slots.');
         return;
       }
       if (row.homeTeamId === row.awayTeamId) {
-        alert('A team cannot play itself.');
+        toast.error('A team cannot play itself.');
         return;
       }
       if (usedTeams.has(row.homeTeamId) || usedTeams.has(row.awayTeamId)) {
-        alert('Each team can only appear in one matchup per week.');
+        toast.error('Each team can only appear in one matchup per week.');
         return;
       }
       usedTeams.add(row.homeTeamId);
@@ -167,9 +147,9 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
         ...rows.map(mapMatchup),
       ]);
 
-      alert(`Week ${selectedWeek} matchups saved!`);
+      toast.success(`Week ${selectedWeek} matchups saved!`);
     } catch (err: any) {
-      alert(`Error saving matchups: ${err.message}`);
+      toast.error(`Error saving matchups: ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -177,11 +157,11 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
 
   const handleAutoGenerate = async () => {
     if (teams.length < 2) {
-      alert('Need at least 2 teams.');
+      toast.error('Need at least 2 teams.');
       return;
     }
     if (teams.length % 2 !== 0) {
-      alert('Odd number of teams not supported yet.');
+      toast.error('Odd number of teams not supported yet.');
       return;
     }
 
@@ -251,9 +231,9 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
       }
 
       setMatchups(allRows.map(mapMatchup));
-      alert(`Generated ${allRows.length} matchups across ${matchupWeeks.length} weeks!`);
+      toast.success(`Generated ${allRows.length} matchups across ${matchupWeeks.length} weeks!`);
     } catch (err: any) {
-      alert(`Error generating matchups: ${err.message}`);
+      toast.error(`Error generating matchups: ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -288,9 +268,9 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
         };
       }));
 
-      alert(`Scores saved for Week ${selectedWeek}!`);
+      toast.success(`Scores saved for Week ${selectedWeek}!`);
     } catch (err: any) {
-      alert(`Error saving scores: ${err.message}`);
+      toast.error(`Error saving scores: ${err.message}`);
     } finally {
       setSaving(false);
     }

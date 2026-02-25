@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import type { Matchup, Team, TeamRecord } from '../types';
 
@@ -10,7 +11,7 @@ interface MatchupCardProps {
   leagueId: string;
 }
 
-export function MatchupCard({ matchups, teams, records, myTeamId, currentWeek, leagueId }: MatchupCardProps) {
+export const MatchupCard = memo(function MatchupCard({ matchups, teams, records, myTeamId, currentWeek, leagueId }: MatchupCardProps) {
   if (matchups.length === 0 || currentWeek === null) return null;
 
   const teamMap = new Map(teams.map(t => [t.id, t]));
@@ -91,4 +92,4 @@ export function MatchupCard({ matchups, teams, records, myTeamId, currentWeek, l
       </div>
     </div>
   );
-}
+});

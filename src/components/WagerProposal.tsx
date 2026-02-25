@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import type { Wager } from '../types';
 
 interface WagerProposalProps {
@@ -29,8 +31,8 @@ export function WagerProposal({ wager, userEmail, isOpponent }: WagerProposalPro
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error accepting wager:', error);
-      alert('Failed to accept wager. Please try again.');
+      logger.error('Error accepting wager:', error);
+      toast.error('Failed to accept wager. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -53,8 +55,8 @@ export function WagerProposal({ wager, userEmail, isOpponent }: WagerProposalPro
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error declining wager:', error);
-      alert('Failed to decline wager. Please try again.');
+      logger.error('Error declining wager:', error);
+      toast.error('Failed to decline wager. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

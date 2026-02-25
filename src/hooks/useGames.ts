@@ -1,49 +1,24 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import type { NBAGame, PlayerGameInfo } from '../types';
-
-function mapGame(row: any): NBAGame {
-  return {
-    id: row.id,
-    seasonYear: row.season_year,
-    gameDate: row.game_date,
-    awayTeam: row.away_team,
-    homeTeam: row.home_team,
-    isCupGame: row.is_cup_game || false,
-    notes: row.notes || null,
-  };
-}
+import { mapNBAGame } from '../lib/mappers';
+import type { PlayerGameInfo } from '../types';
 
 export function useGames(seasonYear: number, gameDate: string) {
-  const [games, setGames] = useState<NBAGame[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: games = [], isLoading: loading } = useQuery({
+    queryKey: ['games', seasonYear, gameDate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('games')
+        .select('*')
+        .eq('season_year', seasonYear)
+        .eq('game_date', gameDate);
 
-  useEffect(() => {
-    if (!seasonYear || !gameDate) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchGames = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('games')
-          .select('*')
-          .eq('season_year', seasonYear)
-          .eq('game_date', gameDate);
-
-        if (error) throw error;
-        setGames((data || []).map(mapGame));
-      } catch (err) {
-        console.error('Error fetching games for date:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchGames();
-  }, [seasonYear, gameDate]);
+      if (error) throw error;
+      return (data || []).map(mapNBAGame);
+    },
+    enabled: !!seasonYear && !!gameDate,
+  });
 
   // Map NBA team abbreviation → game info for that date
   const teamGameMap = useMemo(() => {

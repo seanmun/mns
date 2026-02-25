@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import type { RegularSeasonRoster, Player, Team, League, RosterSummary, TeamFees } from '../types';
 import { DEFAULT_ROSTER_SETTINGS } from '../types';
 import { useGames } from '../hooks/useGames';
@@ -188,8 +190,8 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
 
       setProcessing(false);
     } catch (error) {
-      console.error('Error activating redshirt:', error);
-      alert(`Error activating player: ${error}`);
+      logger.error('Error activating redshirt:', error);
+      toast.error(`Error activating player: ${error}`);
       setProcessing(false);
     }
   };
@@ -230,8 +232,8 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
       if (error) throw error;
       setProcessing(false);
     } catch (error) {
-      console.error('Error dropping player:', error);
-      alert(`Error dropping player: ${error}`);
+      logger.error('Error dropping player:', error);
+      toast.error(`Error dropping player: ${error}`);
       setProcessing(false);
     }
   };
@@ -276,8 +278,8 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
       if (error) throw error;
       setProcessing(false);
     } catch (error) {
-      console.error('Error moving to IR:', error);
-      alert(`Error moving player to IR: ${error}`);
+      logger.error('Error moving to IR:', error);
+      toast.error(`Error moving player to IR: ${error}`);
       setProcessing(false);
     }
   };
@@ -314,8 +316,8 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
       if (error) throw error;
       setProcessing(false);
     } catch (error) {
-      console.error('Error moving to active:', error);
-      alert(`Error moving player to active: ${error}`);
+      logger.error('Error moving to active:', error);
+      toast.error(`Error moving player to active: ${error}`);
       setProcessing(false);
     }
   };
@@ -366,8 +368,8 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
       setPlayerToMoveToIR(null);
       setProcessing(false);
     } catch (error) {
-      console.error('Error swapping IR player:', error);
-      alert(`Error swapping players: ${error}`);
+      logger.error('Error swapping IR player:', error);
+      toast.error(`Error swapping players: ${error}`);
       setProcessing(false);
     }
   };
@@ -392,8 +394,8 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error benching player:', error);
-      alert(`Error benching player: ${error}`);
+      logger.error('Error benching player:', error);
+      toast.error(`Error benching player: ${error}`);
     } finally {
       setProcessing(false);
     }
@@ -419,8 +421,8 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error starting player:', error);
-      alert(`Error starting player: ${error}`);
+      logger.error('Error starting player:', error);
+      toast.error(`Error starting player: ${error}`);
     } finally {
       setProcessing(false);
     }

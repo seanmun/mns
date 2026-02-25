@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, fetchAllRows } from '../lib/supabase';
+import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team, Player, RosterDoc } from '../types';
@@ -83,11 +85,15 @@ export function AdminTradeManager() {
       })) as Team[];
       setTeams(mappedTeams.sort((a, b) => a.name.localeCompare(b.name)));
 
-      // Load all players (paginated past 1000-row limit)
-      const playersData = await fetchAllRows('players');
+      // Load all players for this league
+      const { data: playersData = [], error: playersErr } = await supabase
+        .from('players')
+        .select('*')
+        .eq('league_id', currentLeagueId);
+      if (playersErr) throw playersErr;
 
       const playersMap = new Map<string, Player>();
-      playersData.forEach((row: any) => {
+      (playersData || []).forEach((row: any) => {
         playersMap.set(row.id, {
           id: row.id,
           fantraxId: row.fantrax_id,
@@ -178,8 +184,8 @@ export function AdminTradeManager() {
       setDraftPicks(mappedDraftPicks.sort((a, b) => a.pickNumber - b.pickNumber));
 
     } catch (error) {
-      console.error('Error loading data:', error);
-      alert('Failed to load data');
+      logger.error('Error loading data:', error);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -219,7 +225,7 @@ export function AdminTradeManager() {
     // Validate all assets have destinations
     const incompleteAssets = tradeAssets.filter(a => !a.toTeam);
     if (incompleteAssets.length > 0) {
-      alert('Please select a destination team for all assets');
+      toast.error('Please select a destination team for all assets');
       return;
     }
 
@@ -346,13 +352,13 @@ export function AdminTradeManager() {
         if (error) throw error;
       }
 
-      alert('Trade executed successfully!');
+      toast.success('Trade executed successfully!');
       setTradeAssets([]);
       await loadData();
 
     } catch (error) {
-      console.error('Error executing trade:', error);
-      alert('Failed to execute trade');
+      logger.error('Error executing trade:', error);
+      toast.error('Failed to execute trade');
     } finally {
       setIsExecuting(false);
     }

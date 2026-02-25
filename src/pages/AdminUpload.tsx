@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { useNavigate } from 'react-router-dom';
 import { useIsSiteAdmin } from '../hooks/useCanManageLeague';
 import { baseKeeperRound } from '../lib/keeperAlgorithms';
@@ -50,7 +52,7 @@ export function AdminUpload() {
 
   const handleUploadProjectedStats = async () => {
     if (!file) {
-      alert('Please select a file');
+      toast.error('Please select a file');
       return;
     }
 
@@ -116,13 +118,13 @@ export function AdminUpload() {
           setProgress({ current: i + 1, total: rows.length });
         } catch (error: any) {
           errors.push(`Row ${i + 2} (${row.name || 'unknown'}): ${error.message}`);
-          console.error(`Error processing row ${i + 2}:`, error, row);
+          logger.error(`Error processing row ${i + 2}:`, error);
         }
       }
 
       setResults({ success: successCount, errors });
     } catch (error: any) {
-      alert(`Upload failed: ${error.message}`);
+      toast.error(`Upload failed: ${error.message}`);
     } finally {
       setUploading(false);
     }
@@ -130,7 +132,7 @@ export function AdminUpload() {
 
   const handleUploadPreviousStats = async () => {
     if (!file) {
-      alert('Please select a file');
+      toast.error('Please select a file');
       return;
     }
 
@@ -184,13 +186,13 @@ export function AdminUpload() {
           setProgress({ current: i + 1, total: rows.length });
         } catch (error: any) {
           errors.push(`Row ${i + 2} (${row.name || 'unknown'}): ${error.message}`);
-          console.error(`Error processing row ${i + 2}:`, error, row);
+          logger.error(`Error processing row ${i + 2}:`, error);
         }
       }
 
       setResults({ success: successCount, errors });
     } catch (error: any) {
-      alert(`Upload failed: ${error.message}`);
+      toast.error(`Upload failed: ${error.message}`);
     } finally {
       setUploading(false);
     }
@@ -198,7 +200,7 @@ export function AdminUpload() {
 
   const handleUploadProspects = async () => {
     if (!file) {
-      alert('Please select a file');
+      toast.error('Please select a file');
       return;
     }
 
@@ -301,13 +303,13 @@ export function AdminUpload() {
           setProgress({ current: i + 1, total: rows.length });
         } catch (error: any) {
           errors.push(`Row ${i + 2} (${row.Player || row.player || 'unknown'}): ${error.message}`);
-          console.error(`Error processing row ${i + 2}:`, error, row);
+          logger.error(`Error processing row ${i + 2}:`, error);
         }
       }
 
       setResults({ success: successCount, errors });
     } catch (error: any) {
-      alert(`Upload failed: ${error.message}`);
+      toast.error(`Upload failed: ${error.message}`);
     } finally {
       setUploading(false);
     }
@@ -315,7 +317,7 @@ export function AdminUpload() {
 
   const handleUploadSchedule = async () => {
     if (!file) {
-      alert('Please select a file');
+      toast.error('Please select a file');
       return;
     }
 
@@ -425,7 +427,7 @@ export function AdminUpload() {
 
       setResults({ success: successCount, errors });
     } catch (error: any) {
-      alert(`Upload failed: ${error.message}`);
+      toast.error(`Upload failed: ${error.message}`);
     } finally {
       setUploading(false);
     }
@@ -449,7 +451,7 @@ export function AdminUpload() {
     }
 
     if (!file || !leagueId) {
-      alert('Please select a file and enter league ID');
+      toast.error('Please select a file and enter league ID');
       return;
     }
 
@@ -547,7 +549,7 @@ export function AdminUpload() {
 
       setResults({ success: successCount, errors });
     } catch (error: any) {
-      alert(`Upload failed: ${error.message}`);
+      toast.error(`Upload failed: ${error.message}`);
     } finally {
       setUploading(false);
     }
@@ -580,7 +582,7 @@ export function AdminUpload() {
 
     const finalConfirm = window.prompt('Type DELETE to confirm:');
     if (finalConfirm !== 'DELETE') {
-      alert('Deletion cancelled - text did not match.');
+      toast.error('Deletion cancelled - text did not match.');
       return;
     }
 
@@ -606,11 +608,11 @@ export function AdminUpload() {
 
       setProgress({ current: totalCount, total: totalCount });
 
-      alert(`Successfully deleted ${totalCount} rows from ${tableName} table.`);
+      toast.success(`Successfully deleted ${totalCount} rows from ${tableName} table.`);
       setResults({ success: totalCount, errors: [] });
     } catch (error: any) {
-      alert(`Failed to delete table data: ${error.message}`);
-      console.error('Delete error:', error);
+      toast.error(`Failed to delete table data: ${error.message}`);
+      logger.error('Delete error:', error);
     } finally {
       setUploading(false);
     }

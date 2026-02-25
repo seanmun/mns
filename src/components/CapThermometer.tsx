@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { RosterSummary } from '../types';
 
 interface CapThermometerProps {
@@ -6,7 +7,7 @@ interface CapThermometerProps {
   isRegularSeason?: boolean;
 }
 
-export function CapThermometer({ summary, maxKeepers = 13, isRegularSeason = false }: CapThermometerProps) {
+export const CapThermometer = memo(function CapThermometer({ summary, maxKeepers = 13, isRegularSeason = false }: CapThermometerProps) {
   const { capUsed, capEffective, overSecondApronByM, keepersCount } = summary;
   const firstApron = 195_000_000;
   const secondApron = 225_000_000;
@@ -170,4 +171,4 @@ export function CapThermometer({ summary, maxKeepers = 13, isRegularSeason = fal
       )}
     </div>
   );
-}
+});

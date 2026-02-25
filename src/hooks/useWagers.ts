@@ -1,30 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { mapWager } from '../lib/mappers';
 import type { Wager } from '../types';
-
-function mapWager(row: any): Wager {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    seasonYear: row.season_year,
-    proposerId: row.proposer_id,
-    proposerName: row.proposer_name,
-    opponentId: row.opponent_id,
-    opponentName: row.opponent_name,
-    description: row.description,
-    amount: Number(row.amount),
-    settlementDate: row.settlement_date,
-    status: row.status,
-    proposedAt: new Date(row.proposed_at).getTime(),
-    proposedBy: row.proposed_by,
-    respondedAt: row.responded_at ? new Date(row.responded_at).getTime() : undefined,
-    respondedBy: row.responded_by || undefined,
-    settledAt: row.settled_at ? new Date(row.settled_at).getTime() : undefined,
-    winnerId: row.winner_id || undefined,
-    createdAt: new Date(row.created_at).getTime(),
-    updatedAt: new Date(row.updated_at).getTime(),
-  };
-}
 
 interface UseWagersOptions {
   leagueId?: string;
@@ -34,71 +12,59 @@ interface UseWagersOptions {
 }
 
 export function useWagers(options: UseWagersOptions = {}) {
-  const [wagers, setWagers] = useState<Wager[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const queryClient = useQueryClient();
+  const { leagueId, teamId, status, includeAll } = options;
 
-  useEffect(() => {
-    if (!options.leagueId) {
-      setLoading(false);
-      return;
-    }
+  const { data: allWagers = [], isLoading: loading, error } = useQuery({
+    queryKey: ['wagers', leagueId, status],
+    queryFn: async () => {
+      let query = supabase
+        .from('wagers')
+        .select('*')
+        .eq('league_id', leagueId!)
+        .order('proposed_at', { ascending: false });
 
-    const fetchWagers = async () => {
-      try {
-        let query = supabase
-          .from('wagers')
-          .select('*')
-          .eq('league_id', options.leagueId!)
-          .order('proposed_at', { ascending: false });
-
-        if (options.status) {
-          query = query.eq('status', options.status);
-        }
-
-        const { data, error: err } = await query;
-
-        if (err) throw err;
-
-        let wagersData = (data || []).map(mapWager);
-
-        // Client-side filtering by team if needed
-        if (options.teamId && !options.includeAll) {
-          wagersData = wagersData.filter(
-            (wager) =>
-              wager.proposerId === options.teamId || wager.opponentId === options.teamId
-          );
-        }
-
-        setWagers(wagersData);
-      } catch (err) {
-        console.error('Error fetching wagers:', err);
-        setError(err as Error);
-      } finally {
-        setLoading(false);
+      if (status) {
+        query = query.eq('status', status);
       }
-    };
 
-    fetchWagers();
+      const { data, error: err } = await query;
+      if (err) throw err;
+      return (data || []).map(mapWager);
+    },
+    enabled: !!leagueId,
+  });
 
-    // Realtime subscription
+  // Client-side filtering by team
+  const wagers = useMemo(() => {
+    if (teamId && !includeAll) {
+      return allWagers.filter(
+        (wager) => wager.proposerId === teamId || wager.opponentId === teamId
+      );
+    }
+    return allWagers;
+  }, [allWagers, teamId, includeAll]);
+
+  // Realtime subscription — invalidate cache on changes
+  useEffect(() => {
+    if (!leagueId) return;
+
     const channel = supabase
-      .channel(`wagers-${options.leagueId}`)
+      .channel(`wagers-${leagueId}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'wagers',
-        filter: `league_id=eq.${options.leagueId}`,
+        filter: `league_id=eq.${leagueId}`,
       }, () => {
-        // Re-fetch on any change
-        fetchWagers();
+        queryClient.invalidateQueries({ queryKey: ['wagers', leagueId] });
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [options.leagueId, options.teamId, options.status, options.includeAll]);
+  }, [leagueId, queryClient]);
 
-  return { wagers, loading, error };
+  return { wagers, loading, error: error as Error | null };
 }

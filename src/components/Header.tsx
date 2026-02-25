@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
@@ -52,10 +53,10 @@ export function Header() {
     setHasNotifications(!hasRead);
   };
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await signOut();
     navigate('/login');
-  };
+  }, [signOut, navigate]);
 
   // Check notifications on mount and listen for changes
   useEffect(() => {
@@ -188,7 +189,7 @@ export function Header() {
                     onClick={() => {
                       setIsLeagueDropdownOpen(false);
                       // TODO: Navigate to create league page
-                      alert('Create League feature coming soon!');
+                      toast('Create League feature coming soon!');
                     }}
                     className="w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-gray-800 transition-colors flex items-center gap-2"
                   >

@@ -1,65 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, fetchAllRows } from '../lib/supabase';
+import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { AdminRosterManagement } from '../components/AdminRosterManagement';
 import { AdminMatchupManager } from '../components/AdminMatchupManager';
 import { ScheduleWeekPreview } from '../components/ScheduleWeekPreview';
 import { PlayoffConfig } from '../components/PlayoffConfig';
-import type { League, RegularSeasonRoster, Player, TeamFees } from '../types';
-import { LEAGUE_PHASE_ORDER, LEAGUE_PHASE_LABELS, DEFAULT_ROSTER_SETTINGS } from '../types';
+import type { League, RegularSeasonRoster, TeamFees } from '../types';
+import { LEAGUE_PHASE_ORDER, LEAGUE_PHASE_LABELS } from '../types';
 import { getNextPhase } from '../lib/phaseGating';
 import { generateWeeks, analyzeSchedule } from '../lib/scheduleUtils';
 import type { CombinedWeekConfig, ScheduleAnalysis } from '../lib/scheduleUtils';
-
-// --- Mapping helpers ---
-
-function mapLeague(row: any): League {
-  return {
-    id: row.id,
-    name: row.name,
-    seasonYear: row.season_year,
-    deadlines: row.deadlines || {},
-    cap: row.cap || {},
-    schedule: row.schedule || undefined,
-    keepersLocked: row.keepers_locked,
-    draftStatus: row.draft_status,
-    seasonStatus: row.season_status,
-    seasonStartedAt: row.season_started_at ? new Date(row.season_started_at).getTime() : undefined,
-    seasonStartedBy: row.season_started_by || undefined,
-    commissionerId: row.commissioner_id || undefined,
-    leaguePhase: row.league_phase || 'keeper_season',
-    scoringMode: row.scoring_mode || 'category_record',
-    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
-  };
-}
-
-function mapPlayer(row: any): Player {
-  return {
-    id: row.id,
-    fantraxId: row.fantrax_id,
-    name: row.name,
-    position: row.position,
-    salary: row.salary,
-    nbaTeam: row.nba_team,
-    roster: {
-      leagueId: row.league_id,
-      teamId: row.team_id,
-      onIR: row.on_ir,
-      isRookie: row.is_rookie,
-      isInternationalStash: row.is_international_stash,
-      intEligible: row.int_eligible,
-      rookieDraftInfo: row.rookie_draft_info || undefined,
-    },
-    keeper:
-      row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
-        ? {
-            priorYearRound: row.keeper_prior_year_round || undefined,
-            derivedBaseRound: row.keeper_derived_base_round || undefined,
-          }
-        : undefined,
-  };
-}
+import { mapLeague, mapPlayer } from '../lib/mappers';
 
 export function AdminLeague() {
   const canManage = useCanManageLeague();
@@ -139,7 +93,7 @@ export function AdminLeague() {
 
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching leagues:', error);
+        logger.error('Error fetching leagues:', error);
         setLoading(false);
       }
     };
@@ -163,7 +117,7 @@ export function AdminLeague() {
         setScheduleAnalysis(null);
       }
     } catch (err) {
-      console.error('Error fetching schedule:', err);
+      logger.error('Error fetching schedule:', err);
       setScheduleAnalysis(null);
     } finally {
       setAnalyzingSchedule(false);
@@ -285,11 +239,11 @@ export function AdminLeague() {
         scoringMode: editForm.scoringMode,
       } : null);
 
-      alert('League updated successfully!');
+      toast.success('League updated successfully!');
       setSaving(false);
     } catch (error) {
-      console.error('Error updating league:', error);
-      alert('Error updating league. Check console for details.');
+      logger.error('Error updating league:', error);
+      toast.error('Error updating league. Check console for details.');
       setSaving(false);
     }
   };
@@ -304,11 +258,11 @@ export function AdminLeague() {
     const consolationWeeksCount = editForm['schedule.playoffTeams'] >= 2 ? editForm['schedule.consolationWeeks'] : 0;
 
     if (!startDate) {
-      alert('Please set a season start date first.');
+      toast.error('Please set a season start date first.');
       return;
     }
     if (numWeeks < 1 || numWeeks > 52) {
-      alert('Number of weeks must be between 1 and 52.');
+      toast.error('Number of weeks must be between 1 and 52.');
       return;
     }
 
@@ -345,10 +299,10 @@ export function AdminLeague() {
       if (error) throw error;
 
       setWeeksGenerated(true);
-      alert(`${totalWeeks} weeks generated (${numWeeks} regular${postSeasonDesc ? ` + ${postSeasonDesc}` : ''})!`);
+      toast.success(`${totalWeeks} weeks generated (${numWeeks} regular${postSeasonDesc ? ` + ${postSeasonDesc}` : ''})!`);
     } catch (error) {
-      console.error('Error generating weeks:', error);
-      alert(`Error generating weeks: ${error}`);
+      logger.error('Error generating weeks:', error);
+      toast.error(`Error generating weeks: ${error}`);
     } finally {
       setGeneratingWeeks(false);
     }
@@ -373,7 +327,7 @@ export function AdminLeague() {
       .eq('id', selectedLeague.id);
 
     if (error) {
-      alert(`Failed to advance phase: ${error.message}`);
+      toast.error(`Failed to advance phase: ${error.message}`);
       return;
     }
 
@@ -403,7 +357,7 @@ export function AdminLeague() {
       .eq('id', selectedLeague.id);
 
     if (error) {
-      alert(`Failed to revert phase: ${error.message}`);
+      toast.error(`Failed to revert phase: ${error.message}`);
       return;
     }
 
@@ -437,9 +391,13 @@ export function AdminLeague() {
         .eq('season_year', selectedLeague.seasonYear);
       if (rostersErr) throw rostersErr;
 
-      const playersRows = await fetchAllRows('players');
+      const { data: playersRows = [], error: playersErr } = await supabase
+        .from('players')
+        .select('*')
+        .eq('league_id', selectedLeague.id);
+      if (playersErr) throw playersErr;
       const playersMap = new Map(
-        playersRows.map(row => [row.id, mapPlayer(row)])
+        (playersRows || []).map(row => [row.id, mapPlayer(row)])
       );
 
       let teamsProcessed = 0;
@@ -513,7 +471,7 @@ export function AdminLeague() {
 
           teamsProcessed++;
         } catch (error) {
-          console.error(`Error processing team ${roster.teamId}:`, error);
+          logger.error(`Error processing team ${roster.teamId}:`, error);
           errors.push(`Team ${roster.teamId}: ${error}`);
         }
       }
@@ -521,13 +479,13 @@ export function AdminLeague() {
       setStartingSeasonProcessing(false);
 
       if (errors.length > 0) {
-        alert(`Fees locked with errors!\n\n${teamsProcessed} teams processed, ${errors.length} errors.\nCheck console.`);
+        toast.error(`Fees locked with errors!\n\n${teamsProcessed} teams processed, ${errors.length} errors.\nCheck console.`);
       } else {
-        alert(`Fees locked successfully!\n\n${teamsProcessed} teams processed.`);
+        toast.success(`Fees locked successfully!\n\n${teamsProcessed} teams processed.`);
       }
     } catch (error) {
-      console.error('Error locking fees:', error);
-      alert(`Error locking fees: ${error}`);
+      logger.error('Error locking fees:', error);
+      toast.error(`Error locking fees: ${error}`);
       setStartingSeasonProcessing(false);
     }
   };

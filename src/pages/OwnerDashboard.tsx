@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { supabase, fetchAllRows } from '../lib/supabase';
+import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { useRoster, useTeamPlayers, useTeam, useLeague, updateRoster, submitRoster, saveScenario } from '../hooks/useRoster';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { usePreviousStats } from '../hooks/usePreviousStats';
@@ -17,6 +19,7 @@ import { RegularSeasonRosterView } from '../components/RegularSeasonRosterView';
 
 import { baseKeeperRound, stackKeeperRounds, computeSummary, validateRoster } from '../lib/keeperAlgorithms';
 import type { RosterEntry, Decision, Player, SavedScenario } from '../types';
+import { mapPlayer } from '../lib/mappers';
 
 interface RookieDraftPick {
   id: string;
@@ -140,148 +143,76 @@ export function OwnerDashboard() {
     }
   }, [roster, players, playersMap]);
 
-  // Helper to map a Supabase player row to the Player type
-  const mapPlayer = (row: any): Player => ({
-    id: row.id,
-    fantraxId: row.fantrax_id,
-    name: row.name,
-    position: row.position,
-    salary: row.salary,
-    nbaTeam: row.nba_team,
-    roster: {
-      leagueId: row.league_id,
-      teamId: row.team_id,
-      onIR: row.on_ir,
-      isRookie: row.is_rookie,
-      isInternationalStash: row.is_international_stash,
-      intEligible: row.int_eligible,
-      rookieDraftInfo: row.rookie_draft_info || undefined,
-    },
-    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
-      ? { priorYearRound: row.keeper_prior_year_round || undefined, derivedBaseRound: row.keeper_derived_base_round || undefined }
-      : undefined,
-  });
-
-  // Fetch all league players for watchlist display and rookie picks
+  // Fetch all league players, rookie picks, and draft data in parallel
   useEffect(() => {
-    const fetchAllPlayers = async () => {
-      if (!leagueId) return;
+    if (!leagueId || !teamId) return;
 
+    const fetchAllData = async () => {
       try {
-        // Load ALL players (paginated past 1000-row API limit)
-        const playerRows = await fetchAllRows('players');
+        // Parallel queries: players + rookie picks
+        const [playersResult, rookieResult] = await Promise.all([
+          supabase.from('players').select('*').eq('league_id', leagueId),
+          supabase.from('rookie_draft_picks').select('*').eq('league_id', leagueId).eq('current_owner', teamId),
+        ]);
 
-        const allPlayers = playerRows.map(mapPlayer);
-        console.log(`[OwnerDashboard] Fetched ${allPlayers.length} total players`);
-        console.log(`[OwnerDashboard] Team ${teamId} roster entries:`, roster?.entries?.length || 0);
+        // Additional parallel queries if league is loaded
+        let picksResult: any = null;
+        let draftResult: any = null;
+        if (league) {
+          [picksResult, draftResult] = await Promise.all([
+            supabase.from('pick_assignments').select('*').eq('league_id', leagueId).eq('current_team_id', teamId).eq('season_year', league.seasonYear),
+            supabase.from('drafts').select('status').eq('id', `${leagueId}_${league.seasonYear}`).maybeSingle(),
+          ]);
+        }
+
+        const results = [playersResult, rookieResult, picksResult, draftResult];
+
+        // Process players
+        const allPlayers = (playersResult.data || []).map(mapPlayer);
         setAllLeaguePlayers(allPlayers);
-      } catch (error) {
-        console.error('Error fetching league players:', error);
-      }
-    };
 
-    const fetchRookiePicks = async () => {
-      if (!leagueId || !teamId) return;
-      try {
-        const { data: picksRows, error } = await supabase
-          .from('rookie_draft_picks')
-          .select('*')
-          .eq('league_id', leagueId)
-          .eq('current_owner', teamId);
-
-        if (error) throw error;
-
-        const picksData: RookieDraftPick[] = (picksRows || []).map((row: any) => ({
-          id: row.id,
-          year: row.year,
-          round: row.round,
-          originalTeam: row.original_team,
-          originalTeamName: row.original_team_name,
-          currentOwner: row.current_owner,
-          leagueId: row.league_id,
+        // Process rookie picks
+        const picksData: RookieDraftPick[] = (rookieResult.data || []).map((row: any) => ({
+          id: row.id, year: row.year, round: row.round,
+          originalTeam: row.original_team, originalTeamName: row.original_team_name,
+          currentOwner: row.current_owner, leagueId: row.league_id,
         }));
         setRookiePicks(picksData);
+
+        // Process pick assignments if league was available
+        if (league && picksResult) {
+          const teamPickAssignments = (picksResult.data || []).map((row: any) => ({
+            id: row.id, leagueId: row.league_id, seasonYear: row.season_year,
+            round: row.round, pickInRound: row.pick_in_round, overallPick: row.overall_pick,
+            currentTeamId: row.current_team_id, originalTeamId: row.original_team_id,
+            originalTeamName: row.original_team_name, originalTeamAbbrev: row.original_team_abbrev,
+            playerId: row.player_id, playerName: row.player_name, isKeeperSlot: row.is_keeper_slot,
+            pickedAt: row.picked_at, pickedBy: row.picked_by,
+            wasTraded: row.was_traded, tradeHistory: row.trade_history,
+            createdAt: row.created_at, updatedAt: row.updated_at,
+          }));
+          setTeamDraftPicks(teamPickAssignments);
+
+          // Load drafted player data
+          const playerIds = teamPickAssignments.filter((pick: any) => pick.playerId).map((pick: any) => pick.playerId);
+          if (playerIds.length > 0) {
+            const { data: playerRows } = await supabase.from('players').select('*').in('fantrax_id', playerIds);
+            setDraftedPlayers((playerRows || []).map(mapPlayer));
+          } else {
+            setDraftedPlayers([]);
+          }
+
+          // Draft status
+          if (results[3]?.data) {
+            setDraftStatus(results[3].data.status || 'setup');
+          }
+        }
       } catch (error) {
-        console.error('Error loading rookie picks:', error);
+        logger.error('Error fetching dashboard data:', error);
       }
     };
 
-    const fetchDraftedPlayers = async () => {
-      if (!leagueId || !teamId || !league) return;
-      try {
-        // Load picks from pick_assignments table
-        const { data: pickAssignmentRows, error: paError } = await supabase
-          .from('pick_assignments')
-          .select('*')
-          .eq('league_id', leagueId)
-          .eq('current_team_id', teamId)
-          .eq('season_year', league.seasonYear);
-
-        if (paError) throw paError;
-
-        const teamPickAssignments = (pickAssignmentRows || []).map((row: any) => ({
-          id: row.id,
-          leagueId: row.league_id,
-          seasonYear: row.season_year,
-          round: row.round,
-          pickInRound: row.pick_in_round,
-          overallPick: row.overall_pick,
-          currentTeamId: row.current_team_id,
-          originalTeamId: row.original_team_id,
-          originalTeamName: row.original_team_name,
-          originalTeamAbbrev: row.original_team_abbrev,
-          playerId: row.player_id,
-          playerName: row.player_name,
-          isKeeperSlot: row.is_keeper_slot,
-          pickedAt: row.picked_at,
-          pickedBy: row.picked_by,
-          wasTraded: row.was_traded,
-          tradeHistory: row.trade_history,
-          createdAt: row.created_at,
-          updatedAt: row.updated_at,
-        }));
-
-        // Load player data for picks with players assigned
-        const playerIds = teamPickAssignments
-          .filter((pick: any) => pick.playerId)
-          .map((pick: any) => pick.playerId);
-
-        if (playerIds.length > 0) {
-          const { data: playerRows, error: pError } = await supabase
-            .from('players')
-            .select('*')
-            .in('fantrax_id', playerIds);
-
-          if (pError) throw pError;
-
-          const draftedPlayerData = (playerRows || []).map(mapPlayer);
-          setDraftedPlayers(draftedPlayerData);
-        } else {
-          setDraftedPlayers([]);
-        }
-
-        setTeamDraftPicks(teamPickAssignments);
-
-        // Check draft status
-        const draftId = `${leagueId}_${league.seasonYear}`;
-        const { data: draftRow, error: draftError } = await supabase
-          .from('drafts')
-          .select('status')
-          .eq('id', draftId)
-          .single();
-
-        if (!draftError && draftRow) {
-          setDraftStatus(draftRow.status || 'setup');
-        }
-
-      } catch (error) {
-        console.error('Error loading pick assignments:', error);
-      }
-    };
-
-    fetchAllPlayers();
-    fetchRookiePicks();
-    fetchDraftedPlayers();
+    fetchAllData();
   }, [leagueId, teamId, league]);
 
   // Preload related pages that users are likely to navigate to from dashboard
@@ -371,7 +302,7 @@ export function OwnerDashboard() {
 
   const handleSaveScenario = async () => {
     if (!scenarioName.trim()) {
-      alert('Please enter a scenario name');
+      toast.error('Please enter a scenario name');
       return;
     }
 
@@ -406,10 +337,10 @@ export function OwnerDashboard() {
       });
 
       setScenarioName('');
-      alert('Scenario saved successfully!');
+      toast.success('Scenario saved successfully!');
     } catch (error: any) {
-      console.error('Error saving scenario:', error);
-      alert(`Failed to save scenario: ${error.message || 'Please try again.'}`);
+      logger.error('Error saving scenario:', error);
+      toast.error(`Failed to save scenario: ${error.message || 'Please try again.'}`);
     } finally {
       setIsSaving(false);
     }
@@ -433,7 +364,7 @@ export function OwnerDashboard() {
     const hasErrors = errors.some((e) => e.type === 'error');
 
     if (hasErrors) {
-      alert(
+      toast.error(
         'Please fix the following errors before submitting:\n\n' +
           errors
             .filter((e) => e.type === 'error')
@@ -462,10 +393,10 @@ export function OwnerDashboard() {
 
       await submitRoster(leagueId!, teamId!);
 
-      alert('Keepers submitted successfully!');
+      toast.success('Keepers submitted successfully!');
     } catch (error) {
-      console.error('Error submitting roster:', error);
-      alert('Failed to submit roster. Please try again.');
+      logger.error('Error submitting roster:', error);
+      toast.error('Failed to submit roster. Please try again.');
     } finally {
       setIsSaving(false);
     }

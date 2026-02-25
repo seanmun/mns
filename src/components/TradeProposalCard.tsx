@@ -1,5 +1,8 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { executeTrade } from '../lib/tradeExecution';
 import type { TradeProposal, TradeProposalResponse, TradeAsset } from '../types';
 
@@ -18,6 +21,7 @@ export function TradeProposalCard({
   userEmail,
   onTradeExecuted,
 }: TradeProposalCardProps) {
+  const queryClient = useQueryClient();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -84,14 +88,20 @@ export function TradeProposalCard({
         });
 
         if (!result.success) {
-          alert(`Trade execution failed: ${result.error}`);
+          toast.error(`Trade execution failed: ${result.error}`);
         } else {
+          toast.success('Trade executed successfully!');
           onTradeExecuted?.();
         }
+      } else {
+        toast.success('Trade accepted. Waiting for other teams to respond.');
       }
+
+      // Invalidate cache so UI updates immediately
+      queryClient.invalidateQueries({ queryKey: ['tradeProposals', proposal.leagueId] });
     } catch (err) {
-      console.error('Error accepting trade:', err);
-      alert('Failed to accept trade. Please try again.');
+      logger.error('Error accepting trade:', err);
+      toast.error('Failed to accept trade. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -120,9 +130,13 @@ export function TradeProposalCard({
         .eq('id', proposal.id);
 
       if (propErr) throw propErr;
+
+      toast.success('Trade rejected.');
+      // Invalidate cache so UI updates immediately
+      queryClient.invalidateQueries({ queryKey: ['tradeProposals', proposal.leagueId] });
     } catch (err) {
-      console.error('Error rejecting trade:', err);
-      alert('Failed to reject trade. Please try again.');
+      logger.error('Error rejecting trade:', err);
+      toast.error('Failed to reject trade. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { UserRole } from '../types';
 
@@ -78,6 +78,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }, 100);
       }
       setLoading(false);
+    }).catch((error) => {
+      console.error('Failed to get auth session:', error);
+      setLoading(false);
     });
 
     // Listen for auth changes (sign in, sign out, token refresh)
@@ -98,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -111,9 +114,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error signing in with Google:', error);
       throw new Error(error.message || 'Failed to sign in with Google');
     }
-  };
+  }, []);
 
-  const sendEmailLink = async (email: string) => {
+  const sendEmailLink = useCallback(async (email: string) => {
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -127,18 +130,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error sending email link:', error);
       throw new Error(error.message || 'Failed to send email link');
     }
-  };
+  }, []);
 
   // With Supabase, magic link verification is handled automatically
   // by onAuthStateChange when the user lands on the redirect URL.
   // This method is kept for API compatibility with FinishSignIn page.
-  const completeEmailLinkSignIn = async (_email: string) => {
+  const completeEmailLinkSignIn = useCallback(async (_email: string) => {
     window.localStorage.removeItem('emailForSignIn');
     // Session is established automatically by the Supabase client
     // when it detects the auth tokens in the URL hash/params.
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -148,9 +151,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error signing out:', error);
       throw new Error(error.message || 'Failed to sign out');
     }
-  };
+  }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     loading,
     role,
@@ -158,7 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sendEmailLink,
     completeEmailLinkSignIn,
     signOut,
-  };
+  }), [user, loading, role, signInWithGoogle, sendEmailLink, completeEmailLinkSignIn, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

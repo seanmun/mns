@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
@@ -129,7 +130,7 @@ export function AdminDraftTest() {
 
   const handleGenerateDraftBoard = () => {
     if (draftOrder.length !== teams.length) {
-      alert('Please set the draft order first');
+      toast.error('Please set the draft order first');
       return;
     }
 

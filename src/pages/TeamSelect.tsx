@@ -3,45 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Team, League } from '../types';
-import { DEFAULT_ROSTER_SETTINGS } from '../types';
+import { mapTeam, mapLeague } from '../lib/mappers';
 
 type WaitlistStatus = 'idle' | 'joined' | 'error';
-
-// Map a Supabase team row to the Team type
-function mapTeam(row: any): Team {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    name: row.name,
-    abbrev: row.abbrev,
-    owners: row.owners,
-    ownerNames: row.owner_names,
-    telegramUsername: row.telegram_username,
-    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
-    settings: row.settings || { maxKeepers: 8 },
-    banners: row.banners,
-  };
-}
-
-// Map a Supabase league row to the League type
-function mapLeague(row: any): League {
-  return {
-    id: row.id,
-    name: row.name,
-    seasonYear: row.season_year,
-    deadlines: row.deadlines,
-    cap: row.cap,
-    schedule: row.schedule || undefined,
-    keepersLocked: row.keepers_locked,
-    draftStatus: row.draft_status,
-    seasonStatus: row.season_status,
-    seasonStartedAt: row.season_started_at,
-    seasonStartedBy: row.season_started_by,
-    leaguePhase: row.league_phase || 'keeper_season',
-    scoringMode: row.scoring_mode || 'category_record',
-    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
-  };
-}
 
 export function TeamSelect() {
   const { user, signOut } = useAuth();
@@ -55,7 +19,10 @@ export function TeamSelect() {
 
   useEffect(() => {
     const fetchTeams = async () => {
-      if (!user?.email) return;
+      if (!user?.email) {
+        setLoading(false);
+        return;
+      }
 
       try {
         // Fetch teams where user is an owner
@@ -83,8 +50,6 @@ export function TeamSelect() {
           const leagueData = (leagueRows || []).map(mapLeague);
           setLeagues(new Map(leagueData.map((l) => [l.id, l])));
         }
-
-        setLoading(false);
 
         // Auto-redirect if user has only one team - go to league home
         if (teamData.length === 1) {
@@ -116,6 +81,7 @@ export function TeamSelect() {
         }
       } catch (error) {
         console.error('Error fetching teams:', error);
+      } finally {
         setLoading(false);
       }
     };

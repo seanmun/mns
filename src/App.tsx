@@ -1,12 +1,31 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LeagueProvider, useLeague } from './contexts/LeagueContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ScrollToTop } from './components/ScrollToTop';
 import { LeagueBottomNav } from './components/LeagueBottomNav';
 import { LeagueTopNav } from './components/LeagueTopNav';
+import { logger } from './lib/logger';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      onError: (error) => {
+        logger.error('Mutation failed', error);
+      },
+    },
+  },
+});
 
 // Eagerly loaded (critical for initial render)
 import { Home } from './pages/Home';
@@ -88,7 +107,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1">
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </main>
       <Footer />
     </div>
@@ -101,7 +120,7 @@ function LeagueLayout({ children }: { children: React.ReactNode }) {
       <Header />
       <LeagueTopNav />
       <main className="flex-1 pb-16 lg:pb-0">
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </main>
       <Footer />
       <LeagueBottomNav />
@@ -111,8 +130,17 @@ function LeagueLayout({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <ScrollToTop />
+      <Toaster
+        position="bottom-right"
+        theme="dark"
+        toastOptions={{
+          style: { background: '#121212', border: '1px solid #374151', color: '#fff' },
+          className: 'text-sm',
+        }}
+      />
       <AuthProvider>
         <LeagueProvider>
           <Suspense fallback={<LoadingFallback />}>
@@ -467,6 +495,7 @@ function App() {
         </LeagueProvider>
       </AuthProvider>
     </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 

@@ -8,16 +8,7 @@ import { useTradeProposals } from '../hooks/useTradeProposals';
 import { WagerProposal } from '../components/WagerProposal';
 import { TradeProposalCard } from '../components/TradeProposalCard';
 import type { Team } from '../types';
-
-function mapTeam(row: any): Team {
-  return {
-    id: row.id, leagueId: row.league_id, name: row.name, abbrev: row.abbrev,
-    owners: row.owners || [], ownerNames: row.owner_names || [],
-    telegramUsername: row.telegram_username || undefined,
-    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
-    settings: row.settings || { maxKeepers: 8 }, banners: row.banners || [],
-  };
-}
+import { mapTeam } from '../lib/mappers';
 
 export function Inbox() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -25,6 +16,7 @@ export function Inbox() {
   const dailyQuote = getDailyQuote();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRead, setIsRead] = useState(false);
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [myTeam, setMyTeam] = useState<Team | null>(null);
 
   // Fetch wagers involving the user's team
@@ -39,6 +31,10 @@ export function Inbox() {
     myTeam?.id
   );
   const pendingTrades = tradeProposals.filter(p => p.status === 'pending');
+  const archivedTrades = tradeProposals.filter(p => p.status !== 'pending');
+  const activeWagers = wagers.filter(w => w.status === 'pending' || w.status === 'accepted' || w.status === 'live');
+  const archivedWagers = wagers.filter(w => w.status === 'declined' || w.status === 'settled');
+  const archiveCount = archivedTrades.length + archivedWagers.length;
 
   // Debug logging
   useEffect(() => {
@@ -200,11 +196,11 @@ export function Inbox() {
 
         </div>
 
-        {/* Wager Proposals */}
-        {wagers.length > 0 && (
+        {/* Active Wager Proposals */}
+        {activeWagers.length > 0 && (
           <div className="mt-6 space-y-4">
             <h2 className="text-xl font-bold text-white">Wager Proposals</h2>
-            {wagers.map((wager) => (
+            {activeWagers.map((wager) => (
               <WagerProposal
                 key={wager.id}
                 wager={wager}
@@ -215,7 +211,7 @@ export function Inbox() {
           </div>
         )}
 
-        {/* Trade Proposals */}
+        {/* Active Trade Proposals */}
         {pendingTrades.length > 0 && (
           <div className="mt-6 space-y-4">
             <h2 className="text-xl font-bold text-white">Trade Proposals</h2>
@@ -231,8 +227,8 @@ export function Inbox() {
           </div>
         )}
 
-        {/* Empty State / Future Messages */}
-        {wagers.length === 0 && pendingTrades.length === 0 && (
+        {/* Empty State */}
+        {activeWagers.length === 0 && pendingTrades.length === 0 && (
           <div className="mt-6 text-center py-12">
             <svg
               className="w-16 h-16 text-gray-600 mx-auto mb-4"
@@ -253,6 +249,83 @@ export function Inbox() {
             <p className="text-gray-500 text-xs mt-2">
               Wager and trade proposals will appear here
             </p>
+          </div>
+        )}
+
+        {/* Archive Section */}
+        {archiveCount > 0 && (
+          <div className="mt-8">
+            <button
+              onClick={() => setIsArchiveOpen(!isArchiveOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-[#121212] rounded-lg border border-gray-800 hover:bg-gray-800/30 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <svg
+                  className="w-5 h-5 text-gray-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                  />
+                </svg>
+                <span className="text-gray-400 font-medium">Archive</span>
+                <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">
+                  {archiveCount}
+                </span>
+              </div>
+              <svg
+                className={`w-5 h-5 text-gray-500 transition-transform ${isArchiveOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {isArchiveOpen && (
+              <div className="mt-4 space-y-6 opacity-75">
+                {/* Archived Trades */}
+                {archivedTrades.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+                      Completed Trades
+                    </h3>
+                    {archivedTrades.map((proposal) => (
+                      <TradeProposalCard
+                        key={proposal.id}
+                        proposal={proposal}
+                        responses={tradeResponses.get(proposal.id) || []}
+                        userTeamId={myTeam?.id || null}
+                        userEmail={user?.email || ''}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Archived Wagers */}
+                {archivedWagers.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+                      Settled Wagers
+                    </h3>
+                    {archivedWagers.map((wager) => (
+                      <WagerProposal
+                        key={wager.id}
+                        wager={wager}
+                        userEmail={user?.email || ''}
+                        isOpponent={myTeam?.id === wager.opponentId}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

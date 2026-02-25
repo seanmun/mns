@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase, fetchAllRows } from '../lib/supabase';
+import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
@@ -8,67 +10,7 @@ import { useProjectedStats } from '../hooks/useProjectedStats';
 import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
 import { CompleteDraftModal } from '../components/CompleteDraftModal';
 import type { Draft, Team, Player } from '../types';
-
-// Map Supabase snake_case row to camelCase Draft type
-function mapDraft(row: any): Draft {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    seasonYear: row.season_year,
-    status: row.status,
-    draftOrder: row.draft_order || [],
-    currentPick: row.current_pick || undefined,
-    picks: row.picks || [],
-    settings: row.settings || { allowAdminOverride: true, isTestDraft: false },
-    createdAt: new Date(row.created_at).getTime(),
-    createdBy: row.created_by,
-    startedAt: row.started_at ? new Date(row.started_at).getTime() : undefined,
-    completedAt: row.completed_at ? new Date(row.completed_at).getTime() : undefined,
-  };
-}
-
-// Map Supabase snake_case row to camelCase Team type
-function mapTeam(row: any): Team {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    name: row.name,
-    abbrev: row.abbrev,
-    owners: row.owners || [],
-    ownerNames: row.owner_names || undefined,
-    telegramUsername: row.telegram_username || undefined,
-    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
-    settings: row.settings || { maxKeepers: 8 },
-    banners: row.banners || undefined,
-  };
-}
-
-// Map Supabase flat row to nested Player type
-function mapPlayer(row: any): Player {
-  return {
-    id: row.id,
-    fantraxId: row.fantrax_id,
-    name: row.name,
-    position: row.position,
-    salary: row.salary,
-    nbaTeam: row.nba_team,
-    roster: {
-      leagueId: row.league_id,
-      teamId: row.team_id,
-      onIR: row.on_ir,
-      isRookie: row.is_rookie,
-      isInternationalStash: row.is_international_stash,
-      intEligible: row.int_eligible,
-      rookieDraftInfo: row.rookie_draft_info || undefined,
-    },
-    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
-      ? {
-          priorYearRound: row.keeper_prior_year_round || undefined,
-          derivedBaseRound: row.keeper_derived_base_round || undefined,
-        }
-      : undefined,
-  };
-}
+import { mapDraft, mapTeam, mapPlayer } from '../lib/mappers';
 
 export function Draft() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -200,11 +142,15 @@ export function Draft() {
   useEffect(() => {
     if (!leagueId) return;
 
-    // Initial fetch of all players (paginated past 1000-row limit)
+    // Fetch players filtered by league
     const fetchPlayers = async () => {
       try {
-        const data = await fetchAllRows('players');
-        setPlayers(data.map(mapPlayer));
+        const { data, error } = await supabase
+          .from('players')
+          .select('*')
+          .eq('league_id', leagueId);
+        if (error) throw error;
+        setPlayers((data || []).map(mapPlayer));
       } catch (err) {
         console.error('Error fetching players:', err);
       }
@@ -212,23 +158,18 @@ export function Draft() {
 
     fetchPlayers();
 
-    // Subscribe to real-time changes on players table
-    const channel = supabase.channel('players-draft')
+    // Subscribe to real-time changes on players in this league
+    const channel = supabase.channel(`players-draft-${leagueId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'players',
+          filter: `league_id=eq.${leagueId}`,
         },
-        async () => {
-          // Re-fetch all players on any change
-          try {
-            const data = await fetchAllRows('players');
-            setPlayers(data.map(mapPlayer));
-          } catch (err) {
-            console.error('Error re-fetching players:', err);
-          }
+        () => {
+          fetchPlayers();
         }
       )
       .subscribe();
@@ -264,7 +205,7 @@ export function Draft() {
 
       // Players are loaded via real-time listener
     } catch (error) {
-      console.error('Error loading data:', error);
+      logger.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -289,14 +230,14 @@ export function Draft() {
       console.log('[Draft] Loaded draft pick ownership:', ownershipMap.size, 'picks');
       setDraftPickOwnership(ownershipMap);
     } catch (error) {
-      console.error('Error loading draft pick ownership:', error);
+      logger.error('Error loading draft pick ownership:', error);
     }
   };
 
   const handleDraftPlayer = async (playerId: string) => {
     if (!draft || !draft.currentPick || !user?.email) return;
     if (!isUserOnClock && !isAdmin) {
-      alert('It is not your turn to pick!');
+      toast.error('It is not your turn to pick!');
       return;
     }
 
@@ -427,10 +368,10 @@ export function Draft() {
       setView('board');
       setSearchTerm('');
 
-      alert(`Successfully drafted ${player.name}!`);
+      toast.success(`Successfully drafted ${player.name}!`);
     } catch (error: any) {
-      console.error('Error making pick:', error);
-      alert(`Failed to draft player: ${error.message}`);
+      logger.error('Error making pick:', error);
+      toast.error(`Failed to draft player: ${error.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -441,12 +382,12 @@ export function Draft() {
 
     const pickToConvert = draft.picks.find(p => p.overallPick === pickNumber);
     if (!pickToConvert) {
-      alert('Pick not found.');
+      toast.error('Pick not found.');
       return;
     }
 
     if (!pickToConvert.isKeeperSlot) {
-      alert('This is already a regular pick, not a keeper slot.');
+      toast.error('This is already a regular pick, not a keeper slot.');
       return;
     }
 
@@ -484,10 +425,10 @@ export function Draft() {
 
       if (updateError) throw updateError;
 
-      alert(`Pick converted to regular draft pick!`);
+      toast.success(`Pick converted to regular draft pick!`);
     } catch (error: any) {
-      console.error('Error converting pick:', error);
-      alert(`Failed to convert pick: ${error.message}`);
+      logger.error('Error converting pick:', error);
+      toast.error(`Failed to convert pick: ${error.message}`);
     }
   };
 
@@ -496,7 +437,7 @@ export function Draft() {
 
     const pickToUndo = draft.picks.find(p => p.overallPick === pickNumber);
     if (!pickToUndo || !pickToUndo.playerId) {
-      alert('This pick has no player to undo.');
+      toast.error('This pick has no player to undo.');
       return;
     }
 
@@ -575,10 +516,10 @@ export function Draft() {
         }
       }
 
-      alert(`Pick #${pickNumber} has been undone. ${pickToUndo.playerName} is back in the player pool${pickToUndo.isKeeperSlot ? ' and removed from team roster' : ''}.`);
+      toast.success(`Pick #${pickNumber} has been undone. ${pickToUndo.playerName} is back in the player pool${pickToUndo.isKeeperSlot ? ' and removed from team roster' : ''}.`);
     } catch (error: any) {
-      console.error('Error undoing pick:', error);
-      alert(`Failed to undo pick: ${error.message}`);
+      logger.error('Error undoing pick:', error);
+      toast.error(`Failed to undo pick: ${error.message}`);
     }
   };
 
@@ -665,10 +606,10 @@ export function Draft() {
 
       setShowAddKeeperModal(false);
       setSelectedPick(null);
-      alert(`${player.name} has been added as keeper to Pick #${selectedPick.overallPick}`);
+      toast.success(`${player.name} has been added as keeper to Pick #${selectedPick.overallPick}`);
     } catch (error: any) {
-      console.error('Error adding keeper:', error);
-      alert(`Failed to add keeper: ${error.message}`);
+      logger.error('Error adding keeper:', error);
+      toast.error(`Failed to add keeper: ${error.message}`);
     }
   };
 
@@ -714,7 +655,7 @@ export function Draft() {
     e.stopPropagation();
 
     if (!user?.email || !leagueId || !userTeamId) {
-      alert('Please sign in to add players to your watchlist');
+      toast.error('Please sign in to add players to your watchlist');
       return;
     }
 
@@ -728,8 +669,8 @@ export function Draft() {
       );
       setWatchList(updatedWatchList);
     } catch (error) {
-      console.error('Error toggling watchlist:', error);
-      alert('Failed to update watchlist');
+      logger.error('Error toggling watchlist:', error);
+      toast.error('Failed to update watchlist');
     }
   };
 
@@ -737,51 +678,44 @@ export function Draft() {
     return draft.picks.filter((pick) => pick.round === round);
   };
 
-  // Get available players (not yet drafted, not on rosters)
-  const draftedPlayerIds = new Set(
+  // Memoize drafted player IDs
+  const draftedPlayerIds = useMemo(() => new Set(
     draft.picks.filter(p => p.playerId).map(p => p.playerId!)
-  );
+  ), [draft.picks]);
 
-  const filteredPlayers = players.filter(p => {
-    // Exclude players already on rosters or drafted
-    if (p.roster?.teamId || draftedPlayerIds.has(p.id)) return false;
+  // Memoize available players (filtered + sorted)
+  const availablePlayers = useMemo(() => {
+    const filtered = players.filter(p => {
+      if (p.roster?.teamId || draftedPlayerIds.has(p.id)) return false;
+      const matchesSearch = !searchTerm ||
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.nbaTeam?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesPosition = positionFilter === 'all' || p.position.includes(positionFilter);
+      const matchesWatchlist = !showWatchlistOnly || watchList?.playerIds.includes(p.fantraxId);
+      return matchesSearch && matchesPosition && matchesWatchlist;
+    });
 
-    // Apply search filter
-    const matchesSearch = !searchTerm ||
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.nbaTeam?.toLowerCase().includes(searchTerm.toLowerCase());
+    return [...filtered].sort((a, b) => {
+      let aValue: number | undefined;
+      let bValue: number | undefined;
 
-    // Apply position filter
-    const matchesPosition = positionFilter === 'all' || p.position.includes(positionFilter);
+      if (sortColumn === 'salary') {
+        aValue = a.salary;
+        bValue = b.salary;
+      } else {
+        const aStats = projectedStats.get(a.fantraxId);
+        const bStats = projectedStats.get(b.fantraxId);
+        aValue = aStats?.[sortColumn];
+        bValue = bStats?.[sortColumn];
+      }
 
-    // Apply watchlist filter
-    const matchesWatchlist = !showWatchlistOnly || watchList?.playerIds.includes(p.fantraxId);
+      if (aValue === undefined && bValue === undefined) return 0;
+      if (aValue === undefined) return 1;
+      if (bValue === undefined) return -1;
 
-    return matchesSearch && matchesPosition && matchesWatchlist;
-  });
-
-  // Sort available players
-  const availablePlayers = [...filteredPlayers].sort((a, b) => {
-    let aValue: number | undefined;
-    let bValue: number | undefined;
-
-    if (sortColumn === 'salary') {
-      aValue = a.salary;
-      bValue = b.salary;
-    } else {
-      const aStats = projectedStats.get(a.fantraxId);
-      const bStats = projectedStats.get(b.fantraxId);
-      aValue = aStats?.[sortColumn];
-      bValue = bStats?.[sortColumn];
-    }
-
-    if (aValue === undefined && bValue === undefined) return 0;
-    if (aValue === undefined) return 1;
-    if (bValue === undefined) return -1;
-
-    const diff = aValue - bValue;
-    return sortDirection === 'asc' ? diff : -diff;
-  });
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    });
+  }, [players, draftedPlayerIds, searchTerm, positionFilter, showWatchlistOnly, watchList, sortColumn, sortDirection, projectedStats]);
 
   const currentPickTeam = teams.find(t => t.id === draft.currentPick?.teamId);
 

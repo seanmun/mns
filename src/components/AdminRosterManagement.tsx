@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase, fetchAllRows } from '../lib/supabase';
+import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import type { Team, Player, RegularSeasonRoster, LeagueRosterSettings } from '../types';
 import { DEFAULT_ROSTER_SETTINGS } from '../types';
+import { mapTeam, mapPlayer, mapRegularSeasonRoster } from '../lib/mappers';
 
 interface AdminRosterManagementProps {
   leagueId: string;
@@ -11,46 +14,6 @@ interface AdminRosterManagementProps {
 }
 
 type ActionType = 'add_to_ir' | 'move_to_active' | 'drop_player' | 'add_free_agent';
-
-function mapTeam(row: any): Team {
-  return {
-    id: row.id, leagueId: row.league_id, name: row.name, abbrev: row.abbrev,
-    owners: row.owners || [], ownerNames: row.owner_names || [],
-    telegramUsername: row.telegram_username || undefined,
-    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
-    settings: row.settings || { maxKeepers: 8 }, banners: row.banners || [],
-  };
-}
-
-function mapPlayer(row: any): Player {
-  return {
-    id: row.id, fantraxId: row.fantrax_id, name: row.name, position: row.position,
-    salary: row.salary, nbaTeam: row.nba_team,
-    roster: { leagueId: row.league_id, teamId: row.team_id, onIR: row.on_ir,
-      isRookie: row.is_rookie, isInternationalStash: row.is_international_stash,
-      intEligible: row.int_eligible, rookieDraftInfo: row.rookie_draft_info || undefined },
-    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
-      ? { priorYearRound: row.keeper_prior_year_round || undefined, derivedBaseRound: row.keeper_derived_base_round || undefined }
-      : undefined,
-  };
-}
-
-function mapRegularSeasonRoster(row: any): RegularSeasonRoster {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    teamId: row.team_id,
-    seasonYear: row.season_year,
-    activeRoster: row.active_roster || [],
-    irSlots: row.ir_slots || [],
-    redshirtPlayers: row.redshirt_players || [],
-    internationalPlayers: row.international_players || [],
-    benchedPlayers: row.benched_players || [],
-    isLegalRoster: row.is_legal_roster,
-    lastUpdated: row.last_updated,
-    updatedBy: row.updated_by,
-  };
-}
 
 export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = DEFAULT_ROSTER_SETTINGS, onClose }: AdminRosterManagementProps) {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -81,9 +44,13 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
       const mappedTeams = (teamsData || []).map(mapTeam).sort((a, b) => a.name.localeCompare(b.name));
       setTeams(mappedTeams);
 
-      // Load all players (paginated past 1000-row limit)
-      const playersData = await fetchAllRows('players');
-      const mappedPlayers = playersData.map(mapPlayer).sort((a, b) => a.name.localeCompare(b.name));
+      // Load all players for this league
+      const { data: playersData = [], error: playersErr } = await supabase
+        .from('players')
+        .select('*')
+        .eq('league_id', leagueId);
+      if (playersErr) throw playersErr;
+      const mappedPlayers = (playersData || []).map(mapPlayer).sort((a, b) => a.name.localeCompare(b.name));
       setPlayers(mappedPlayers);
 
       // Load regular season rosters
@@ -103,8 +70,8 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
 
       setLoading(false);
     } catch (error) {
-      console.error('Error loading data:', error);
-      alert('Failed to load data');
+      logger.error('Error loading data:', error);
+      toast.error('Failed to load data');
     }
   };
 
@@ -171,13 +138,13 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
 
   const executeAction = async () => {
     if (!selectedTeam || !selectedPlayer) {
-      alert('Please select a team and player');
+      toast.error('Please select a team and player');
       return;
     }
 
     const roster = rosters.get(selectedTeam);
     if (!roster) {
-      alert('Roster not found');
+      toast.error('Roster not found');
       return;
     }
 
@@ -190,7 +157,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
         case 'add_to_ir': {
           // Move from active to IR
           if (roster.irSlots.length >= rosterSettings.maxIR) {
-            alert(`IR is full (max ${rosterSettings.maxIR} players)`);
+            toast.error(`IR is full (max ${rosterSettings.maxIR} players)`);
             setProcessing(false);
             return;
           }
@@ -291,10 +258,10 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
       setSelectedPlayer('');
       setSearchTerm('');
 
-      alert('Action completed successfully');
+      toast.success('Action completed successfully');
     } catch (error) {
-      console.error('Error executing action:', error);
-      alert(`Failed to execute action: ${error}`);
+      logger.error('Error executing action:', error);
+      toast.error(`Failed to execute action: ${error}`);
     } finally {
       setProcessing(false);
     }

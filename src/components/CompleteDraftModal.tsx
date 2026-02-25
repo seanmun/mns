@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase, fetchAllRows } from '../lib/supabase';
+import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { stackKeeperRounds } from '../lib/keeperAlgorithms';
 import type {
   Draft,
@@ -13,6 +15,7 @@ import type {
   RegularSeasonRoster,
   TeamFees
 } from '../types';
+import { mapTeam, mapPlayer } from '../lib/mappers';
 
 interface CompleteDraftModalProps {
   draft: Draft;
@@ -22,29 +25,6 @@ interface CompleteDraftModalProps {
   onClose: () => void;
   onComplete: () => void;
   currentUserEmail: string;
-}
-
-function mapTeam(row: any): Team {
-  return {
-    id: row.id, leagueId: row.league_id, name: row.name, abbrev: row.abbrev,
-    owners: row.owners || [], ownerNames: row.owner_names || [],
-    telegramUsername: row.telegram_username || undefined,
-    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
-    settings: row.settings || { maxKeepers: 8 }, banners: row.banners || [],
-  };
-}
-
-function mapPlayer(row: any): Player {
-  return {
-    id: row.id, fantraxId: row.fantrax_id, name: row.name, position: row.position,
-    salary: row.salary, nbaTeam: row.nba_team,
-    roster: { leagueId: row.league_id, teamId: row.team_id, onIR: row.on_ir,
-      isRookie: row.is_rookie, isInternationalStash: row.is_international_stash,
-      intEligible: row.int_eligible, rookieDraftInfo: row.rookie_draft_info || undefined },
-    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
-      ? { priorYearRound: row.keeper_prior_year_round || undefined, derivedBaseRound: row.keeper_derived_base_round || undefined }
-      : undefined,
-  };
 }
 
 export function CompleteDraftModal({
@@ -78,10 +58,14 @@ export function CompleteDraftModal({
       if (teamsError) throw teamsError;
       setTeams((teamsData || []).map(mapTeam));
 
-      // Load players (paginated past 1000-row limit)
-      const playersData = await fetchAllRows('players');
+      // Load players for this league
+      const { data: playersData = [], error: playersErr } = await supabase
+        .from('players')
+        .select('*')
+        .eq('league_id', leagueId);
+      if (playersErr) throw playersErr;
       const playersMap = new Map<string, Player>();
-      playersData.forEach((row: any) => {
+      (playersData || []).forEach((row: any) => {
         const player = mapPlayer(row);
         playersMap.set(player.id, player);
       });
@@ -109,8 +93,8 @@ export function CompleteDraftModal({
 
       setLoading(false);
     } catch (error) {
-      console.error('Error loading data:', error);
-      alert('Failed to load data');
+      logger.error('Error loading data:', error);
+      toast.error('Failed to load data');
       onClose();
     }
   };
@@ -217,8 +201,8 @@ export function CompleteDraftModal({
         onComplete();
       }, 2000);
     } catch (error) {
-      console.error('Error completing draft:', error);
-      alert(`Failed to complete draft: ${error}`);
+      logger.error('Error completing draft:', error);
+      toast.error(`Failed to complete draft: ${error}`);
       setProcessing(false);
       setStep('confirm');
     }

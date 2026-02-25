@@ -2,49 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Player, Team } from '../types';
-
-// Map Supabase flat row to nested Player type
-function mapPlayer(row: any): Player {
-  return {
-    id: row.id,
-    fantraxId: row.fantrax_id,
-    name: row.name,
-    position: row.position,
-    salary: row.salary,
-    nbaTeam: row.nba_team,
-    roster: {
-      leagueId: row.league_id,
-      teamId: row.team_id,
-      onIR: row.on_ir,
-      isRookie: row.is_rookie,
-      isInternationalStash: row.is_international_stash,
-      intEligible: row.int_eligible,
-      rookieDraftInfo: row.rookie_draft_info || undefined,
-    },
-    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
-      ? {
-          priorYearRound: row.keeper_prior_year_round || undefined,
-          derivedBaseRound: row.keeper_derived_base_round || undefined,
-        }
-      : undefined,
-  };
-}
-
-// Map Supabase snake_case row to camelCase Team type
-function mapTeam(row: any): Team {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    name: row.name,
-    abbrev: row.abbrev,
-    owners: row.owners || [],
-    ownerNames: row.owner_names || undefined,
-    telegramUsername: row.telegram_username || undefined,
-    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
-    settings: row.settings || { maxKeepers: 8 },
-    banners: row.banners || undefined,
-  };
-}
+import { mapPlayer, mapTeam } from '../lib/mappers';
 
 interface RookiePick {
   player: Player;

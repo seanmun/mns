@@ -1,124 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import type { RosterDoc, RosterEntry, Player, Team, League } from '../types';
-import { DEFAULT_ROSTER_SETTINGS } from '../types';
+import type { RosterEntry, Player } from '../types';
 import { stackKeeperRounds, computeSummary } from '../lib/keeperAlgorithms';
-
-// Map Supabase row → RosterDoc
-function mapRoster(row: any): RosterDoc {
-  return {
-    id: row.id,
-    teamId: row.team_id,
-    leagueId: row.league_id,
-    seasonYear: row.season_year,
-    entries: row.entries || [],
-    summary: row.summary || {},
-    status: row.status,
-    savedScenarios: row.saved_scenarios || [],
-  };
-}
-
-// Map Supabase row → Player
-function mapPlayer(row: any): Player {
-  return {
-    id: row.id,
-    fantraxId: row.fantrax_id,
-    name: row.name,
-    position: row.position,
-    salary: row.salary,
-    nbaTeam: row.nba_team,
-    roster: {
-      leagueId: row.league_id,
-      teamId: row.team_id,
-      onIR: row.on_ir,
-      isRookie: row.is_rookie,
-      isInternationalStash: row.is_international_stash,
-      intEligible: row.int_eligible,
-      rookieDraftInfo: row.rookie_draft_info || undefined,
-    },
-    keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
-      ? {
-          priorYearRound: row.keeper_prior_year_round || undefined,
-          derivedBaseRound: row.keeper_derived_base_round || undefined,
-        }
-      : undefined,
-  };
-}
-
-// Map Supabase row → Team
-function mapTeam(row: any): Team {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    name: row.name,
-    abbrev: row.abbrev,
-    owners: row.owners || [],
-    ownerNames: row.owner_names || [],
-    telegramUsername: row.telegram_username || undefined,
-    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
-    settings: row.settings || { maxKeepers: 8 },
-    banners: row.banners || [],
-  };
-}
-
-// Map Supabase row → League
-function mapLeague(row: any): League {
-  return {
-    id: row.id,
-    name: row.name,
-    seasonYear: row.season_year,
-    deadlines: row.deadlines || {},
-    cap: row.cap || {},
-    schedule: row.schedule || undefined,
-    keepersLocked: row.keepers_locked || false,
-    draftStatus: row.draft_status || undefined,
-    seasonStatus: row.season_status || undefined,
-    seasonStartedAt: row.season_started_at ? new Date(row.season_started_at).getTime() : undefined,
-    seasonStartedBy: row.season_started_by || undefined,
-    leaguePhase: row.league_phase || 'keeper_season',
-    scoringMode: row.scoring_mode || 'category_record',
-    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
-  };
-}
+import { mapRoster, mapPlayer, mapTeam, mapLeague } from '../lib/mappers';
 
 export function useRoster(leagueId: string, teamId: string, seasonYear?: number) {
-  const [roster, setRoster] = useState<RosterDoc | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
+  const queryClient = useQueryClient();
   const rosterId = seasonYear ? `${leagueId}_${teamId}_${seasonYear}` : `${leagueId}_${teamId}`;
 
+  const { data: roster = null, isLoading: loading, error } = useQuery({
+    queryKey: ['roster', rosterId],
+    queryFn: async () => {
+      const { data, error: err } = await supabase
+        .from('rosters')
+        .select('*')
+        .eq('id', rosterId)
+        .maybeSingle();
+
+      if (err) throw err;
+      return data ? mapRoster(data) : null;
+    },
+  });
+
+  // Realtime subscription — update React Query cache
   useEffect(() => {
-    const fetchRoster = async () => {
-      try {
-        const { data, error: err } = await supabase
-          .from('rosters')
-          .select('*')
-          .eq('id', rosterId)
-          .maybeSingle();
-
-        if (err) throw err;
-
-        if (data) {
-          const rosterData = mapRoster(data);
-          console.log(`[useRoster] Roster ${rosterId} exists. Entries count:`, rosterData.entries?.length || 0);
-          console.log(`[useRoster] Roster status:`, rosterData.status);
-          setRoster(rosterData);
-        } else {
-          console.log(`[useRoster] Roster ${rosterId} does NOT exist`);
-          setRoster(null);
-        }
-      } catch (err) {
-        console.error('Error fetching roster:', err);
-        setError(err as Error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRoster();
-
-    // Subscribe to realtime changes
     const channel = supabase
       .channel(`roster-${rosterId}`)
       .on('postgres_changes', {
@@ -128,9 +34,9 @@ export function useRoster(leagueId: string, teamId: string, seasonYear?: number)
         filter: `id=eq.${rosterId}`,
       }, (payload) => {
         if (payload.eventType === 'DELETE') {
-          setRoster(null);
+          queryClient.setQueryData(['roster', rosterId], null);
         } else {
-          setRoster(mapRoster(payload.new));
+          queryClient.setQueryData(['roster', rosterId], mapRoster(payload.new));
         }
       })
       .subscribe();
@@ -138,70 +44,52 @@ export function useRoster(leagueId: string, teamId: string, seasonYear?: number)
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [rosterId, seasonYear]);
+  }, [rosterId, queryClient]);
 
-  return { roster, loading, error };
+  return { roster, loading, error: error as Error | null };
 }
 
 export function useTeamPlayers(leagueId: string, teamId: string) {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { data: players = [], isLoading: loading, error } = useQuery({
+    queryKey: ['teamPlayers', leagueId, teamId],
+    queryFn: async () => {
+      const { data, error: err } = await supabase
+        .from('players')
+        .select('*')
+        .eq('league_id', leagueId)
+        .eq('team_id', teamId);
 
-  useEffect(() => {
-    const fetchPlayers = async () => {
-      try {
-        const { data, error: err } = await supabase
-          .from('players')
-          .select('*')
-          .eq('league_id', leagueId)
-          .eq('team_id', teamId);
+      if (err) throw err;
+      return (data || []).map(mapPlayer);
+    },
+    enabled: !!leagueId && !!teamId,
+  });
 
-        if (err) throw err;
-
-        setPlayers((data || []).map(mapPlayer));
-      } catch (err) {
-        console.error('Error fetching players:', err);
-        setError(err as Error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPlayers();
-  }, [leagueId, teamId]);
-
-  return { players, loading, error };
+  return { players, loading, error: error as Error | null };
 }
 
 export function useTeam(teamId: string) {
-  const [team, setTeam] = useState<Team | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const queryClient = useQueryClient();
 
+  const { data: team = null, isLoading: loading, error } = useQuery({
+    queryKey: ['team', teamId],
+    queryFn: async () => {
+      const { data, error: err } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('id', teamId)
+        .maybeSingle();
+
+      if (err) throw err;
+      return data ? mapTeam(data) : null;
+    },
+    enabled: !!teamId,
+  });
+
+  // Realtime subscription — update React Query cache
   useEffect(() => {
-    const fetchTeam = async () => {
-      try {
-        const { data, error: err } = await supabase
-          .from('teams')
-          .select('*')
-          .eq('id', teamId)
-          .maybeSingle();
+    if (!teamId) return;
 
-        if (err) throw err;
-
-        setTeam(data ? mapTeam(data) : null);
-      } catch (err) {
-        console.error('Error fetching team:', err);
-        setError(err as Error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTeam();
-
-    // Realtime subscription
     const channel = supabase
       .channel(`team-${teamId}`)
       .on('postgres_changes', {
@@ -211,9 +99,9 @@ export function useTeam(teamId: string) {
         filter: `id=eq.${teamId}`,
       }, (payload) => {
         if (payload.eventType === 'DELETE') {
-          setTeam(null);
+          queryClient.setQueryData(['team', teamId], null);
         } else {
-          setTeam(mapTeam(payload.new));
+          queryClient.setQueryData(['team', teamId], mapTeam(payload.new));
         }
       })
       .subscribe();
@@ -221,39 +109,33 @@ export function useTeam(teamId: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [teamId]);
+  }, [teamId, queryClient]);
 
-  return { team, loading, error };
+  return { team, loading, error: error as Error | null };
 }
 
 export function useLeague(leagueId: string) {
-  const [league, setLeague] = useState<League | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const queryClient = useQueryClient();
 
+  const { data: league = null, isLoading: loading, error } = useQuery({
+    queryKey: ['league', leagueId],
+    queryFn: async () => {
+      const { data, error: err } = await supabase
+        .from('leagues')
+        .select('*')
+        .eq('id', leagueId)
+        .maybeSingle();
+
+      if (err) throw err;
+      return data ? mapLeague(data) : null;
+    },
+    enabled: !!leagueId,
+  });
+
+  // Realtime subscription — update React Query cache
   useEffect(() => {
-    const fetchLeague = async () => {
-      try {
-        const { data, error: err } = await supabase
-          .from('leagues')
-          .select('*')
-          .eq('id', leagueId)
-          .maybeSingle();
+    if (!leagueId) return;
 
-        if (err) throw err;
-
-        setLeague(data ? mapLeague(data) : null);
-      } catch (err) {
-        console.error('Error fetching league:', err);
-        setError(err as Error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLeague();
-
-    // Realtime subscription
     const channel = supabase
       .channel(`league-${leagueId}`)
       .on('postgres_changes', {
@@ -263,9 +145,9 @@ export function useLeague(leagueId: string) {
         filter: `id=eq.${leagueId}`,
       }, (payload) => {
         if (payload.eventType === 'DELETE') {
-          setLeague(null);
+          queryClient.setQueryData(['league', leagueId], null);
         } else {
-          setLeague(mapLeague(payload.new));
+          queryClient.setQueryData(['league', leagueId], mapLeague(payload.new));
         }
       })
       .subscribe();
@@ -273,9 +155,9 @@ export function useLeague(leagueId: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [leagueId]);
+  }, [leagueId, queryClient]);
 
-  return { league, loading, error };
+  return { league, loading, error: error as Error | null };
 }
 
 interface UpdateRosterParams {

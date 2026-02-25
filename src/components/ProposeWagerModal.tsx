@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import type { Team } from '../types';
 
 interface ProposeWagerModalProps {
@@ -97,7 +98,7 @@ export function ProposeWagerModal({
       setSettlementDate('');
       onClose();
     } catch (err) {
-      console.error('Error creating wager:', err);
+      logger.error('Error creating wager:', err);
       setError('Failed to create wager. Please try again.');
     } finally {
       setIsSubmitting(false);

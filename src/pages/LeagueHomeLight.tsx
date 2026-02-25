@@ -3,32 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Team, League } from '../types';
-import { DEFAULT_ROSTER_SETTINGS } from '../types';
-
-function mapTeam(row: any): Team {
-  return {
-    id: row.id, leagueId: row.league_id, name: row.name, abbrev: row.abbrev,
-    owners: row.owners || [], ownerNames: row.owner_names || [],
-    telegramUsername: row.telegram_username || undefined,
-    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
-    settings: row.settings || { maxKeepers: 8 }, banners: row.banners || [],
-  };
-}
-
-function mapLeague(row: any): League {
-  return {
-    id: row.id,
-    name: row.name,
-    seasonYear: row.season_year,
-    keepersLocked: row.keepers_locked,
-    draftStatus: row.draft_status,
-    seasonStatus: row.season_status,
-    leaguePhase: row.league_phase || 'keeper_season',
-    schedule: row.schedule || undefined,
-    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
-    ...row,
-  };
-}
+import { mapTeam, mapLeague } from '../lib/mappers';
 
 export function LeagueHome() {
   const { leagueId } = useParams<{ leagueId: string }>();

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, fetchAllRows } from '../lib/supabase';
+import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
@@ -54,10 +56,14 @@ export function AdminDraftSetup() {
       })) as Team[];
       setTeams(mappedTeams);
 
-      // Load all players (paginated past 1000-row limit)
-      const playersData = await fetchAllRows('players');
+      // Load all players for this league
+      const { data: playersData = [], error: playersErr } = await supabase
+        .from('players')
+        .select('*')
+        .eq('league_id', currentLeagueId);
+      if (playersErr) throw playersErr;
 
-      const mappedPlayers = playersData.map((row: any): Player => ({
+      const mappedPlayers = (playersData || []).map((row: any): Player => ({
         id: row.id,
         fantraxId: row.fantrax_id,
         name: row.name,
@@ -154,8 +160,8 @@ export function AdminDraftSetup() {
         }
       }
     } catch (error) {
-      console.error('Error loading data:', error);
-      alert('Failed to load data');
+      logger.error('Error loading data:', error);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -198,7 +204,7 @@ export function AdminDraftSetup() {
   const handleInitializeDraft = async () => {
     if (!currentLeagueId || !currentLeague || !user?.email) return;
     if (draftOrder.length !== teams.length) {
-      alert('Please set the draft order first');
+      toast.error('Please set the draft order first');
       return;
     }
 
@@ -343,15 +349,15 @@ export function AdminDraftSetup() {
       setStep('complete');
 
       const keeperCount = picks.filter(p => p.isKeeperSlot).length;
-      alert(
+      toast.success(
         `Draft initialized successfully!\n\n` +
         `Backup created: ${new Date(timestamp).toLocaleString()}\n` +
         `Keepers loaded: ${keeperCount}\n` +
         `Total picks: ${picks.length}`
       );
     } catch (error: any) {
-      console.error('Error initializing draft:', error);
-      alert(`Failed to initialize draft: ${error?.message || 'Unknown error'}`);
+      logger.error('Error initializing draft:', error);
+      toast.error(`Failed to initialize draft: ${error?.message || 'Unknown error'}`);
     }
   };
 
@@ -370,8 +376,8 @@ export function AdminDraftSetup() {
 
       navigate(`/league/${currentLeagueId}/draft`);
     } catch (error) {
-      console.error('Error starting draft:', error);
-      alert('Failed to start draft');
+      logger.error('Error starting draft:', error);
+      toast.error('Failed to start draft');
     }
   };
 
@@ -395,10 +401,10 @@ export function AdminDraftSetup() {
       setDraftOrder([]);
       setStep('order');
 
-      alert('Draft deleted successfully!');
+      toast.success('Draft deleted successfully!');
     } catch (error: any) {
-      console.error('Error deleting draft:', error);
-      alert(`Failed to delete draft: ${error?.message || 'Unknown error'}`);
+      logger.error('Error deleting draft:', error);
+      toast.error(`Failed to delete draft: ${error?.message || 'Unknown error'}`);
     }
   };
 
@@ -454,15 +460,15 @@ export function AdminDraftSetup() {
             console.log('[AdminDraftSetup] Fixed player', pick.playerName, 'assigned to', actualOwner);
           }
         } catch (error) {
-          console.error('[AdminDraftSetup] Error fixing player:', pick.playerName, error);
+          logger.error('[AdminDraftSetup] Error fixing player:', error);
         }
       }
 
-      alert(`Successfully fixed ${fixed} drafted players!`);
+      toast.success(`Successfully fixed ${fixed} drafted players!`);
       await loadData(); // Reload to refresh data
     } catch (error: any) {
-      console.error('[AdminDraftSetup] Error fixing drafted players:', error);
-      alert(`Failed to fix players: ${error?.message || 'Unknown error'}`);
+      logger.error('[AdminDraftSetup] Error fixing drafted players:', error);
+      toast.error(`Failed to fix players: ${error?.message || 'Unknown error'}`);
     }
   };
 

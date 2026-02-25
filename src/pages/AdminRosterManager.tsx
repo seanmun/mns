@@ -4,27 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { AdminRosterManagement } from '../components/AdminRosterManagement';
 import type { League } from '../types';
-import { DEFAULT_ROSTER_SETTINGS } from '../types';
-
-// --- Mapping helper ---
-
-function mapLeague(row: any): League {
-  return {
-    id: row.id,
-    name: row.name,
-    seasonYear: row.season_year,
-    deadlines: row.deadlines || { keepersLockAt: '', redshirtLockAt: '', draftAt: '' },
-    cap: row.cap,
-    schedule: row.schedule || undefined,
-    keepersLocked: row.keepers_locked,
-    draftStatus: row.draft_status,
-    seasonStatus: row.season_status,
-    commissionerId: row.commissioner_id || undefined,
-    leaguePhase: row.league_phase || 'keeper_season',
-    scoringMode: row.scoring_mode || 'category_record',
-    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
-  };
-}
+import { mapLeague } from '../lib/mappers';
 
 export function AdminRosterManager() {
   const canManage = useCanManageLeague();

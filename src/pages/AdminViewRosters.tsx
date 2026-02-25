@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, fetchAllRows } from '../lib/supabase';
+import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { useLeague } from '../contexts/LeagueContext';
 import type { Team, Player, RosterDoc } from '../types';
 import { stackKeeperRounds, computeSummary } from '../lib/keeperAlgorithms';
+import { mapTeam, mapPlayer, mapRoster } from '../lib/mappers';
 
 interface RookieDraftPick {
   id: string;
@@ -14,63 +17,6 @@ interface RookieDraftPick {
   originalTeamName: string;
   currentOwner: string;
   leagueId: string;
-}
-
-// --- Mapping helpers ---
-
-function mapTeam(row: any): Team {
-  return {
-    id: row.id,
-    leagueId: row.league_id,
-    name: row.name,
-    abbrev: row.abbrev,
-    owners: row.owners || [],
-    ownerNames: row.owner_names || [],
-    telegramUsername: row.telegram_username || undefined,
-    capAdjustments: row.cap_adjustments || { tradeDelta: 0 },
-    settings: row.settings || { maxKeepers: 8 },
-    banners: row.banners || [],
-  };
-}
-
-function mapPlayer(row: any): Player {
-  return {
-    id: row.id,
-    fantraxId: row.fantrax_id,
-    name: row.name,
-    position: row.position,
-    salary: row.salary,
-    nbaTeam: row.nba_team,
-    roster: {
-      leagueId: row.league_id,
-      teamId: row.team_id,
-      onIR: row.on_ir,
-      isRookie: row.is_rookie,
-      isInternationalStash: row.is_international_stash,
-      intEligible: row.int_eligible,
-      rookieDraftInfo: row.rookie_draft_info || undefined,
-    },
-    keeper:
-      row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
-        ? {
-            priorYearRound: row.keeper_prior_year_round || undefined,
-            derivedBaseRound: row.keeper_derived_base_round || undefined,
-          }
-        : undefined,
-  };
-}
-
-function mapRosterDoc(row: any): RosterDoc {
-  return {
-    id: row.id,
-    teamId: row.team_id,
-    leagueId: row.league_id,
-    seasonYear: row.season_year,
-    status: row.status,
-    entries: row.entries || [],
-    summary: row.summary,
-    savedScenarios: row.saved_scenarios || [],
-  } as RosterDoc;
 }
 
 function mapRookiePick(row: any): RookieDraftPick {
@@ -123,11 +69,11 @@ export function AdminViewRosters() {
         .eq('id', rosterId);
       if (error) throw error;
 
-      alert('Roster submitted successfully');
+      toast.success('Roster submitted successfully');
       await loadData();
     } catch (error) {
-      console.error('Error submitting roster:', error);
-      alert('Failed to submit roster');
+      logger.error('Error submitting roster:', error);
+      toast.error('Failed to submit roster');
     }
   };
 
@@ -146,11 +92,15 @@ export function AdminViewRosters() {
       const teamsData = (teamsRows || []).map(mapTeam);
       setTeams(teamsData.sort((a, b) => a.name.localeCompare(b.name)));
 
-      // Load all players (paginated past 1000-row limit)
-      const playersRows = await fetchAllRows('players');
+      // Load all players for this league
+      const { data: playersRows = [], error: playersErr } = await supabase
+        .from('players')
+        .select('*')
+        .eq('league_id', currentLeagueId);
+      if (playersErr) throw playersErr;
 
       const playersMap = new Map<string, Player>();
-      playersRows.forEach((row) => {
+      (playersRows || []).forEach((row) => {
         playersMap.set(row.id, mapPlayer(row));
       });
       setPlayers(playersMap);
@@ -167,7 +117,7 @@ export function AdminViewRosters() {
         const rosterRow = (rostersRows || []).find((r: any) => r.id === rosterId);
 
         if (rosterRow) {
-          rostersMap.set(team.id, mapRosterDoc(rosterRow));
+          rostersMap.set(team.id, mapRoster(rosterRow));
         }
       }
       setRosters(rostersMap);
@@ -187,8 +137,8 @@ export function AdminViewRosters() {
         setSelectedTeamId(teamsData[0].id);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
-      alert('Failed to load data');
+      logger.error('Error loading data:', error);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -275,11 +225,11 @@ export function AdminViewRosters() {
         }
       }
 
-      alert(`Unsubmitted ${updatedCount} rosters with scenarios.`);
+      toast.success(`Unsubmitted ${updatedCount} rosters with scenarios.`);
       await loadData();
     } catch (error) {
-      console.error('Error unsubmitting rosters:', error);
-      alert('Failed to unsubmit rosters');
+      logger.error('Error unsubmitting rosters:', error);
+      toast.error('Failed to unsubmit rosters');
     }
   };
 

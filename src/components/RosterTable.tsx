@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, useMemo } from 'react';
 import type { Player, RosterEntry, Decision, ProjectedStats, PreviousStats } from '../types';
 import { PlayerModal } from './PlayerModal';
 
@@ -14,7 +14,7 @@ interface RosterTableProps {
   previousStats: Map<string, PreviousStats>;
 }
 
-export function RosterTable({
+export const RosterTable = memo(function RosterTable({
   players,
   entries,
   onDecisionChange,
@@ -27,6 +27,15 @@ export function RosterTable({
 }: RosterTableProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [selectedPlayerIndex, setSelectedPlayerIndex] = useState<number>(-1);
+
+  // Memoize entries as a Map for O(1) lookups
+  const entriesMap = useMemo(() => {
+    const map = new Map<string, RosterEntry>();
+    for (const e of entries) {
+      map.set(e.playerId, e);
+    }
+    return map;
+  }, [entries]);
 
   const handlePlayerClick = (player: Player, index: number) => {
     setSelectedPlayer(player);
@@ -64,7 +73,7 @@ export function RosterTable({
   };
 
   const getEntryForPlayer = (playerId: string): RosterEntry | undefined => {
-    return entries.find((e) => e.playerId === playerId);
+    return entriesMap.get(playerId);
   };
 
   // Helper to check if player has conflicts (same BASE round as others being KEPT)
@@ -341,4 +350,4 @@ export function RosterTable({
       />
     </>
   );
-}
+});

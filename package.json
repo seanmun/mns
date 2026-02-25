@@ -11,12 +11,14 @@
     "optimize-images": "npx sharp-cli -i 'public/icons/*.png' -o 'public/icons/' -f webp -q 90 && npx sharp-cli -i 'public/hinkie/*.png' -o 'public/hinkie/' -f webp -q 90 && npx sharp-cli -i 'public/prizePool/*.png' -o 'public/prizePool/' -f webp -q 90 && echo '✓ Images optimized! Remember to update code references to .webp'"
   },
   "dependencies": {
+    "@sentry/react": "^10.40.0",
     "@supabase/supabase-js": "^2.97.0",
     "@tanstack/react-query": "^5.90.2",
     "papaparse": "^5.5.3",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
-    "react-router-dom": "^7.9.4"
+    "react-router-dom": "^7.9.4",
+    "sonner": "^2.0.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabase, fetchAllRows } from '../lib/supabase';
+import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
 import { useTradeProposals } from '../hooks/useTradeProposals';
@@ -86,9 +88,13 @@ export function TradeMachine() {
       }));
       setTeams(mappedTeams.sort((a, b) => a.name.localeCompare(b.name)));
 
-      const playersData = await fetchAllRows('players');
+      const { data: playersData = [], error: playersErr } = await supabase
+        .from('players')
+        .select('*')
+        .eq('league_id', leagueId);
+      if (playersErr) throw playersErr;
       const playersMap = new Map<string, Player>();
-      playersData.forEach((row: any) => {
+      (playersData || []).forEach((row: any) => {
         playersMap.set(row.id, {
           id: row.id,
           fantraxId: row.fantrax_id,
@@ -156,7 +162,7 @@ export function TradeMachine() {
         setSelectedTeamIds([myT.id]);
       }
     } catch (err) {
-      console.error('Error loading trade machine data:', err);
+      logger.error('Error loading trade machine data:', err);
     } finally {
       setLoading(false);
     }
@@ -305,10 +311,10 @@ export function TradeMachine() {
       setTradeAssets([]);
       setTradeNote('');
       setSelectedTeamIds(myTeam ? [myTeam.id] : []);
-      alert('Trade proposal submitted! Waiting for other teams to respond.');
+      toast.success('Trade proposal submitted! Waiting for other teams to respond.');
     } catch (err) {
-      console.error('Error submitting trade:', err);
-      alert('Failed to submit trade proposal.');
+      logger.error('Error submitting trade:', err);
+      toast.error('Failed to submit trade proposal.');
     } finally {
       setIsSubmitting(false);
     }
