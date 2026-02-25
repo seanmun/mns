@@ -12,12 +12,6 @@ if (sentryDsn) {
     dsn: sentryDsn,
     environment: import.meta.env.MODE,
     sendDefaultPii: true,
-    integrations: [
-      Sentry.browserTracingIntegration(),
-    ],
-    tracesSampleRate: import.meta.env.PROD ? 0.2 : 1.0,
-    replaysSessionSampleRate: 0,
-    replaysOnErrorSampleRate: import.meta.env.PROD ? 1.0 : 0,
   });
 }
 
