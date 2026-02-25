@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { supabase } from '../lib/supabase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { logger } from '../lib/logger';
 import { useRoster, useTeamPlayers, useTeam, useLeague, updateRoster, submitRoster, saveScenario } from '../hooks/useRoster';
 import { useProjectedStats } from '../hooks/useProjectedStats';
@@ -150,8 +150,8 @@ export function OwnerDashboard() {
     const fetchAllData = async () => {
       try {
         // Parallel queries: players + rookie picks
-        const [playersResult, rookieResult] = await Promise.all([
-          supabase.from('players').select('*').eq('league_id', leagueId),
+        const [playersRows, rookieResult] = await Promise.all([
+          fetchAllRows('players', '*', (q: any) => q.eq('league_id', leagueId)),
           supabase.from('rookie_draft_picks').select('*').eq('league_id', leagueId).eq('current_owner', teamId),
         ]);
 
@@ -165,10 +165,10 @@ export function OwnerDashboard() {
           ]);
         }
 
-        const results = [playersResult, rookieResult, picksResult, draftResult];
+        const results = [rookieResult, picksResult, draftResult];
 
         // Process players
-        const allPlayers = (playersResult.data || []).map(mapPlayer);
+        const allPlayers = playersRows.map(mapPlayer);
         setAllLeaguePlayers(allPlayers);
 
         // Process rookie picks
@@ -504,8 +504,8 @@ export function OwnerDashboard() {
 
   const isLocked = roster?.status === 'adminLocked' || roster?.status === 'submitted';
 
-  // Check if we're in regular season mode (based on league phase)
-  const isRegularSeason = league?.leaguePhase === 'regular_season' || league?.leaguePhase === 'playoffs';
+  // Show regular season roster view whenever roster data exists
+  const isRegularSeason = !!regularSeasonRoster;
 
   if (teamLoading || playersLoading || rosterLoading || statsLoading || regularSeasonLoading || feesLoading) {
     return (

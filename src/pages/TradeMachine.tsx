@@ -40,6 +40,8 @@ export function TradeMachine() {
   const [tradeAssets, setTradeAssets] = useState<TradeAsset[]>([]);
   const [tradeNote, setTradeNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expirationUnit, setExpirationUnit] = useState<'minutes' | 'hours' | 'days'>('hours');
+  const [expirationValue, setExpirationValue] = useState(24);
 
   // Find user's team
   const myTeam = useMemo(
@@ -284,7 +286,11 @@ export function TradeMachine() {
           assets: tradeAssets,
           involved_team_ids: teamIdsArr,
           note: tradeNote || null,
-          expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+          expires_at: new Date(Date.now() + expirationValue * (
+            expirationUnit === 'minutes' ? 60 * 1000 :
+            expirationUnit === 'hours' ? 60 * 60 * 1000 :
+            24 * 60 * 60 * 1000
+          )).toISOString(),
         });
 
       if (propErr) throw propErr;
@@ -310,6 +316,8 @@ export function TradeMachine() {
 
       setTradeAssets([]);
       setTradeNote('');
+      setExpirationUnit('hours');
+      setExpirationValue(24);
       setSelectedTeamIds(myTeam ? [myTeam.id] : []);
       toast.success('Trade proposal submitted! Waiting for other teams to respond.');
     } catch (err) {
@@ -717,6 +725,44 @@ export function TradeMachine() {
                     className="w-full px-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600"
                   />
                 </div>
+                {/* Expiration Timer */}
+                <div className="mb-4">
+                  <label className="text-sm text-gray-400 mb-2 block">Offer expires in</label>
+                  <div className="flex items-center gap-3">
+                    {/* Unit selector */}
+                    <div className="flex bg-[#0a0a0a] border border-gray-700 rounded-lg overflow-hidden">
+                      {(['minutes', 'hours', 'days'] as const).map(unit => (
+                        <button
+                          key={unit}
+                          onClick={() => {
+                            setExpirationUnit(unit);
+                            setExpirationValue(unit === 'minutes' ? 30 : unit === 'hours' ? 24 : 2);
+                          }}
+                          className={`px-3 py-2 text-sm font-medium capitalize transition-colors ${
+                            expirationUnit === unit
+                              ? 'bg-cyan-400 text-black'
+                              : 'text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          {unit}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Value slider */}
+                    <input
+                      type="range"
+                      min={1}
+                      max={expirationUnit === 'minutes' ? 60 : expirationUnit === 'hours' ? 24 : 7}
+                      value={expirationValue}
+                      onChange={(e) => setExpirationValue(Number(e.target.value))}
+                      className="flex-1 accent-cyan-400"
+                    />
+                    <span className="text-white font-mono text-sm min-w-[4rem] text-right">
+                      {expirationValue} {expirationUnit === 'minutes' ? 'min' : expirationUnit === 'hours' ? 'hr' : 'day'}{expirationValue !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-500">
                     {tradeAssets.length} asset{tradeAssets.length !== 1 ? 's' : ''}

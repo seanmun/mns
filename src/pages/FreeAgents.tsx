@@ -11,6 +11,7 @@ import { PlayerModal } from '../components/PlayerModal';
 import type { Player, RegularSeasonRoster } from '../types';
 import { DEFAULT_ROSTER_SETTINGS } from '../types';
 import { mapPlayer, mapRegularSeasonRoster } from '../lib/mappers';
+import { assignPlayerToTeam, dropPlayerFromTeam } from '../lib/rosterOps';
 
 type SortColumn = 'score' | 'salary' | 'points' | 'rebounds' | 'assists' | 'steals' | 'blocks' | 'fgPercent' | 'ftPercent' | 'threePointMade';
 
@@ -327,57 +328,50 @@ export function FreeAgents() {
   };
 
   const handleConfirmAdd = async () => {
-    if (!addingPlayer || !userRoster || processing) return;
+    if (!addingPlayer || !userRoster || !userTeamId || !leagueId || processing) return;
 
     try {
       setProcessing(true);
 
-      // If roster is at 13, must drop a player first
-      if (userRoster.activeRoster.length >= 13) {
+      // If roster is at max, must drop a player first
+      if (userRoster.activeRoster.length >= maxActive) {
         if (!playerToDrop) {
           toast.error('You must select a player to drop');
           setProcessing(false);
           return;
         }
 
-        // Drop the selected player first
-        const newActiveAfterDrop = userRoster.activeRoster.filter(id => id !== playerToDrop);
+        // Drop the selected player (updates players.team_id + regular_season_rosters)
+        const dropResult = await dropPlayerFromTeam({
+          playerId: playerToDrop,
+          teamId: userTeamId,
+          leagueId,
+          updatedBy: user?.email || 'unknown',
+        });
 
-        const { error: dropError } = await supabase
-          .from('regular_season_rosters')
-          .update({
-            active_roster: newActiveAfterDrop,
-            last_updated: Date.now(),
-          })
-          .eq('id', userRoster.id);
-
-        if (dropError) throw dropError;
-
-        // Add the new player
-        const { error: addError } = await supabase
-          .from('regular_season_rosters')
-          .update({
-            active_roster: [...newActiveAfterDrop, addingPlayer.id],
-            last_updated: Date.now(),
-          })
-          .eq('id', userRoster.id);
-
-        if (addError) throw addError;
-      } else {
-        // Just add the new player
-        const newActive = [...userRoster.activeRoster, addingPlayer.id];
-
-        const { error } = await supabase
-          .from('regular_season_rosters')
-          .update({
-            active_roster: newActive,
-            last_updated: Date.now(),
-          })
-          .eq('id', userRoster.id);
-
-        if (error) throw error;
+        if (!dropResult.success) {
+          toast.error(dropResult.error || 'Failed to drop player');
+          setProcessing(false);
+          return;
+        }
       }
 
+      // Add the new player (updates players.team_id + regular_season_rosters)
+      const addResult = await assignPlayerToTeam({
+        playerId: addingPlayer.id,
+        teamId: userTeamId,
+        leagueId,
+        slot: 'active_roster',
+        updatedBy: user?.email || 'unknown',
+      });
+
+      if (!addResult.success) {
+        toast.error(addResult.error || 'Failed to add player');
+        setProcessing(false);
+        return;
+      }
+
+      toast.success(`${addingPlayer.name} added to your roster`);
       setAddingPlayer(null);
       setPlayerToDrop(null);
       setProcessing(false);

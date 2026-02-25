@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { logger } from './logger';
+import { transferPlayer, type RosterSlot } from './rosterOps';
 
 interface TradeAssetPayload {
   type: 'keeper' | 'redshirt' | 'int_stash' | 'rookie_pick';
@@ -11,12 +13,20 @@ interface TradeAssetPayload {
  * Execute a trade: move players between rosters and update rookie pick ownership.
  * Called when all owners accept a trade proposal.
  *
+ * Safety checks:
+ * - Verifies proposal is still pending (prevents double-execution)
+ * - Verifies every player still belongs to the sending team (prevents conflicts)
+ * - Verifies every rookie pick still belongs to the sending team
+ * - Cancels any other pending proposals involving the same assets
+ *
  * Steps:
- * 1. For each team, compute roster entry changes (remove outgoing, add incoming)
- * 2. Update roster entries in the `rosters` table
- * 3. Update `players.team_id` for traded players
- * 4. Update `rookie_draft_picks.current_owner` for traded picks
- * 5. Mark the proposal as 'executed'
+ * 1. Validate proposal status and asset ownership
+ * 2. For each team, compute roster entry changes (remove outgoing, add incoming)
+ * 3. Update roster entries in the `rosters` table
+ * 4. Update `players.team_id` for traded players
+ * 5. Update `rookie_draft_picks.current_owner` for traded picks
+ * 6. Cancel conflicting pending proposals
+ * 7. Mark the proposal as 'executed'
  */
 export async function executeTrade(params: {
   proposalId: string;
@@ -39,6 +49,60 @@ export async function executeTrade(params: {
       return { success: false, error: `Proposal is already ${proposal.status}` };
     }
 
+    // Separate player assets from pick assets
+    const playerAssets = assets.filter(a => a.type !== 'rookie_pick');
+    const pickAssets = assets.filter(a => a.type === 'rookie_pick');
+
+    // --- OWNERSHIP VALIDATION ---
+    // Verify every player still belongs to the sending team
+    if (playerAssets.length > 0) {
+      const playerIds = playerAssets.map(a => a.id);
+      const { data: playerRows, error: playerErr } = await supabase
+        .from('players')
+        .select('id, team_id, name')
+        .in('id', playerIds);
+
+      if (playerErr) return { success: false, error: 'Could not verify player ownership' };
+
+      for (const asset of playerAssets) {
+        const player = (playerRows || []).find((p: any) => p.id === asset.id);
+        if (!player) {
+          return { success: false, error: `Player ${asset.id} not found` };
+        }
+        if (player.team_id !== asset.fromTeamId) {
+          return {
+            success: false,
+            error: `${player.name} no longer belongs to the sending team. They may have been moved by another trade.`,
+          };
+        }
+      }
+    }
+
+    // Verify every rookie pick still belongs to the sending team
+    if (pickAssets.length > 0) {
+      const pickIds = pickAssets.map(a => a.id);
+      const { data: pickRows, error: pickErr } = await supabase
+        .from('rookie_draft_picks')
+        .select('id, current_owner')
+        .in('id', pickIds);
+
+      if (pickErr) return { success: false, error: 'Could not verify pick ownership' };
+
+      for (const asset of pickAssets) {
+        const pick = (pickRows || []).find((p: any) => p.id === asset.id);
+        if (!pick) {
+          return { success: false, error: `Draft pick ${asset.id} not found` };
+        }
+        if (pick.current_owner !== asset.fromTeamId) {
+          return {
+            success: false,
+            error: `Draft pick ${asset.id} no longer belongs to the sending team. It may have been moved by another trade.`,
+          };
+        }
+      }
+    }
+
+    // --- ROSTER UPDATES ---
     // Collect all involved team IDs
     const teamIds = new Set<string>();
     for (const asset of assets) {
@@ -59,9 +123,6 @@ export async function executeTrade(params: {
     for (const row of rosterRows || []) {
       rosterMap.set(row.team_id, row);
     }
-
-    // Group player assets by team
-    const playerAssets = assets.filter(a => a.type !== 'rookie_pick');
 
     // Build updates per team
     const teamUpdates = new Map<string, {
@@ -113,32 +174,73 @@ export async function executeTrade(params: {
         .eq('id', rosterId);
 
       if (upErr) {
-        console.error(`Failed to update roster for ${teamId}:`, upErr);
+        logger.error(`Failed to update roster for ${teamId}:`, upErr);
         return { success: false, error: `Failed to update roster for team ${teamId}` };
       }
     }
 
-    // Update players.team_id for traded players
+    // Transfer players via rosterOps (updates players.team_id + regular_season_rosters)
     for (const asset of playerAssets) {
-      const { error } = await supabase
-        .from('players')
-        .update({ team_id: asset.toTeamId })
-        .eq('id', asset.id);
+      const toSlot: RosterSlot = asset.type === 'redshirt' ? 'redshirt_players'
+        : asset.type === 'int_stash' ? 'international_players'
+        : 'active_roster';
 
-      if (error) {
-        console.error(`Failed to update player ${asset.id}:`, error);
+      const transferResult = await transferPlayer({
+        playerId: asset.id,
+        fromTeamId: asset.fromTeamId,
+        toTeamId: asset.toTeamId,
+        leagueId,
+        toSlot,
+        updatedBy: executedBy,
+      });
+
+      if (!transferResult.success) {
+        logger.error(`Failed to transfer player ${asset.id}: ${transferResult.error}`);
       }
     }
 
     // Update rookie pick ownership
-    for (const asset of assets.filter(a => a.type === 'rookie_pick')) {
+    for (const asset of pickAssets) {
       const { error } = await supabase
         .from('rookie_draft_picks')
         .update({ current_owner: asset.toTeamId })
         .eq('id', asset.id);
 
       if (error) {
-        console.error(`Failed to update rookie pick ${asset.id}:`, error);
+        logger.error(`Failed to update rookie pick ${asset.id}:`, error);
+      }
+    }
+
+    // --- CANCEL CONFLICTING PROPOSALS ---
+    // Any other pending proposals involving the same assets should be cancelled
+    const allAssetIds = assets.map(a => a.id);
+    const { data: conflicting } = await supabase
+      .from('trade_proposals')
+      .select('id, assets')
+      .eq('league_id', leagueId)
+      .eq('status', 'pending')
+      .neq('id', proposalId);
+
+    if (conflicting && conflicting.length > 0) {
+      const toCancel: string[] = [];
+      for (const other of conflicting) {
+        const otherAssetIds = (other.assets || []).map((a: any) => a.id);
+        const hasConflict = otherAssetIds.some((id: string) => allAssetIds.includes(id));
+        if (hasConflict) {
+          toCancel.push(other.id);
+        }
+      }
+      if (toCancel.length > 0) {
+        const { error: cancelErr } = await supabase
+          .from('trade_proposals')
+          .update({ status: 'cancelled' })
+          .in('id', toCancel);
+
+        if (cancelErr) {
+          logger.error('Failed to cancel conflicting proposals:', cancelErr);
+        } else {
+          logger.info(`Cancelled ${toCancel.length} conflicting proposal(s) after trade execution`);
+        }
       }
     }
 
@@ -153,12 +255,12 @@ export async function executeTrade(params: {
       .eq('id', proposalId);
 
     if (execErr) {
-      console.error('Failed to mark proposal as executed:', execErr);
+      logger.error('Failed to mark proposal as executed:', execErr);
     }
 
     return { success: true };
   } catch (err) {
-    console.error('Trade execution error:', err);
+    logger.error('Trade execution error:', err);
     return { success: false, error: 'Unexpected error during trade execution' };
   }
 }

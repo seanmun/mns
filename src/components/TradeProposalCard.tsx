@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -30,6 +30,33 @@ export function TradeProposalCard({
   const isExpired = proposal.expiresAt ? Date.now() > proposal.expiresAt : false;
   const isPending = proposal.status === 'pending' && !isExpired;
   const isUnread = needsMyResponse && isPending;
+
+  // Live countdown timer
+  const [timeLeft, setTimeLeft] = useState('');
+  useEffect(() => {
+    if (!proposal.expiresAt || !isPending) return;
+    const tick = () => {
+      const diff = proposal.expiresAt! - Date.now();
+      if (diff <= 0) {
+        setTimeLeft('Expired');
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+      if (days > 0) {
+        setTimeLeft(`${days}d ${hours}h ${minutes}m`);
+      } else if (hours > 0) {
+        setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+      } else {
+        setTimeLeft(`${minutes}m ${seconds}s`);
+      }
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [proposal.expiresAt, isPending]);
 
   // Group assets by source team
   const assetsByTeam = new Map<string, TradeAsset[]>();
@@ -102,6 +129,29 @@ export function TradeProposalCard({
     } catch (err) {
       logger.error('Error accepting trade:', err);
       toast.error('Failed to accept trade. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isProposer = proposal.proposedByTeamId === userTeamId;
+
+  const handleRevoke = async () => {
+    if (!isProposer || !isPending) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('trade_proposals')
+        .update({ status: 'cancelled' })
+        .eq('id', proposal.id);
+
+      if (error) throw error;
+
+      toast.success('Trade proposal revoked.');
+      queryClient.invalidateQueries({ queryKey: ['tradeProposals', proposal.leagueId] });
+    } catch (err) {
+      logger.error('Error revoking trade:', err);
+      toast.error('Failed to revoke trade. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -221,9 +271,19 @@ export function TradeProposalCard({
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-500">
-              {new Date(proposal.createdAt).toLocaleDateString()}
-            </span>
+            {isPending && timeLeft && timeLeft !== 'Expired' ? (
+              <span className={`text-xs font-mono font-semibold ${
+                (proposal.expiresAt! - Date.now()) < 60 * 60 * 1000 ? 'text-red-400' :
+                (proposal.expiresAt! - Date.now()) < 6 * 60 * 60 * 1000 ? 'text-yellow-400' :
+                'text-cyan-400'
+              }`}>
+                {timeLeft}
+              </span>
+            ) : (
+              <span className="text-xs text-gray-500">
+                {new Date(proposal.createdAt).toLocaleDateString()}
+              </span>
+            )}
             <svg
               className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
               fill="none"
@@ -301,12 +361,21 @@ export function TradeProposalCard({
             </div>
           </div>
 
-          {/* Expiration notice */}
-          {proposal.expiresAt && isPending && (
-            <p className="text-xs text-gray-500 text-center">
-              Expires {new Date(proposal.expiresAt).toLocaleDateString()} at{' '}
-              {new Date(proposal.expiresAt).toLocaleTimeString()}
-            </p>
+          {/* Countdown Timer */}
+          {proposal.expiresAt && isPending && timeLeft && (
+            <div className="flex items-center justify-center gap-2 py-2">
+              <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className={`font-mono text-sm font-semibold ${
+                (proposal.expiresAt - Date.now()) < 60 * 60 * 1000 ? 'text-red-400' :
+                (proposal.expiresAt - Date.now()) < 6 * 60 * 60 * 1000 ? 'text-yellow-400' :
+                'text-cyan-400'
+              }`}>
+                {timeLeft}
+              </span>
+              <span className="text-xs text-gray-500">remaining</span>
+            </div>
           )}
 
           {/* Action Buttons */}
@@ -329,6 +398,19 @@ export function TradeProposalCard({
             </div>
           )}
 
+          {/* Revoke Button (proposer only) */}
+          {isProposer && isPending && !needsMyResponse && (
+            <div className="pt-4 border-t border-gray-800">
+              <button
+                onClick={handleRevoke}
+                disabled={isSubmitting}
+                className="w-full px-4 py-3 bg-gray-700/30 text-gray-400 border border-gray-600/30 rounded-lg font-semibold hover:bg-red-400/10 hover:text-red-400 hover:border-red-400/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Revoking...' : 'Revoke Trade Offer'}
+              </button>
+            </div>
+          )}
+
           {/* Status messages */}
           {proposal.status === 'executed' && (
             <div className="pt-4 border-t border-gray-800">
@@ -341,6 +423,13 @@ export function TradeProposalCard({
             <div className="pt-4 border-t border-gray-800">
               <p className="text-sm text-red-400 text-center">
                 This trade proposal was rejected.
+              </p>
+            </div>
+          )}
+          {proposal.status === 'cancelled' && (
+            <div className="pt-4 border-t border-gray-800">
+              <p className="text-sm text-gray-400 text-center">
+                This trade proposal was revoked by {proposerName}.
               </p>
             </div>
           )}

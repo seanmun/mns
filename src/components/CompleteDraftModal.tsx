@@ -139,11 +139,30 @@ export function CompleteDraftModal({
             redshirt_players: regularSeasonRoster.redshirtPlayers,
             international_players: regularSeasonRoster.internationalPlayers,
             is_legal_roster: regularSeasonRoster.isLegalRoster,
-            last_updated: regularSeasonRoster.lastUpdated,
+            updated_at: regularSeasonRoster.lastUpdated,
             updated_by: regularSeasonRoster.updatedBy,
           });
 
         if (rosterError) throw rosterError;
+
+        // Step 2b: Reconcile players.team_id with regular season roster
+        // Ensures every player in a team's roster has the correct team_id
+        const allRosterPlayerIds = [
+          ...regularSeasonRoster.activeRoster,
+          ...regularSeasonRoster.redshirtPlayers,
+          ...regularSeasonRoster.internationalPlayers,
+        ];
+
+        if (allRosterPlayerIds.length > 0) {
+          const { error: reconcileError } = await supabase
+            .from('players')
+            .update({ team_id: team.id })
+            .in('id', allRosterPlayerIds);
+
+          if (reconcileError) {
+            logger.error(`Failed to reconcile players.team_id for team ${team.name}:`, reconcileError);
+          }
+        }
       }
 
       // Step 3: Create Team Fees documents (pre-draft fees only)

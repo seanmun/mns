@@ -158,7 +158,7 @@ export function mapRegularSeasonRoster(row: any): RegularSeasonRoster {
     internationalPlayers: row.international_players || [],
     benchedPlayers: row.benched_players || [],
     isLegalRoster: row.is_legal_roster ?? true,
-    lastUpdated: row.last_updated ? new Date(row.last_updated).getTime() : Date.now(),
+    lastUpdated: row.updated_at ? new Date(row.updated_at).getTime() : Date.now(),
     updatedBy: row.updated_by || '',
   };
 }

@@ -69,6 +69,8 @@ const AdminPortfolio = lazy(() => import('./pages/AdminPortfolio').then(m => ({ 
 const AdminMigration = lazy(() => import('./pages/AdminMigration').then(m => ({ default: m.AdminMigration })));
 const AdminPicksView = lazy(() => import('./pages/AdminPicksView').then(m => ({ default: m.AdminPicksView })));
 const AdminEmailTemplates = lazy(() => import('./pages/AdminEmailTemplates').then(m => ({ default: m.AdminEmailTemplates })));
+const AdminDataAudit = lazy(() => import('./pages/AdminDataAudit').then(m => ({ default: m.AdminDataAudit })));
+const AdminRosterImport = lazy(() => import('./pages/AdminRosterImport').then(m => ({ default: m.AdminRosterImport })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -411,6 +413,26 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <AdminEmailTemplates />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/data-audit"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminDataAudit />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/roster-import"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminRosterImport />
                 </AppLayout>
               </PrivateRoute>
             }

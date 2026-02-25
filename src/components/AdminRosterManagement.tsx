@@ -5,6 +5,7 @@ import { logger } from '../lib/logger';
 import type { Team, Player, RegularSeasonRoster, LeagueRosterSettings } from '../types';
 import { DEFAULT_ROSTER_SETTINGS } from '../types';
 import { mapTeam, mapPlayer, mapRegularSeasonRoster } from '../lib/mappers';
+import { assignPlayerToTeam, dropPlayerFromTeam, movePlayerSlot } from '../lib/rosterOps';
 
 interface AdminRosterManagementProps {
   leagueId: string;
@@ -151,104 +152,64 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
     setProcessing(true);
 
     try {
-      const rosterId = `${leagueId}_${selectedTeam}`;
+      let result;
 
       switch (actionType) {
         case 'add_to_ir': {
-          // Move from active to IR
           if (roster.irSlots.length >= rosterSettings.maxIR) {
             toast.error(`IR is full (max ${rosterSettings.maxIR} players)`);
             setProcessing(false);
             return;
           }
-          const newActive = roster.activeRoster.filter(id => id !== selectedPlayer);
-          const newIR = [...roster.irSlots, selectedPlayer];
-          const { error } = await supabase
-            .from('regular_season_rosters')
-            .update({
-              active_roster: newActive,
-              ir_slots: newIR,
-              last_updated: Date.now(),
-              updated_by: 'admin'
-            })
-            .eq('id', rosterId);
-          if (error) throw error;
+          result = await movePlayerSlot({
+            playerId: selectedPlayer,
+            teamId: selectedTeam,
+            leagueId,
+            fromSlot: 'active_roster',
+            toSlot: 'ir_slots',
+            updatedBy: 'admin',
+          });
           break;
         }
 
         case 'move_to_active': {
-          // Move from IR to active
-          const newIR = roster.irSlots.filter(id => id !== selectedPlayer);
-          const newActive = [...roster.activeRoster, selectedPlayer];
-          const { error } = await supabase
-            .from('regular_season_rosters')
-            .update({
-              ir_slots: newIR,
-              active_roster: newActive,
-              last_updated: Date.now(),
-              updated_by: 'admin'
-            })
-            .eq('id', rosterId);
-          if (error) throw error;
+          result = await movePlayerSlot({
+            playerId: selectedPlayer,
+            teamId: selectedTeam,
+            leagueId,
+            fromSlot: 'ir_slots',
+            toSlot: 'active_roster',
+            updatedBy: 'admin',
+          });
           break;
         }
 
         case 'drop_player': {
-          // Remove from all arrays
-          console.log('[AdminRosterManagement] Dropping player:', selectedPlayer);
-          console.log('[AdminRosterManagement] Current roster:', {
-            active: roster.activeRoster,
-            ir: roster.irSlots,
-            redshirt: roster.redshirtPlayers,
-            intl: roster.internationalPlayers
+          result = await dropPlayerFromTeam({
+            playerId: selectedPlayer,
+            teamId: selectedTeam,
+            leagueId,
+            updatedBy: 'admin',
           });
-
-          const updates: any = {
-            last_updated: Date.now(),
-            updated_by: 'admin'
-          };
-
-          if (roster.activeRoster.includes(selectedPlayer)) {
-            console.log('[AdminRosterManagement] Removing from activeRoster');
-            updates.active_roster = roster.activeRoster.filter(id => id !== selectedPlayer);
-          }
-          if (roster.irSlots.includes(selectedPlayer)) {
-            console.log('[AdminRosterManagement] Removing from irSlots');
-            updates.ir_slots = roster.irSlots.filter(id => id !== selectedPlayer);
-          }
-          if (roster.redshirtPlayers.includes(selectedPlayer)) {
-            console.log('[AdminRosterManagement] Removing from redshirtPlayers');
-            updates.redshirt_players = roster.redshirtPlayers.filter(id => id !== selectedPlayer);
-          }
-          if (roster.internationalPlayers.includes(selectedPlayer)) {
-            console.log('[AdminRosterManagement] Removing from internationalPlayers');
-            updates.international_players = roster.internationalPlayers.filter(id => id !== selectedPlayer);
-          }
-
-          console.log('[AdminRosterManagement] Updates to apply:', updates);
-          const { error } = await supabase
-            .from('regular_season_rosters')
-            .update(updates)
-            .eq('id', rosterId);
-          if (error) throw error;
-          console.log('[AdminRosterManagement] Drop completed successfully');
           break;
         }
 
         case 'add_free_agent': {
-          // Add to active roster
-          const newActive = [...roster.activeRoster, selectedPlayer];
-          const { error } = await supabase
-            .from('regular_season_rosters')
-            .update({
-              active_roster: newActive,
-              last_updated: Date.now(),
-              updated_by: 'admin'
-            })
-            .eq('id', rosterId);
-          if (error) throw error;
+          result = await assignPlayerToTeam({
+            playerId: selectedPlayer,
+            teamId: selectedTeam,
+            leagueId,
+            slot: 'active_roster',
+            updatedBy: 'admin',
+          });
           break;
         }
+      }
+
+      if (result && !result.success) {
+        toast.error(result.error || 'Action failed');
+      } else {
+        toast.success('Action completed successfully');
       }
 
       // Reload data
@@ -257,8 +218,6 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
       // Reset form
       setSelectedPlayer('');
       setSearchTerm('');
-
-      toast.success('Action completed successfully');
     } catch (error) {
       logger.error('Error executing action:', error);
       toast.error(`Failed to execute action: ${error}`);

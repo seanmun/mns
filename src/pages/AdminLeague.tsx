@@ -415,7 +415,7 @@ export function AdminLeague() {
           internationalPlayers: rosterRow.international_players || [],
           benchedPlayers: rosterRow.benched_players || [],
           isLegalRoster: rosterRow.is_legal_roster ?? true,
-          lastUpdated: rosterRow.last_updated ? new Date(rosterRow.last_updated).getTime() : Date.now(),
+          lastUpdated: rosterRow.updated_at ? new Date(rosterRow.updated_at).getTime() : Date.now(),
           updatedBy: rosterRow.updated_by || '',
         };
 
