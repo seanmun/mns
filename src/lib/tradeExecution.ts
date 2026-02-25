@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { logger } from './logger';
-import { transferPlayer, type RosterSlot } from './rosterOps';
+import { transferPlayer } from './rosterOps';
+import type { PlayerSlot } from '../types';
 
 interface TradeAssetPayload {
   type: 'keeper' | 'redshirt' | 'int_stash' | 'rookie_pick';
@@ -10,7 +11,7 @@ interface TradeAssetPayload {
 }
 
 /**
- * Execute a trade: move players between rosters and update rookie pick ownership.
+ * Execute a trade: move players between teams and update rookie pick ownership.
  * Called when all owners accept a trade proposal.
  *
  * Safety checks:
@@ -23,7 +24,7 @@ interface TradeAssetPayload {
  * 1. Validate proposal status and asset ownership
  * 2. For each team, compute roster entry changes (remove outgoing, add incoming)
  * 3. Update roster entries in the `rosters` table
- * 4. Update `players.team_id` for traded players
+ * 4. Update `players.team_id` + `players.slot` for traded players
  * 5. Update `rookie_draft_picks.current_owner` for traded picks
  * 6. Cancel conflicting pending proposals
  * 7. Mark the proposal as 'executed'
@@ -102,15 +103,14 @@ export async function executeTrade(params: {
       }
     }
 
-    // --- ROSTER UPDATES ---
-    // Collect all involved team IDs
+    // --- ROSTER ENTRY UPDATES ---
     const teamIds = new Set<string>();
     for (const asset of assets) {
       teamIds.add(asset.fromTeamId);
       teamIds.add(asset.toTeamId);
     }
 
-    // Load current rosters for involved teams
+    // Load current rosters (keeper entries) for involved teams
     const rosterIds = Array.from(teamIds).map(tid => `${leagueId}_${tid}`);
     const { data: rosterRows, error: rosterErr } = await supabase
       .from('rosters')
@@ -124,7 +124,7 @@ export async function executeTrade(params: {
       rosterMap.set(row.team_id, row);
     }
 
-    // Build updates per team
+    // Build updates per team for keeper roster entries
     const teamUpdates = new Map<string, {
       toRemove: Set<string>;
       toAdd: Array<{ playerId: string; decision: string }>;
@@ -153,11 +153,8 @@ export async function executeTrade(params: {
       if (!rosterRow) continue;
 
       const entries = [...(rosterRow.entries || [])];
-
-      // Remove outgoing
       const filtered = entries.filter((e: any) => !updates.toRemove.has(e.playerId));
 
-      // Add incoming
       for (const add of updates.toAdd) {
         filtered.push({
           playerId: add.playerId,
@@ -166,7 +163,6 @@ export async function executeTrade(params: {
         });
       }
 
-      // Update roster
       const rosterId = `${leagueId}_${teamId}`;
       const { error: upErr } = await supabase
         .from('rosters')
@@ -179,11 +175,11 @@ export async function executeTrade(params: {
       }
     }
 
-    // Transfer players via rosterOps (updates players.team_id + regular_season_rosters)
+    // --- TRANSFER PLAYERS (updates players.team_id + players.slot) ---
     for (const asset of playerAssets) {
-      const toSlot: RosterSlot = asset.type === 'redshirt' ? 'redshirt_players'
-        : asset.type === 'int_stash' ? 'international_players'
-        : 'active_roster';
+      const toSlot: PlayerSlot = asset.type === 'redshirt' ? 'redshirt'
+        : asset.type === 'int_stash' ? 'international'
+        : 'active';
 
       const transferResult = await transferPlayer({
         playerId: asset.id,
@@ -191,7 +187,6 @@ export async function executeTrade(params: {
         toTeamId: asset.toTeamId,
         leagueId,
         toSlot,
-        updatedBy: executedBy,
       });
 
       if (!transferResult.success) {
@@ -212,7 +207,6 @@ export async function executeTrade(params: {
     }
 
     // --- CANCEL CONFLICTING PROPOSALS ---
-    // Any other pending proposals involving the same assets should be cancelled
     const allAssetIds = assets.map(a => a.id);
     const { data: conflicting } = await supabase
       .from('trade_proposals')

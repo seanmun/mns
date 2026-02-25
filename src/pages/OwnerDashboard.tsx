@@ -8,7 +8,6 @@ import { useProjectedStats } from '../hooks/useProjectedStats';
 import { usePreviousStats } from '../hooks/usePreviousStats';
 import { useAuth } from '../contexts/AuthContext';
 import { useWatchList } from '../hooks/useWatchList';
-import { useRegularSeasonRoster } from '../hooks/useRegularSeasonRoster';
 import { useTeamFees } from '../hooks/useTeamFees';
 import { RosterTable } from '../components/RosterTable';
 import { CapThermometer } from '../components/CapThermometer';
@@ -39,7 +38,6 @@ export function OwnerDashboard() {
   const { league } = useLeague(leagueId!);
   const { players, loading: playersLoading } = useTeamPlayers(leagueId!, teamId!);
   const { roster, loading: rosterLoading } = useRoster(leagueId!, teamId!);
-  const { roster: regularSeasonRoster, loading: regularSeasonLoading } = useRegularSeasonRoster(leagueId!, teamId!);
   const { teamFees, loading: feesLoading } = useTeamFees(leagueId!, teamId!, league?.seasonYear || 0);
   const { projectedStats, loading: statsLoading } = useProjectedStats();
   const { previousStats } = usePreviousStats();
@@ -504,10 +502,10 @@ export function OwnerDashboard() {
 
   const isLocked = roster?.status === 'adminLocked' || roster?.status === 'submitted';
 
-  // Show regular season roster view whenever roster data exists
-  const isRegularSeason = !!regularSeasonRoster;
+  // Show regular season roster view when league is in regular season or later
+  const isRegularSeason = league?.leaguePhase === 'regular_season' || league?.leaguePhase === 'playoffs' || league?.leaguePhase === 'champion';
 
-  if (teamLoading || playersLoading || rosterLoading || statsLoading || regularSeasonLoading || feesLoading) {
+  if (teamLoading || playersLoading || rosterLoading || statsLoading || feesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
         <div className="text-gray-400">Loading...</div>
@@ -552,10 +550,9 @@ export function OwnerDashboard() {
 
 
         {/* Regular Season Roster View */}
-        {isRegularSeason && regularSeasonRoster && team ? (
+        {isRegularSeason && team ? (
           <RegularSeasonRosterView
-            regularSeasonRoster={regularSeasonRoster}
-            allPlayers={allLeaguePlayers}
+            teamPlayers={players}
             team={team}
             teamFees={teamFees}
             isOwner={isOwner}

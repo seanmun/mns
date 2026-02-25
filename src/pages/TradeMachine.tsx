@@ -113,6 +113,7 @@ export function TradeMachine() {
             intEligible: row.int_eligible,
             rookieDraftInfo: row.rookie_draft_info || undefined,
           },
+          slot: row.slot || 'active',
           keeper: row.keeper_prior_year_round != null || row.keeper_derived_base_round != null
             ? {
                 priorYearRound: row.keeper_prior_year_round || undefined,

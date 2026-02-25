@@ -12,7 +12,7 @@ import type {
   DraftHistoryPick,
   DraftHistoryKeeper,
   DraftHistoryPlayer,
-  RegularSeasonRoster,
+  PlayerSlot,
   TeamFees
 } from '../types';
 import { mapTeam, mapPlayer } from '../lib/mappers';
@@ -34,7 +34,7 @@ export function CompleteDraftModal({
   onClose,
   onComplete,
   currentUserEmail,
-  maxActive = 13
+  maxActive: _maxActive = 13
 }: CompleteDraftModalProps) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [players, setPlayers] = useState<Map<string, Player>>(new Map());
@@ -123,44 +123,18 @@ export function CompleteDraftModal({
 
       if (historyError) throw historyError;
 
-      // Step 2: Create Regular Season Rosters for each team
+      // Step 2: Set players.team_id + players.slot for each team
       for (const team of teams) {
-        const regularSeasonRoster = createRegularSeasonRoster(team);
-        const rosterId = `${leagueId}_${team.id}`;
-        const { error: rosterError } = await supabase
-          .from('regular_season_rosters')
-          .upsert({
-            id: rosterId,
-            league_id: regularSeasonRoster.leagueId,
-            team_id: regularSeasonRoster.teamId,
-            season_year: regularSeasonRoster.seasonYear,
-            active_roster: regularSeasonRoster.activeRoster,
-            ir_slots: regularSeasonRoster.irSlots,
-            redshirt_players: regularSeasonRoster.redshirtPlayers,
-            international_players: regularSeasonRoster.internationalPlayers,
-            is_legal_roster: regularSeasonRoster.isLegalRoster,
-            updated_at: regularSeasonRoster.lastUpdated,
-            updated_by: regularSeasonRoster.updatedBy,
-          });
+        const slotAssignments = getTeamSlotAssignments(team);
 
-        if (rosterError) throw rosterError;
-
-        // Step 2b: Reconcile players.team_id with regular season roster
-        // Ensures every player in a team's roster has the correct team_id
-        const allRosterPlayerIds = [
-          ...regularSeasonRoster.activeRoster,
-          ...regularSeasonRoster.redshirtPlayers,
-          ...regularSeasonRoster.internationalPlayers,
-        ];
-
-        if (allRosterPlayerIds.length > 0) {
-          const { error: reconcileError } = await supabase
+        for (const { playerId, slot } of slotAssignments) {
+          const { error: slotError } = await supabase
             .from('players')
-            .update({ team_id: team.id })
-            .in('id', allRosterPlayerIds);
+            .update({ team_id: team.id, slot, on_ir: slot === 'ir' })
+            .eq('id', playerId);
 
-          if (reconcileError) {
-            logger.error(`Failed to reconcile players.team_id for team ${team.name}:`, reconcileError);
+          if (slotError) {
+            logger.error(`Failed to set slot for player ${playerId} on team ${team.name}:`, slotError);
           }
         }
       }
@@ -312,21 +286,19 @@ export function CompleteDraftModal({
     };
   };
 
-  const createRegularSeasonRoster = (team: Team): RegularSeasonRoster => {
+  const getTeamSlotAssignments = (team: Team): { playerId: string; slot: PlayerSlot }[] => {
+    const assignments: { playerId: string; slot: PlayerSlot }[] = [];
     const roster = rosters.get(team.id);
-    const activeRoster: string[] = [];
-    const redshirtPlayers: string[] = [];
-    const internationalPlayers: string[] = [];
 
-    // Add keepers to active roster
+    // Add keepers with their appropriate slots
     if (roster) {
       roster.entries.forEach(entry => {
         if (entry.decision === 'KEEP') {
-          activeRoster.push(entry.playerId);
+          assignments.push({ playerId: entry.playerId, slot: 'active' });
         } else if (entry.decision === 'REDSHIRT') {
-          redshirtPlayers.push(entry.playerId);
+          assignments.push({ playerId: entry.playerId, slot: 'redshirt' });
         } else if (entry.decision === 'INT_STASH') {
-          internationalPlayers.push(entry.playerId);
+          assignments.push({ playerId: entry.playerId, slot: 'international' });
         }
       });
     }
@@ -334,24 +306,11 @@ export function CompleteDraftModal({
     // Add drafted players to active roster
     draft.picks.forEach(pick => {
       if (pick.teamId === team.id && pick.playerId && !pick.isKeeperSlot) {
-        activeRoster.push(pick.playerId);
+        assignments.push({ playerId: pick.playerId, slot: 'active' });
       }
     });
 
-    return {
-      id: `${leagueId}_${team.id}`,
-      leagueId,
-      teamId: team.id,
-      seasonYear,
-      activeRoster,
-      irSlots: [],
-      redshirtPlayers,
-      internationalPlayers,
-      benchedPlayers: [],
-      isLegalRoster: activeRoster.length <= maxActive,
-      lastUpdated: Date.now(),
-      updatedBy: currentUserEmail
-    };
+    return assignments;
   };
 
   const createTeamFees = (team: Team): TeamFees => {

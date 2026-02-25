@@ -50,6 +50,8 @@ export function useRoster(leagueId: string, teamId: string, seasonYear?: number)
 }
 
 export function useTeamPlayers(leagueId: string, teamId: string) {
+  const queryClient = useQueryClient();
+
   const { data: players = [], isLoading: loading, error } = useQuery({
     queryKey: ['teamPlayers', leagueId, teamId],
     queryFn: async () => {
@@ -64,6 +66,28 @@ export function useTeamPlayers(leagueId: string, teamId: string) {
     },
     enabled: !!leagueId && !!teamId,
   });
+
+  // Realtime subscription — invalidate on any player change in this league
+  useEffect(() => {
+    if (!leagueId || !teamId) return;
+
+    const channel = supabase
+      .channel(`team-players-${leagueId}-${teamId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'players',
+        filter: `league_id=eq.${leagueId}`,
+      }, () => {
+        // Invalidate to refetch — player may have been added/removed from this team
+        queryClient.invalidateQueries({ queryKey: ['teamPlayers', leagueId, teamId] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [leagueId, teamId, queryClient]);
 
   return { players, loading, error: error as Error | null };
 }

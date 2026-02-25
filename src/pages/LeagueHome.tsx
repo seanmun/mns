@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchWalletData } from '../lib/blockchain';
 import { useWagers } from '../hooks/useWagers';
@@ -13,7 +13,7 @@ import { LEAGUE_PHASE_LABELS, LEAGUE_PHASE_ORDER } from '../types';
 import type { LeaguePhase } from '../types';
 import { isPhaseComplete } from '../lib/phaseGating';
 import { PhaseDetail } from '../components/PhaseDetail';
-import { mapPlayer, mapTeam, mapLeague, mapRegularSeasonRoster, mapTeamFees } from '../lib/mappers';
+import { mapPlayer, mapTeam, mapLeague, mapTeamFees } from '../lib/mappers';
 
 // Helper function to determine prize pool zone and calculate payouts
 function calculatePrizePayouts(totalPrizePool: number, totalCollected: number) {
@@ -165,33 +165,30 @@ export function LeagueHome() {
         const userTeam = teamData.find((team) => team.owners.includes(user.email || ''));
         setMyTeam(userTeam || null);
 
-        // Step 2: Fetch players, rosters, fees, portfolio, weeks in parallel
-        const [playersResult, rostersResult, feesResult, portfolioResult, weeksResult] = await Promise.all([
-          supabase.from('players').select('*').eq('league_id', leagueId),
-          supabase.from('regular_season_rosters').select('*').eq('league_id', leagueId).eq('season_year', leagueData.seasonYear),
+        // Step 2: Fetch players (paginated past 1000-row limit), fees, portfolio, weeks in parallel
+        const [allPlayerRows, feesResult, portfolioResult, weeksResult] = await Promise.all([
+          fetchAllRows('players', '*', (q: any) => q.eq('league_id', leagueId)),
           supabase.from('team_fees').select('*').eq('league_id', leagueId).eq('season_year', leagueData.seasonYear),
           supabase.from('portfolios').select('*').eq('id', leagueId).maybeSingle(),
           supabase.from('league_weeks').select('*').eq('league_id', leagueId).eq('season_year', leagueData.seasonYear).order('week_number', { ascending: true }),
         ]);
 
-        // Process players
+        // Process players and build salary map from players.slot (source of truth)
         const playersMap = new Map<string, Player>();
-        (playersResult.data || []).forEach((row: any) => {
+        const salariesMap = new Map<string, number>();
+        allPlayerRows.forEach((row: any) => {
           const player = mapPlayer(row);
           playersMap.set(player.id, player);
-        });
 
-        // Process rosters → salary map
-        const salariesMap = new Map<string, number>();
-        (rostersResult.data || []).forEach((row: any) => {
-          const roster = mapRegularSeasonRoster(row);
-          const activeSalary = roster.activeRoster.reduce((sum, playerId) => sum + (playersMap.get(playerId)?.salary || 0), 0);
-          const irSalary = roster.irSlots.reduce((sum, playerId) => sum + (playersMap.get(playerId)?.salary || 0), 0);
-          salariesMap.set(roster.teamId, activeSalary + irSalary);
+          // Salary counts for active, bench, and ir slots only (redshirt/international don't count)
+          const teamId = player.roster.teamId;
+          if (teamId && ['active', 'bench', 'ir'].includes(player.slot)) {
+            salariesMap.set(teamId, (salariesMap.get(teamId) || 0) + (player.salary || 0));
+          }
         });
         setTeamSalaries(salariesMap);
 
-        // Process fees
+        // Process fees — use sticky first apron + highest watermark second apron
         let franchiseTagDues = 0, redshirtDues = 0, activationDues = 0, firstApronFees = 0, secondApronPenalties = 0;
         (feesResult.data || []).forEach((row: any) => {
           const fees = mapTeamFees(row);
@@ -199,16 +196,16 @@ export function LeagueHome() {
           redshirtDues += fees.redshirtFees || 0;
           activationDues += fees.unredshirtFees || 0;
 
-          if (fees.feesLocked) {
-            firstApronFees += fees.firstApronFee || 0;
-            secondApronPenalties += fees.secondApronPenalty || 0;
-          } else {
-            const teamSalary = salariesMap.get(fees.teamId) || 0;
-            if (teamSalary > 195_000_000) firstApronFees += 50;
-            if (teamSalary > 225_000_000) {
-              secondApronPenalties += Math.ceil((teamSalary - 225_000_000) / 1_000_000) * 2;
-            }
-          }
+          // Sticky first apron: DB value if charged, otherwise check current salary
+          const teamSalary = salariesMap.get(fees.teamId) || 0;
+          const dbFirstApron = fees.firstApronFee || 0;
+          const dynamicFirstApron = teamSalary > 195_000_000 ? 50 : 0;
+          firstApronFees += dbFirstApron > 0 ? dbFirstApron : dynamicFirstApron;
+
+          // Highest watermark second apron
+          const dbPenalty = fees.secondApronPenalty || 0;
+          const dynamicPenalty = teamSalary > 225_000_000 ? Math.ceil((teamSalary - 225_000_000) / 1_000_000) * 2 : 0;
+          secondApronPenalties += Math.max(dbPenalty, dynamicPenalty);
         });
 
         const totalPrizeFees = franchiseTagDues + redshirtDues + activationDues + firstApronFees + secondApronPenalties;

@@ -55,6 +55,7 @@ export function mapPlayer(row: any): Player {
     position: row.position,
     salary: row.salary,
     nbaTeam: row.nba_team,
+    slot: row.slot || 'active',
     roster: {
       leagueId: row.league_id,
       teamId: row.team_id,

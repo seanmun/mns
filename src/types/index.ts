@@ -141,6 +141,8 @@ export interface PlayerKeeper {
   derivedBaseRound?: number;   // 1-13, computed from rules
 }
 
+export type PlayerSlot = 'active' | 'ir' | 'redshirt' | 'international' | 'bench';
+
 export interface Player {
   id: string;
   fantraxId: string;
@@ -148,6 +150,7 @@ export interface Player {
   position: string;
   salary: number;
   nbaTeam: string;
+  slot: PlayerSlot;
   roster: PlayerRoster;
   keeper?: PlayerKeeper;
 }

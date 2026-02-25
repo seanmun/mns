@@ -8,9 +8,9 @@ import { useProjectedStats } from '../hooks/useProjectedStats';
 import { usePreviousStats } from '../hooks/usePreviousStats';
 import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
 import { PlayerModal } from '../components/PlayerModal';
-import type { Player, RegularSeasonRoster } from '../types';
+import type { Player } from '../types';
 import { DEFAULT_ROSTER_SETTINGS } from '../types';
-import { mapPlayer, mapRegularSeasonRoster } from '../lib/mappers';
+import { mapPlayer } from '../lib/mappers';
 import { assignPlayerToTeam, dropPlayerFromTeam } from '../lib/rosterOps';
 
 type SortColumn = 'score' | 'salary' | 'points' | 'rebounds' | 'assists' | 'steals' | 'blocks' | 'fgPercent' | 'ftPercent' | 'threePointMade';
@@ -19,11 +19,8 @@ export function FreeAgents() {
   const { leagueId } = useParams<{ leagueId: string }>();
   const { user } = useAuth();
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
-  const [ownedPlayerIds, setOwnedPlayerIds] = useState<Set<string>>(new Set());
-  const [seasonYear, setSeasonYear] = useState<number>(2025);
   const [maxActive, setMaxActive] = useState<number>(DEFAULT_ROSTER_SETTINGS.maxActive);
   const [userTeamId, setUserTeamId] = useState<string | null>(null);
-  const [userRoster, setUserRoster] = useState<RegularSeasonRoster | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [selectedPlayerIndex, setSelectedPlayerIndex] = useState<number>(-1);
@@ -43,17 +40,15 @@ export function FreeAgents() {
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
-      // Toggle direction
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      // New column, default to descending (highest first)
       setSortColumn(column);
       setSortDirection('desc');
     }
   };
 
   const handleToggleWatchList = async (e: React.MouseEvent, playerFantraxId: string) => {
-    e.stopPropagation(); // Prevent row click from opening modal
+    e.stopPropagation();
 
     if (!user?.email || !leagueId || !userTeamId) {
       toast.error('Please sign in to add players to your watchlist');
@@ -75,7 +70,7 @@ export function FreeAgents() {
     }
   };
 
-  // Fetch league to get seasonYear
+  // Fetch league to get roster settings
   useEffect(() => {
     const fetchLeague = async () => {
       if (!leagueId) return;
@@ -89,7 +84,6 @@ export function FreeAgents() {
 
         if (error) throw error;
         if (data) {
-          setSeasonYear(data.season_year);
           setMaxActive(data.roster?.maxActive ?? DEFAULT_ROSTER_SETTINGS.maxActive);
         }
       } catch (error) {
@@ -128,11 +122,10 @@ export function FreeAgents() {
     fetchUserTeam();
   }, [leagueId, user]);
 
-  // Load all players and regular season rosters with real-time updates
+  // Load all players with real-time updates
   useEffect(() => {
-    if (!leagueId || !seasonYear) return;
+    if (!leagueId) return;
 
-    // Load all players for this league
     const loadPlayers = async () => {
       try {
         const { data: rows = [], error: playersErr } = await supabase
@@ -140,63 +133,29 @@ export function FreeAgents() {
           .select('*')
           .eq('league_id', leagueId);
         if (playersErr) throw playersErr;
-        const playerData = (rows || []).map(mapPlayer);
-        setAllPlayers(playerData);
+        setAllPlayers((rows || []).map(mapPlayer));
+        setLoading(false);
       } catch (error) {
         logger.error('Error loading players:', error);
+        setLoading(false);
       }
     };
 
     loadPlayers();
 
-    // Load regular season rosters initially
-    const loadRosters = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('regular_season_rosters')
-          .select('*')
-          .eq('league_id', leagueId)
-          .eq('season_year', seasonYear);
-
-        if (error) throw error;
-
-        const ownedIds = new Set<string>();
-        (data || []).forEach((row: any) => {
-          const roster = mapRegularSeasonRoster(row);
-          roster.activeRoster.forEach(id => ownedIds.add(id));
-          roster.irSlots.forEach(id => ownedIds.add(id));
-          roster.redshirtPlayers.forEach(id => ownedIds.add(id));
-          roster.internationalPlayers.forEach(id => ownedIds.add(id));
-
-          if (userTeamId && roster.teamId === userTeamId) {
-            setUserRoster(roster);
-          }
-        });
-
-        setOwnedPlayerIds(ownedIds);
-        setLoading(false);
-      } catch (error) {
-        logger.error('Error loading rosters:', error);
-        setLoading(false);
-      }
-    };
-
-    loadRosters();
-
-    // Set up real-time listener for regular season rosters
+    // Real-time listener on players table — catches pickups, drops, trades
     const channel = supabase
-      .channel('regular_season_rosters_changes')
+      .channel('fa-players-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'regular_season_rosters',
+          table: 'players',
           filter: `league_id=eq.${leagueId}`,
         },
         () => {
-          // Reload rosters on any change
-          loadRosters();
+          loadPlayers();
         }
       )
       .subscribe();
@@ -204,12 +163,11 @@ export function FreeAgents() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [leagueId, seasonYear, userTeamId]);
+  }, [leagueId]);
 
-  // Apply search and sorting to free agents
+  // Free agents = players with no team_id
   const freeAgents = useMemo(() => {
-    // Filter out owned players (those in regularSeasonRosters)
-    let agents = allPlayers.filter(player => !ownedPlayerIds.has(player.id));
+    let agents = allPlayers.filter(player => !player.roster.teamId);
 
     // Apply search filter
     if (searchTerm.trim()) {
@@ -278,7 +236,17 @@ export function FreeAgents() {
 
       return sortDirection === 'desc' ? valueB - valueA : valueA - valueB;
     });
-  }, [allPlayers, ownedPlayerIds, projectedStats, sortColumn, sortDirection, searchTerm]);
+  }, [allPlayers, projectedStats, sortColumn, sortDirection, searchTerm]);
+
+  // User's team active players (for roster count and drop selection)
+  const userTeamActivePlayers = useMemo(() => {
+    if (!userTeamId) return [];
+    return allPlayers.filter(p =>
+      p.roster.teamId === userTeamId && (p.slot === 'active' || p.slot === 'bench')
+    );
+  }, [allPlayers, userTeamId]);
+
+  const userTeamActiveCount = userTeamActivePlayers.length;
 
   const formatSalary = (salary: number) => {
     return `$${(salary / 1_000_000).toFixed(2)}M`;
@@ -320,7 +288,7 @@ export function FreeAgents() {
   };
 
   const handleAddPlayer = (player: Player) => {
-    if (!userRoster || !userTeamId) {
+    if (!userTeamId) {
       toast.error('You must be a team owner to add players');
       return;
     }
@@ -328,25 +296,23 @@ export function FreeAgents() {
   };
 
   const handleConfirmAdd = async () => {
-    if (!addingPlayer || !userRoster || !userTeamId || !leagueId || processing) return;
+    if (!addingPlayer || !userTeamId || !leagueId || processing) return;
 
     try {
       setProcessing(true);
 
       // If roster is at max, must drop a player first
-      if (userRoster.activeRoster.length >= maxActive) {
+      if (userTeamActiveCount >= maxActive) {
         if (!playerToDrop) {
           toast.error('You must select a player to drop');
           setProcessing(false);
           return;
         }
 
-        // Drop the selected player (updates players.team_id + regular_season_rosters)
         const dropResult = await dropPlayerFromTeam({
           playerId: playerToDrop,
           teamId: userTeamId,
           leagueId,
-          updatedBy: user?.email || 'unknown',
         });
 
         if (!dropResult.success) {
@@ -356,13 +322,12 @@ export function FreeAgents() {
         }
       }
 
-      // Add the new player (updates players.team_id + regular_season_rosters)
+      // Add the new player
       const addResult = await assignPlayerToTeam({
         playerId: addingPlayer.id,
         teamId: userTeamId,
         leagueId,
-        slot: 'active_roster',
-        updatedBy: user?.email || 'unknown',
+        slot: 'active',
       });
 
       if (!addResult.success) {
@@ -381,14 +346,6 @@ export function FreeAgents() {
       setProcessing(false);
     }
   };
-
-  // Get active roster players for drop selection
-  const activeRosterPlayers = useMemo(() => {
-    if (!userRoster) return [];
-    return userRoster.activeRoster
-      .map(playerId => allPlayers.find(p => p.id === playerId))
-      .filter((p): p is Player => p !== undefined);
-  }, [userRoster, allPlayers]);
 
   if (loading) {
     return (
@@ -605,19 +562,17 @@ export function FreeAgents() {
               </div>
 
               {/* Roster Status */}
-              {userRoster && (
-                <div className="mb-6">
-                  <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
-                    <div className="text-sm text-gray-400">Active Roster</div>
-                    <div className={`text-2xl font-bold ${userRoster.activeRoster.length >= maxActive ? 'text-pink-400' : 'text-white'}`}>
-                      {userRoster.activeRoster.length}/{maxActive}
-                    </div>
+              <div className="mb-6">
+                <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                  <div className="text-sm text-gray-400">Active Roster</div>
+                  <div className={`text-2xl font-bold ${userTeamActiveCount >= maxActive ? 'text-pink-400' : 'text-white'}`}>
+                    {userTeamActiveCount}/{maxActive}
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Drop Player Selection */}
-              {userRoster && userRoster.activeRoster.length >= 13 && (
+              {userTeamActiveCount >= maxActive && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-white mb-3">
                     Select a Player to Drop
@@ -626,7 +581,7 @@ export function FreeAgents() {
                     Your active roster is full. You must drop a player to add {addingPlayer.name}.
                   </p>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {activeRosterPlayers.map((player) => (
+                    {userTeamActivePlayers.map((player) => (
                       <label
                         key={player.id}
                         className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -668,7 +623,7 @@ export function FreeAgents() {
                 </button>
                 <button
                   onClick={handleConfirmAdd}
-                  disabled={processing || (userRoster !== null && userRoster.activeRoster.length >= 13 && playerToDrop === null)}
+                  disabled={processing || (userTeamActiveCount >= maxActive && playerToDrop === null)}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {processing ? 'Adding...' : 'Confirm Add'}

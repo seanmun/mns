@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { supabase } from '../lib/supabase';
+import { supabase, fetchAllRows } from '../lib/supabase';
 import { logger } from '../lib/logger';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { AdminRosterManagement } from '../components/AdminRosterManagement';
 import { AdminMatchupManager } from '../components/AdminMatchupManager';
 import { ScheduleWeekPreview } from '../components/ScheduleWeekPreview';
 import { PlayoffConfig } from '../components/PlayoffConfig';
-import type { League, RegularSeasonRoster, TeamFees } from '../types';
+import type { League, TeamFees } from '../types';
 import { LEAGUE_PHASE_ORDER, LEAGUE_PHASE_LABELS } from '../types';
 import { getNextPhase } from '../lib/phaseGating';
 import { generateWeeks, analyzeSchedule } from '../lib/scheduleUtils';
@@ -54,6 +54,18 @@ export function AdminLeague() {
   const [combineCup, setCombineCup] = useState(false);
   const [combineAllStar, setCombineAllStar] = useState(false);
   const [extendFirstWeek, setExtendFirstWeek] = useState(false);
+
+  // Fee management state
+  type FeeTeamInfo = { teamId: string; teamName: string; salary: number; firstApronFee: number; secondApronPenalty: number; feesLocked: boolean; tradeDelta: number };
+  const [feeTeams, setFeeTeams] = useState<FeeTeamInfo[]>([]);
+  const [feeTeamsLoading, setFeeTeamsLoading] = useState(false);
+  const [capPeaks, setCapPeaks] = useState<Map<string, string>>(new Map());
+
+  // Salary cap trade state
+  const [capTradeTeamA, setCapTradeTeamA] = useState('');
+  const [capTradeTeamB, setCapTradeTeamB] = useState('');
+  const [capTradeAmount, setCapTradeAmount] = useState(0);
+  const [capTradeProcessing, setCapTradeProcessing] = useState(false);
 
   // Build combined weeks config from checkbox state
   const combinedWeeks = useMemo((): CombinedWeekConfig[] => {
@@ -367,6 +379,149 @@ export function AdminLeague() {
     setSelectedLeague(prev => prev ? { ...prev, leaguePhase: prevPhase } : null);
   };
 
+  // Load team fee overview for the fee management section
+  const loadFeeTeams = async () => {
+    if (!selectedLeague) return;
+    setFeeTeamsLoading(true);
+    try {
+      const [teamsResult, playersRows, feesResult] = await Promise.all([
+        supabase.from('teams').select('id, name, cap_adjustments').eq('league_id', selectedLeague.id),
+        fetchAllRows('players', '*', (q: any) => q.eq('league_id', selectedLeague.id)),
+        supabase.from('team_fees').select('*').eq('league_id', selectedLeague.id).eq('season_year', selectedLeague.seasonYear),
+      ]);
+
+      if (teamsResult.error) throw teamsResult.error;
+      const allPlayers = playersRows.map(mapPlayer);
+      const feesMap = new Map<string, any>();
+      for (const f of (feesResult.data || [])) feesMap.set(f.team_id, f);
+
+      const result: FeeTeamInfo[] = (teamsResult.data || []).map((t: any) => {
+        let salary = 0;
+        allPlayers
+          .filter(p => p.roster.teamId === t.id && ['active', 'bench', 'ir'].includes(p.slot))
+          .forEach(p => { salary += p.salary || 0; });
+
+        const fees = feesMap.get(t.id);
+        return {
+          teamId: t.id,
+          teamName: t.name,
+          salary,
+          firstApronFee: fees?.first_apron_fee || 0,
+          secondApronPenalty: fees?.second_apron_penalty || 0,
+          feesLocked: fees?.fees_locked || false,
+          tradeDelta: t.cap_adjustments?.tradeDelta || 0,
+        };
+      });
+
+      result.sort((a, b) => b.salary - a.salary);
+      setFeeTeams(result);
+    } catch (err) {
+      logger.error('Failed to load fee teams:', err);
+      toast.error('Failed to load team fee data');
+    } finally {
+      setFeeTeamsLoading(false);
+    }
+  };
+
+  // Apply a cap peak to update fees (watermark logic)
+  const handleApplyCapPeak = async (teamId: string, teamName: string) => {
+    if (!selectedLeague) return;
+    const peakStr = capPeaks.get(teamId);
+    if (!peakStr) return;
+    const peak = parseFloat(peakStr) * 1_000_000;
+    if (isNaN(peak) || peak <= 0) {
+      toast.error('Enter a valid peak salary in $M');
+      return;
+    }
+
+    const feesId = `${selectedLeague.id}_${teamId}_${selectedLeague.seasonYear}`;
+    try {
+      const { data: existing } = await supabase.from('team_fees').select('*').eq('id', feesId).maybeSingle();
+
+      // Watermark: never reduce existing fees
+      const existingFirstApron = existing?.first_apron_fee || 0;
+      const existingPenalty = existing?.second_apron_penalty || 0;
+
+      const newFirstApron = Math.max(existingFirstApron, peak > 195_000_000 ? 50 : 0);
+      const overByM = peak > 225_000_000 ? Math.ceil((peak - 225_000_000) / 1_000_000) : 0;
+      const newPenalty = Math.max(existingPenalty, overByM * 2);
+
+      const franchiseTagFees = existing?.franchise_tag_fees || 0;
+      const redshirtFees = existing?.redshirt_fees || 0;
+      const unredshirtFees = existing?.unredshirt_fees || 0;
+      const totalFees = franchiseTagFees + redshirtFees + unredshirtFees + newFirstApron + newPenalty;
+
+      if (existing) {
+        const { error } = await supabase.from('team_fees')
+          .update({ first_apron_fee: newFirstApron, second_apron_penalty: newPenalty, total_fees: totalFees })
+          .eq('id', feesId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('team_fees').insert({
+          id: feesId, league_id: selectedLeague.id, team_id: teamId, season_year: selectedLeague.seasonYear,
+          first_apron_fee: newFirstApron, second_apron_penalty: newPenalty, total_fees: totalFees,
+        });
+        if (error) throw error;
+      }
+
+      const changes: string[] = [];
+      if (newFirstApron > existingFirstApron) changes.push('First Apron: $50');
+      if (newPenalty > existingPenalty) changes.push(`Second Apron: $${newPenalty} (was $${existingPenalty})`);
+      if (changes.length === 0) changes.push('No fee changes (peak below existing watermark)');
+
+      toast.success(`${teamName} cap peak applied: $${(peak / 1_000_000).toFixed(1)}M\n${changes.join(', ')}`);
+      setCapPeaks(prev => { const n = new Map(prev); n.delete(teamId); return n; });
+      loadFeeTeams();
+    } catch (err) {
+      logger.error('Failed to apply cap peak:', err);
+      toast.error(`Failed to apply cap peak for ${teamName}`);
+    }
+  };
+
+  // Execute salary cap trade between two teams
+  const handleCapTrade = async () => {
+    if (!selectedLeague || !capTradeTeamA || !capTradeTeamB || capTradeAmount === 0) return;
+    if (capTradeTeamA === capTradeTeamB) {
+      toast.error('Cannot trade cap space with the same team');
+      return;
+    }
+
+    const amountRaw = capTradeAmount * 1_000_000;
+    const teamAInfo = feeTeams.find(t => t.teamId === capTradeTeamA);
+    const teamBInfo = feeTeams.find(t => t.teamId === capTradeTeamB);
+    if (!teamAInfo || !teamBInfo) return;
+
+    const newDeltaA = teamAInfo.tradeDelta - amountRaw;
+    const newDeltaB = teamBInfo.tradeDelta + amountRaw;
+
+    const confirmed = confirm(
+      `Salary Cap Trade:\n\n` +
+      `${teamAInfo.teamName}: ${teamAInfo.tradeDelta / 1_000_000 >= 0 ? '+' : ''}${(teamAInfo.tradeDelta / 1_000_000).toFixed(0)}M → ${newDeltaA / 1_000_000 >= 0 ? '+' : ''}${(newDeltaA / 1_000_000).toFixed(0)}M\n` +
+      `${teamBInfo.teamName}: ${teamBInfo.tradeDelta / 1_000_000 >= 0 ? '+' : ''}${(teamBInfo.tradeDelta / 1_000_000).toFixed(0)}M → ${newDeltaB / 1_000_000 >= 0 ? '+' : ''}${(newDeltaB / 1_000_000).toFixed(0)}M\n\n` +
+      `Proceed?`
+    );
+    if (!confirmed) return;
+
+    setCapTradeProcessing(true);
+    try {
+      const [resultA, resultB] = await Promise.all([
+        supabase.from('teams').update({ cap_adjustments: { tradeDelta: newDeltaA } }).eq('id', capTradeTeamA),
+        supabase.from('teams').update({ cap_adjustments: { tradeDelta: newDeltaB } }).eq('id', capTradeTeamB),
+      ]);
+      if (resultA.error) throw resultA.error;
+      if (resultB.error) throw resultB.error;
+
+      toast.success(`Cap trade executed: $${Math.abs(capTradeAmount)}M transferred`);
+      setCapTradeAmount(0);
+      loadFeeTeams(); // refresh
+    } catch (err) {
+      logger.error('Failed to execute cap trade:', err);
+      toast.error('Failed to execute salary cap trade');
+    } finally {
+      setCapTradeProcessing(false);
+    }
+  };
+
   const handleLockFees = async () => {
     if (!selectedLeague) return;
 
@@ -384,54 +539,32 @@ export function AdminLeague() {
     try {
       setStartingSeasonProcessing(true);
 
-      const { data: rostersRows, error: rostersErr } = await supabase
-        .from('regular_season_rosters')
-        .select('*')
-        .eq('league_id', selectedLeague.id)
-        .eq('season_year', selectedLeague.seasonYear);
-      if (rostersErr) throw rostersErr;
-
-      const { data: playersRows = [], error: playersErr } = await supabase
-        .from('players')
-        .select('*')
+      // Load teams and players for this league
+      const { data: teamsRows, error: teamsErr } = await supabase
+        .from('teams')
+        .select('id, name')
         .eq('league_id', selectedLeague.id);
-      if (playersErr) throw playersErr;
-      const playersMap = new Map(
-        (playersRows || []).map(row => [row.id, mapPlayer(row)])
-      );
+      if (teamsErr) throw teamsErr;
+
+      const playersRows = await fetchAllRows('players', '*', (q: any) => q.eq('league_id', selectedLeague.id));
+      const allPlayers = playersRows.map(mapPlayer);
 
       let teamsProcessed = 0;
       const errors: string[] = [];
 
-      for (const rosterRow of (rostersRows || [])) {
-        const roster: RegularSeasonRoster = {
-          id: rosterRow.id,
-          teamId: rosterRow.team_id,
-          leagueId: rosterRow.league_id,
-          seasonYear: rosterRow.season_year,
-          activeRoster: rosterRow.active_roster || [],
-          irSlots: rosterRow.ir_slots || [],
-          redshirtPlayers: rosterRow.redshirt_players || [],
-          internationalPlayers: rosterRow.international_players || [],
-          benchedPlayers: rosterRow.benched_players || [],
-          isLegalRoster: rosterRow.is_legal_roster ?? true,
-          lastUpdated: rosterRow.updated_at ? new Date(rosterRow.updated_at).getTime() : Date.now(),
-          updatedBy: rosterRow.updated_by || '',
-        };
-
+      for (const team of (teamsRows || [])) {
         try {
+          // Sum salary from active + bench + ir players on this team
           let totalSalary = 0;
-          [...roster.activeRoster, ...roster.irSlots].forEach(playerId => {
-            const player = playersMap.get(playerId);
-            if (player) totalSalary += player.salary || 0;
-          });
+          allPlayers
+            .filter(p => p.roster.teamId === team.id && ['active', 'bench', 'ir'].includes(p.slot))
+            .forEach(p => { totalSalary += p.salary || 0; });
 
-          const firstApronFee = totalSalary > 195_000_000 ? 50 : 0;
           const overBy = Math.max(0, totalSalary - 225_000_000);
           const overByM = Math.ceil(overBy / 1_000_000);
-          const secondApronPenalty = overByM * 2;
+          const currentPenalty = overByM * 2;
 
-          const feesId = `${selectedLeague.id}_${roster.teamId}_${selectedLeague.seasonYear}`;
+          const feesId = `${selectedLeague.id}_${team.id}_${selectedLeague.seasonYear}`;
 
           const { data: existingFeesRows } = await supabase
             .from('team_fees')
@@ -452,9 +585,18 @@ export function AdminLeague() {
             } as TeamFees;
           }
 
+          // Sticky: preserve existing first apron charge; only add for newly over teams
+          const firstApronFee = (existingFees?.firstApronFee && existingFees.firstApronFee > 0)
+            ? existingFees.firstApronFee
+            : (totalSalary > 195_000_000 ? 50 : 0);
+
+          // Highest watermark: never drop below previously stored penalty
+          const secondApronPenalty = Math.max(existingFees?.secondApronPenalty || 0, currentPenalty);
+
           const franchiseTagFees = existingFees?.franchiseTagFees || 0;
           const redshirtFees = existingFees?.redshirtFees || 0;
-          const totalFees = franchiseTagFees + redshirtFees + firstApronFee + secondApronPenalty;
+          const unredshirtFees = existingFees ? (existingFeesRows![0].unredshirt_fees || 0) : 0;
+          const totalFees = franchiseTagFees + redshirtFees + unredshirtFees + firstApronFee + secondApronPenalty;
 
           const { error: updateErr } = await supabase
             .from('team_fees')
@@ -463,16 +605,15 @@ export function AdminLeague() {
               second_apron_penalty: secondApronPenalty,
               total_fees: totalFees,
               fees_locked: true,
-              locked_at: Date.now(),
-              locked_salary: totalSalary,
+              locked_at: new Date().toISOString(),
             })
             .eq('id', feesId);
           if (updateErr) throw updateErr;
 
           teamsProcessed++;
         } catch (error) {
-          logger.error(`Error processing team ${roster.teamId}:`, error);
-          errors.push(`Team ${roster.teamId}: ${error}`);
+          logger.error(`Error processing team ${team.id}:`, error);
+          errors.push(`Team ${team.name}: ${error}`);
         }
       }
 
@@ -877,6 +1018,157 @@ export function AdminLeague() {
                 onChange={(field, value) => setEditForm(prev => ({ ...prev, [field]: value }))}
               />
             </div>
+
+            {/* Fee Management */}
+            {selectedLeague.leaguePhase === 'regular_season' && (
+              <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Fee Management</h2>
+                  <button
+                    onClick={loadFeeTeams}
+                    disabled={feeTeamsLoading}
+                    className="px-3 py-1.5 text-xs text-green-400 border border-green-400/30 rounded hover:bg-green-400/10 transition-colors disabled:opacity-50"
+                  >
+                    {feeTeamsLoading ? 'Loading...' : feeTeams.length > 0 ? 'Refresh' : 'Load Teams'}
+                  </button>
+                </div>
+
+                {feeTeams.length > 0 && (
+                  <div className="space-y-4">
+                    {/* Team fees overview table */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-sm font-medium text-gray-300">Team Fees Overview</h3>
+                        <span className="text-xs text-yellow-400/60 border border-yellow-400/20 rounded px-1.5 py-0.5">BETA</span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-800 text-left">
+                              <th className="pb-2 text-gray-500 font-medium">Team</th>
+                              <th className="pb-2 text-gray-500 font-medium text-right">Salary</th>
+                              <th className="pb-2 text-gray-500 font-medium text-center">1st Apron</th>
+                              <th className="pb-2 text-gray-500 font-medium text-right">2nd Apron</th>
+                              <th className="pb-2 text-gray-500 font-medium text-right">Cap Peak ($M)</th>
+                              <th className="pb-2 text-gray-500 font-medium text-right"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {feeTeams.map(ft => (
+                              <tr key={ft.teamId} className="border-b border-gray-800/50">
+                                <td className="py-2 text-white">{ft.teamName}</td>
+                                <td className={`py-2 text-right ${ft.salary > 195_000_000 ? 'text-yellow-400' : 'text-gray-300'}`}>
+                                  ${(ft.salary / 1_000_000).toFixed(1)}M
+                                </td>
+                                <td className="py-2 text-center">
+                                  {ft.firstApronFee > 0 ? (
+                                    <span className="text-yellow-400 font-medium">${ft.firstApronFee}</span>
+                                  ) : (
+                                    <span className="text-gray-600">—</span>
+                                  )}
+                                </td>
+                                <td className="py-2 text-right">
+                                  {ft.secondApronPenalty > 0 ? (
+                                    <span className="text-orange-400 font-medium">${ft.secondApronPenalty}</span>
+                                  ) : (
+                                    <span className="text-gray-600">—</span>
+                                  )}
+                                </td>
+                                <td className="py-2 text-right">
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    placeholder={(ft.salary / 1_000_000).toFixed(1)}
+                                    value={capPeaks.get(ft.teamId) || ''}
+                                    onChange={(e) => setCapPeaks(prev => new Map(prev).set(ft.teamId, e.target.value))}
+                                    className="w-24 px-2 py-1 text-right bg-[#0a0a0a] border border-gray-700 rounded text-white text-xs focus:outline-none focus:border-green-400"
+                                  />
+                                </td>
+                                <td className="py-2 text-right">
+                                  {capPeaks.get(ft.teamId) && (
+                                    <button
+                                      onClick={() => handleApplyCapPeak(ft.teamId, ft.teamName)}
+                                      className="px-2 py-1 text-xs text-green-400 border border-green-400/30 rounded hover:bg-green-400/10 transition-colors"
+                                    >
+                                      Apply
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-2">
+                        Enter a team's peak salary in $M to update fees. Watermark logic: fees only go up, never down.
+                      </p>
+                    </div>
+
+                    {/* Salary Cap Trade */}
+                    <div className="border-t border-gray-800 pt-4">
+                      <h3 className="text-sm font-medium text-gray-300 mb-3">Salary Cap Trade</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Team A (gives cap)</label>
+                          <select
+                            value={capTradeTeamA}
+                            onChange={(e) => setCapTradeTeamA(e.target.value)}
+                            className={inputClass}
+                          >
+                            <option value="">Select team</option>
+                            {feeTeams.map(ft => (
+                              <option key={ft.teamId} value={ft.teamId}>
+                                {ft.teamName} ({ft.tradeDelta >= 0 ? '+' : ''}{(ft.tradeDelta / 1_000_000).toFixed(0)}M)
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Team B (receives cap)</label>
+                          <select
+                            value={capTradeTeamB}
+                            onChange={(e) => setCapTradeTeamB(e.target.value)}
+                            className={inputClass}
+                          >
+                            <option value="">Select team</option>
+                            {feeTeams.filter(ft => ft.teamId !== capTradeTeamA).map(ft => (
+                              <option key={ft.teamId} value={ft.teamId}>
+                                {ft.teamName} ({ft.tradeDelta >= 0 ? '+' : ''}{(ft.tradeDelta / 1_000_000).toFixed(0)}M)
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Amount ($M)</label>
+                          <input
+                            type="number"
+                            value={capTradeAmount}
+                            onChange={(e) => setCapTradeAmount(parseInt(e.target.value) || 0)}
+                            min={1}
+                            max={40}
+                            className={inputClass}
+                          />
+                        </div>
+                        <button
+                          onClick={handleCapTrade}
+                          disabled={capTradeProcessing || !capTradeTeamA || !capTradeTeamB || capTradeAmount === 0}
+                          className="px-4 py-2.5 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {capTradeProcessing ? 'Processing...' : 'Execute Cap Trade'}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-2">
+                        Positive amount = Team A gives cap space to Team B. Both teams' trade delta will adjust accordingly.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {feeTeams.length === 0 && !feeTeamsLoading && (
+                  <p className="text-sm text-gray-600">Click "Load Teams" to view fee status and manage salary cap trades.</p>
+                )}
+              </div>
+            )}
 
             {/* Save */}
             <button

@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProjectedStats } from '../hooks/useProjectedStats';
 import { MATCHUP_CATEGORIES } from '../types';
 import type { Matchup, Player, RegularSeasonRoster, ProjectedStats } from '../types';
-import { mapMatchup, mapPlayer, mapRegularSeasonRoster } from '../lib/mappers';
+import { mapMatchup, mapPlayer } from '../lib/mappers';
 
 type MatchupView = 'totals' | 'away' | 'home';
 type DayView = 'week' | string; // 'week' for week totals, or 'YYYY-MM-DD' for a specific day
@@ -360,17 +360,8 @@ export function MatchupDetail() {
           if (myTeam) setMyTeamId(myTeam.id);
         }
 
-        // Fetch both teams' rosters
-        const homeRosterId = `${leagueId}_${current.homeTeamId}`;
-        const awayRosterId = `${leagueId}_${current.awayTeamId}`;
-
-        const [homeRes, awayRes] = await Promise.all([
-          supabase.from('regular_season_rosters').select('*').eq('id', homeRosterId).maybeSingle(),
-          supabase.from('regular_season_rosters').select('*').eq('id', awayRosterId).maybeSingle(),
-        ]);
-
-        if (homeRes.data) setHomeRoster(mapRegularSeasonRoster(homeRes.data));
-        if (awayRes.data) setAwayRoster(mapRegularSeasonRoster(awayRes.data));
+        // Build rosters from players data (players.slot is source of truth)
+        // We'll do this after fetching players below
 
         // Fetch league weeks to get date range for this matchup week
         const { data: weekData } = await supabase
@@ -401,6 +392,28 @@ export function MatchupDetail() {
           playerMap.set(row.id, mapPlayer(row));
         }
         setPlayers(playerMap);
+
+        // Build rosters from players.slot (source of truth)
+        const buildRosterFromPlayers = (teamId: string): RegularSeasonRoster => {
+          const teamPlayers = Array.from(playerMap.values()).filter(p => p.roster.teamId === teamId);
+          return {
+            id: `${leagueId}_${teamId}`,
+            leagueId: leagueId!,
+            teamId,
+            seasonYear: current.seasonYear,
+            activeRoster: teamPlayers.filter(p => p.slot === 'active' || p.slot === 'bench').map(p => p.id),
+            irSlots: teamPlayers.filter(p => p.slot === 'ir').map(p => p.id),
+            redshirtPlayers: teamPlayers.filter(p => p.slot === 'redshirt').map(p => p.id),
+            internationalPlayers: teamPlayers.filter(p => p.slot === 'international').map(p => p.id),
+            benchedPlayers: teamPlayers.filter(p => p.slot === 'bench').map(p => p.id),
+            isLegalRoster: true,
+            lastUpdated: Date.now(),
+            updatedBy: '',
+          };
+        };
+
+        setHomeRoster(buildRosterFromPlayers(current.homeTeamId));
+        setAwayRoster(buildRosterFromPlayers(current.awayTeamId));
       } catch (err) {
         console.error('Error fetching matchup detail:', err);
       } finally {

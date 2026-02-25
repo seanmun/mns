@@ -1,17 +1,17 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
 import { dropPlayerFromTeam, movePlayerSlot, swapPlayerSlots } from '../lib/rosterOps';
-import type { RegularSeasonRoster, Player, Team, League, RosterSummary, TeamFees } from '../types';
+import type { Player, Team, League, RosterSummary, TeamFees, PlayerSlot } from '../types';
 import { DEFAULT_ROSTER_SETTINGS } from '../types';
 import { useGames } from '../hooks/useGames';
 import { CapThermometer } from './CapThermometer';
 import { SummaryCard } from './SummaryCard';
 
 interface RegularSeasonRosterViewProps {
-  regularSeasonRoster: RegularSeasonRoster;
-  allPlayers: Player[];
+  teamPlayers: Player[];
   team: Team;
   teamFees: TeamFees | null;
   isOwner: boolean;
@@ -19,12 +19,28 @@ interface RegularSeasonRosterViewProps {
   userEmail: string;
 }
 
-export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team, teamFees, isOwner, league, userEmail }: RegularSeasonRosterViewProps) {
+export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, league, userEmail: _userEmail }: RegularSeasonRosterViewProps) {
   const rosterSettings = league.roster ?? DEFAULT_ROSTER_SETTINGS;
+  const queryClient = useQueryClient();
   const [processing, setProcessing] = useState(false);
   const [swappingIR, setSwappingIR] = useState(false);
   const [playerToMoveToIR, setPlayerToMoveToIR] = useState<string | null>(null);
   const [mobileCapTab, setMobileCapTab] = useState(0);
+
+  // Optimistic cache update — instantly move player in the UI
+  const optimisticUpdateSlot = (playerId: string, newSlot: PlayerSlot) => {
+    queryClient.setQueryData(['teamPlayers', league.id, team.id], (old: Player[] | undefined) => {
+      if (!old) return old;
+      return old.map(p => p.id === playerId ? { ...p, slot: newSlot } : p);
+    });
+  };
+
+  const optimisticRemovePlayer = (playerId: string) => {
+    queryClient.setQueryData(['teamPlayers', league.id, team.id], (old: Player[] | undefined) => {
+      if (!old) return old;
+      return old.filter(p => p.id !== playerId);
+    });
+  };
 
   // Date navigation for game info
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -46,62 +62,45 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
 
   const gameCount = Math.floor(teamGameMap.size / 2);
 
-  // Create player map for quick lookups
-  const playersMap = useMemo(() => {
-    return new Map(allPlayers.map(p => [p.id, p]));
-  }, [allPlayers]);
+  // Build roster sections from players.slot
+  const { startingPlayers, benchPlayers, activePlayers, irPlayers, redshirtPlayers, internationalPlayers } = useMemo(() => {
+    const active: Player[] = [];
+    const ir: Player[] = [];
+    const redshirt: Player[] = [];
+    const international: Player[] = [];
+    const bench: Player[] = [];
 
-  // Get players for each roster section (track orphaned IDs)
-  const { activePlayers, orphanedIds } = useMemo(() => {
-    const resolved: Player[] = [];
-    const orphaned: string[] = [];
-
-    // Check active roster and build resolved list
-    for (const playerId of regularSeasonRoster.activeRoster) {
-      const player = playersMap.get(playerId);
-      if (player) {
-        resolved.push(player);
-      } else {
-        orphaned.push(playerId);
+    for (const p of teamPlayers) {
+      switch (p.slot) {
+        case 'ir': ir.push(p); break;
+        case 'redshirt': redshirt.push(p); break;
+        case 'international': international.push(p); break;
+        case 'bench': bench.push(p); break;
+        case 'active':
+        default: active.push(p); break;
       }
     }
 
-    // Also check other slots for orphans
-    for (const playerId of regularSeasonRoster.irSlots) {
-      if (!playersMap.has(playerId)) orphaned.push(playerId);
+    // Auto-split: if more than maxStarters have slot='active', treat overflow as bench
+    // This handles the case where CSV import left everyone as 'active'
+    if (active.length > rosterSettings.maxStarters) {
+      const sorted = [...active].sort((a, b) => (b.salary || 0) - (a.salary || 0));
+      const starters = sorted.slice(0, rosterSettings.maxStarters);
+      const overflow = sorted.slice(rosterSettings.maxStarters);
+      active.length = 0;
+      active.push(...starters);
+      bench.push(...overflow);
     }
-    for (const playerId of regularSeasonRoster.redshirtPlayers) {
-      if (!playersMap.has(playerId)) orphaned.push(playerId);
-    }
-    for (const playerId of regularSeasonRoster.internationalPlayers) {
-      if (!playersMap.has(playerId)) orphaned.push(playerId);
-    }
 
-    return { activePlayers: resolved, orphanedIds: orphaned };
-  }, [regularSeasonRoster.activeRoster, regularSeasonRoster.irSlots, regularSeasonRoster.redshirtPlayers, regularSeasonRoster.internationalPlayers, playersMap]);
-
-  // Bench is explicit — anyone in benchedPlayers is benched, the rest start
-  const benchedSet = useMemo(() => new Set(regularSeasonRoster.benchedPlayers), [regularSeasonRoster.benchedPlayers]);
-  const startingPlayers = activePlayers.filter(p => !benchedSet.has(p.id));
-  const benchPlayers = activePlayers.filter(p => benchedSet.has(p.id));
-
-  const irPlayers = useMemo(() => {
-    return regularSeasonRoster.irSlots
-      .map(playerId => playersMap.get(playerId))
-      .filter((p): p is Player => p !== undefined);
-  }, [regularSeasonRoster.irSlots, playersMap]);
-
-  const redshirtPlayers = useMemo(() => {
-    return regularSeasonRoster.redshirtPlayers
-      .map(playerId => playersMap.get(playerId))
-      .filter((p): p is Player => p !== undefined);
-  }, [regularSeasonRoster.redshirtPlayers, playersMap]);
-
-  const internationalPlayers = useMemo(() => {
-    return regularSeasonRoster.internationalPlayers
-      .map(playerId => playersMap.get(playerId))
-      .filter((p): p is Player => p !== undefined);
-  }, [regularSeasonRoster.internationalPlayers, playersMap]);
+    return {
+      startingPlayers: active,
+      benchPlayers: bench,
+      activePlayers: [...active, ...bench], // All cap-counting non-IR players
+      irPlayers: ir,
+      redshirtPlayers: redshirt,
+      internationalPlayers: international,
+    };
+  }, [teamPlayers, rosterSettings.maxStarters]);
 
   // Calculate total salary from active + IR players only
   const totalSalary = useMemo(() => {
@@ -121,16 +120,22 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
     const overBy = Math.max(0, totalSalary - 225_000_000);
     const overByM = Math.ceil(overBy / 1_000_000);
     const penaltyDues = overByM * 2;
-    const firstApronFee = totalSalary > 195_000_000 ? 50 : 0;
+
+    // Sticky first apron: if already charged in DB, keep it; otherwise check current salary
+    const firstApronFee = (teamFees?.firstApronFee && teamFees.firstApronFee > 0)
+      ? teamFees.firstApronFee
+      : (totalSalary > 195_000_000 ? 50 : 0);
 
     const franchiseTagDues = teamFees?.franchiseTagFees || 0;
     const redshirtDues = teamFees?.redshirtFees || 0;
     const activationDues = teamFees?.unredshirtFees || 0;
 
-    const lockedFirstApronFee = teamFees?.feesLocked ? teamFees.firstApronFee : firstApronFee;
-    const lockedPenaltyDues = teamFees?.feesLocked ? teamFees.secondApronPenalty : penaltyDues;
+    // Second apron penalty: highest watermark — max of locked value vs current dynamic
+    const lockedPenaltyDues = Math.max(teamFees?.secondApronPenalty || 0, penaltyDues);
 
-    const totalFees = franchiseTagDues + redshirtDues + activationDues + lockedFirstApronFee + lockedPenaltyDues;
+    // Use the watermark overByM for display consistency
+    const lockedOverByM = lockedPenaltyDues > 0 ? Math.ceil(lockedPenaltyDues / 2) : 0;
+    const totalFees = franchiseTagDues + redshirtDues + activationDues + firstApronFee + lockedPenaltyDues;
 
     return {
       keepersCount: activePlayers.length,
@@ -141,12 +146,12 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
       capBase: baseCap,
       capTradeDelta: tradeDelta,
       capEffective,
-      overSecondApronByM: overByM,
+      overSecondApronByM: lockedOverByM,
       penaltyDues: lockedPenaltyDues,
       franchiseTags: 0,
       franchiseTagDues,
       redshirtDues,
-      firstApronFee: lockedFirstApronFee,
+      firstApronFee: firstApronFee,
       activationDues,
       totalFees,
     };
@@ -156,40 +161,36 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
   const handleActivateRedshirt = async (playerId: string) => {
     if (!isOwner || processing) return;
 
-    const player = playersMap.get(playerId);
+    const player = teamPlayers.find(p => p.id === playerId);
     if (!player) return;
 
     const confirmed = confirm(
-      `Activate ${player.name} from redshirt?\n\n` +
-      `This will:\n` +
-      `- Add $25 activation fee\n` +
-      `- Move player to active roster\n\n` +
-      `Continue?`
+      `Activate ${player.name} from redshirt?\n\nThis will add a $25 activation fee.\n\nContinue?`
     );
 
     if (!confirmed) return;
 
+    optimisticUpdateSlot(playerId, 'active');
+
     try {
       setProcessing(true);
 
-      // Move redshirt → active via rosterOps
       const result = await movePlayerSlot({
         playerId,
-        teamId: regularSeasonRoster.teamId,
-        leagueId: regularSeasonRoster.leagueId,
-        fromSlot: 'redshirt_players',
-        toSlot: 'active_roster',
-        updatedBy: userEmail,
+        teamId: team.id,
+        leagueId: league.id,
+        toSlot: 'active',
       });
 
       if (!result.success) {
+        optimisticUpdateSlot(playerId, 'redshirt');
         toast.error(result.error || 'Failed to activate redshirt');
         setProcessing(false);
         return;
       }
 
       // Apply activation fee
-      const feesId = `${regularSeasonRoster.leagueId}_${regularSeasonRoster.teamId}_${regularSeasonRoster.seasonYear}`;
+      const feesId = `${league.id}_${team.id}_${league.seasonYear}`;
       const currentUnredshirtFees = teamFees?.unredshirtFees || 0;
       const currentTotalFees = teamFees?.totalFees || 0;
       const currentTransactions = teamFees?.feeTransactions || [];
@@ -214,44 +215,47 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
 
       if (feesError) throw feesError;
 
+      toast.success(`${player.name} activated from redshirt ($25 fee)`);
       setProcessing(false);
     } catch (error) {
+      optimisticUpdateSlot(playerId, 'redshirt');
       logger.error('Error activating redshirt:', error);
       toast.error(`Error activating player: ${error}`);
       setProcessing(false);
     }
   };
 
-  const handleDropPlayer = async (playerId: string, location: 'active' | 'ir') => {
+  const handleDropPlayer = async (playerId: string) => {
     if (!isOwner || processing) return;
 
-    const player = playersMap.get(playerId);
+    const player = teamPlayers.find(p => p.id === playerId);
     if (!player) return;
 
-    const confirmed = confirm(
-      `Drop ${player.name} from ${location === 'active' ? 'active roster' : 'IR'}?\n\n` +
-      `This will remove the player from your roster.\n\n` +
-      `Continue?`
-    );
+    const slotLabel = player.slot === 'ir' ? 'IR' : 'active roster';
+    const confirmed = confirm(`Drop ${player.name} from ${slotLabel}?`);
 
     if (!confirmed) return;
+
+    optimisticRemovePlayer(playerId);
 
     try {
       setProcessing(true);
 
-      // Drop via rosterOps (updates players.team_id + regular_season_rosters)
       const result = await dropPlayerFromTeam({
         playerId,
-        teamId: regularSeasonRoster.teamId,
-        leagueId: regularSeasonRoster.leagueId,
-        updatedBy: userEmail,
+        teamId: team.id,
+        leagueId: league.id,
       });
 
       if (!result.success) {
+        queryClient.invalidateQueries({ queryKey: ['teamPlayers', league.id, team.id] });
         toast.error(result.error || 'Failed to drop player');
+      } else {
+        toast.success(`${player.name} dropped`);
       }
       setProcessing(false);
     } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['teamPlayers', league.id, team.id] });
       logger.error('Error dropping player:', error);
       toast.error(`Error dropping player: ${error}`);
       setProcessing(false);
@@ -261,7 +265,7 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
   const handleMoveToIR = async (playerId: string) => {
     if (!isOwner || processing) return;
 
-    const player = playersMap.get(playerId);
+    const player = teamPlayers.find(p => p.id === playerId);
     if (!player) return;
 
     if (irPlayers.length >= rosterSettings.maxIR) {
@@ -270,31 +274,28 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
       return;
     }
 
-    const confirmed = confirm(
-      `Move ${player.name} to IR?\n\n` +
-      `This will move the player from active roster to IR.\n\n` +
-      `Continue?`
-    );
-
-    if (!confirmed) return;
+    const prevSlot = player.slot as PlayerSlot;
+    optimisticUpdateSlot(playerId, 'ir');
 
     try {
       setProcessing(true);
 
       const result = await movePlayerSlot({
         playerId,
-        teamId: regularSeasonRoster.teamId,
-        leagueId: regularSeasonRoster.leagueId,
-        fromSlot: 'active_roster',
-        toSlot: 'ir_slots',
-        updatedBy: userEmail,
+        teamId: team.id,
+        leagueId: league.id,
+        toSlot: 'ir',
       });
 
       if (!result.success) {
+        optimisticUpdateSlot(playerId, prevSlot);
         toast.error(result.error || 'Failed to move to IR');
+      } else {
+        toast.success(`${player.name} moved to IR`);
       }
       setProcessing(false);
     } catch (error) {
+      optimisticUpdateSlot(playerId, prevSlot);
       logger.error('Error moving to IR:', error);
       toast.error(`Error moving player to IR: ${error}`);
       setProcessing(false);
@@ -304,34 +305,30 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
   const handleMoveToActive = async (playerId: string) => {
     if (!isOwner || processing) return;
 
-    const player = playersMap.get(playerId);
+    const player = teamPlayers.find(p => p.id === playerId);
     if (!player) return;
 
-    const confirmed = confirm(
-      `Move ${player.name} to active roster?\n\n` +
-      `This will move the player from IR to active roster.\n\n` +
-      `Continue?`
-    );
-
-    if (!confirmed) return;
+    optimisticUpdateSlot(playerId, 'active');
 
     try {
       setProcessing(true);
 
       const result = await movePlayerSlot({
         playerId,
-        teamId: regularSeasonRoster.teamId,
-        leagueId: regularSeasonRoster.leagueId,
-        fromSlot: 'ir_slots',
-        toSlot: 'active_roster',
-        updatedBy: userEmail,
+        teamId: team.id,
+        leagueId: league.id,
+        toSlot: 'active',
       });
 
       if (!result.success) {
+        optimisticUpdateSlot(playerId, 'ir');
         toast.error(result.error || 'Failed to move to active');
+      } else {
+        toast.success(`${player.name} activated from IR`);
       }
       setProcessing(false);
     } catch (error) {
+      optimisticUpdateSlot(playerId, 'ir');
       logger.error('Error moving to active:', error);
       toast.error(`Error moving player to active: ${error}`);
       setProcessing(false);
@@ -341,69 +338,70 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
   const handleSwapIRPlayer = async (playerToRemove: string, playerToAdd: string) => {
     if (!isOwner || processing) return;
 
-    const removedPlayer = playersMap.get(playerToRemove);
-    const addedPlayer = playersMap.get(playerToAdd);
+    const removedPlayer = teamPlayers.find(p => p.id === playerToRemove);
+    const addedPlayer = teamPlayers.find(p => p.id === playerToAdd);
 
-    const confirmed = confirm(
-      `Swap IR players?\n\n` +
-      `Remove from IR: ${removedPlayer?.name}\n` +
-      `Add to IR: ${addedPlayer?.name}\n\n` +
-      `Continue?`
-    );
-
-    if (!confirmed) {
-      setSwappingIR(false);
-      setPlayerToMoveToIR(null);
-      return;
-    }
+    // Optimistic: swap both slots immediately
+    optimisticUpdateSlot(playerToAdd, 'ir');
+    optimisticUpdateSlot(playerToRemove, 'active');
 
     try {
       setProcessing(true);
 
       const result = await swapPlayerSlots({
-        playerToMoveId: playerToAdd,
-        playerToSwapId: playerToRemove,
-        teamId: regularSeasonRoster.teamId,
-        leagueId: regularSeasonRoster.leagueId,
-        moveToSlot: 'ir_slots',
-        swapToSlot: 'active_roster',
-        updatedBy: userEmail,
+        playerAId: playerToAdd,
+        playerBId: playerToRemove,
+        teamId: team.id,
+        leagueId: league.id,
+        playerASlot: 'ir',
+        playerBSlot: 'active',
       });
 
       if (!result.success) {
+        // Revert
+        optimisticUpdateSlot(playerToAdd, 'active');
+        optimisticUpdateSlot(playerToRemove, 'ir');
         toast.error(result.error || 'Failed to swap players');
+      } else {
+        toast.success(`Swapped ${addedPlayer?.name || 'player'} to IR, ${removedPlayer?.name || 'player'} to active`);
       }
 
       setSwappingIR(false);
       setPlayerToMoveToIR(null);
       setProcessing(false);
     } catch (error) {
+      optimisticUpdateSlot(playerToAdd, 'active');
+      optimisticUpdateSlot(playerToRemove, 'ir');
       logger.error('Error swapping IR player:', error);
       toast.error(`Error swapping players: ${error}`);
       setProcessing(false);
     }
   };
 
-  // Add a player to the bench
   const handleBenchPlayer = async (playerId: string) => {
     if (!isOwner || processing) return;
+
+    const player = teamPlayers.find(p => p.id === playerId);
+    optimisticUpdateSlot(playerId, 'bench');
 
     try {
       setProcessing(true);
 
-      const newBenched = [...regularSeasonRoster.benchedPlayers, playerId];
+      const result = await movePlayerSlot({
+        playerId,
+        teamId: team.id,
+        leagueId: league.id,
+        toSlot: 'bench',
+      });
 
-      const { error } = await supabase
-        .from('regular_season_rosters')
-        .update({
-          benched_players: newBenched,
-          updated_at: new Date().toISOString(),
-          updated_by: userEmail,
-        })
-        .eq('id', regularSeasonRoster.id);
-
-      if (error) throw error;
+      if (!result.success) {
+        optimisticUpdateSlot(playerId, 'active'); // revert
+        toast.error(result.error || 'Failed to bench player');
+      } else {
+        toast.success(`${player?.name || 'Player'} moved to bench`);
+      }
     } catch (error) {
+      optimisticUpdateSlot(playerId, 'active'); // revert
       logger.error('Error benching player:', error);
       toast.error(`Error benching player: ${error}`);
     } finally {
@@ -411,26 +409,30 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
     }
   };
 
-  // Remove a player from the bench (start them)
   const handleStartPlayer = async (playerId: string) => {
     if (!isOwner || processing) return;
+
+    const player = teamPlayers.find(p => p.id === playerId);
+    optimisticUpdateSlot(playerId, 'active');
 
     try {
       setProcessing(true);
 
-      const newBenched = regularSeasonRoster.benchedPlayers.filter(id => id !== playerId);
+      const result = await movePlayerSlot({
+        playerId,
+        teamId: team.id,
+        leagueId: league.id,
+        toSlot: 'active',
+      });
 
-      const { error } = await supabase
-        .from('regular_season_rosters')
-        .update({
-          benched_players: newBenched,
-          updated_at: new Date().toISOString(),
-          updated_by: userEmail,
-        })
-        .eq('id', regularSeasonRoster.id);
-
-      if (error) throw error;
+      if (!result.success) {
+        optimisticUpdateSlot(playerId, 'bench'); // revert
+        toast.error(result.error || 'Failed to start player');
+      } else {
+        toast.success(`${player?.name || 'Player'} moved to starting lineup`);
+      }
     } catch (error) {
+      optimisticUpdateSlot(playerId, 'bench'); // revert
       logger.error('Error starting player:', error);
       toast.error(`Error starting player: ${error}`);
     } finally {
@@ -497,7 +499,7 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
                 IR
               </button>
               <button
-                onClick={() => handleDropPlayer(player.id, 'active')}
+                onClick={() => handleDropPlayer(player.id)}
                 disabled={processing}
                 className="px-3 py-1 text-xs border border-pink-500 text-pink-400 rounded hover:bg-pink-500/10 disabled:opacity-50 disabled:cursor-not-allowed hidden md:inline-block"
               >
@@ -527,29 +529,6 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
         </div>
       )}
 
-      {/* Orphaned IDs Warning */}
-      {orphanedIds.length > 0 && (
-        <div className="bg-red-500/10 border border-red-400/30 rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🔴</span>
-            <div>
-              <div className="font-semibold text-red-400">Data Integrity Issue</div>
-              <div className="text-sm text-gray-300">
-                {orphanedIds.length} player ID(s) on this roster could not be matched to any player in the database.
-                This may cause incorrect roster counts. Contact your commissioner or visit{' '}
-                <a href="/admin/data-audit" className="text-green-400 underline">Data Audit</a> to fix.
-              </div>
-              <details className="mt-2">
-                <summary className="text-xs text-gray-500 cursor-pointer">Show orphaned IDs</summary>
-                <div className="mt-1 text-xs text-gray-500 font-mono">
-                  {orphanedIds.map(id => <div key={id}>{id}</div>)}
-                </div>
-              </details>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* IR Swap Mode Banner */}
       {swappingIR && playerToMoveToIR && (
         <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4">
@@ -559,7 +538,7 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
               <div>
                 <div className="font-semibold text-blue-400">IR Swap Mode</div>
                 <div className="text-sm text-gray-300">
-                  IR is full ({rosterSettings.maxIR}/{rosterSettings.maxIR}). Select a player below to remove from IR and replace with {playersMap.get(playerToMoveToIR)?.name}.
+                  IR is full ({rosterSettings.maxIR}/{rosterSettings.maxIR}). Select a player below to remove from IR and replace with {teamPlayers.find(p => p.id === playerToMoveToIR)?.name}.
                 </div>
               </div>
             </div>
@@ -699,7 +678,7 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
                 </tr>
               ) : (
                 <>
-                  {/* Starting Lineup (first 10) */}
+                  {/* Starting Lineup */}
                   {startingPlayers.map((player) => renderPlayerRow(player, 'starting'))}
 
                   {/* Bench separator */}
@@ -715,7 +694,7 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
                     </tr>
                   )}
 
-                  {/* Bench Players (remaining) */}
+                  {/* Bench Players */}
                   {benchPlayers.map((player) => renderPlayerRow(player, 'bench'))}
                 </>
               )}
@@ -780,7 +759,7 @@ export function RegularSeasonRosterView({ regularSeasonRoster, allPlayers, team,
                                 Activate
                               </button>
                               <button
-                                onClick={() => handleDropPlayer(player.id, 'ir')}
+                                onClick={() => handleDropPlayer(player.id)}
                                 disabled={processing}
                                 className="px-3 py-1 text-xs border border-pink-500 text-pink-400 rounded hover:bg-pink-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
                               >

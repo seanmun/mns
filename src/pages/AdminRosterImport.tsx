@@ -6,10 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { useLeague } from '../contexts/LeagueContext';
 import { useAuth } from '../contexts/AuthContext';
-import type { Player, Team } from '../types';
+import type { Player, Team, PlayerSlot } from '../types';
 import { mapTeam, mapPlayer } from '../lib/mappers';
-
-type SlotType = 'active_roster' | 'ir_slots' | 'redshirt_players';
 
 interface ParsedRow {
   fantraxId: string;
@@ -18,22 +16,24 @@ interface ParsedRow {
   nbaTeam: string;
   eligible: string;
   status: string;
-  slot: SlotType;
+  slot: PlayerSlot;
   matchedPlayer: Player | null;
   matchType: 'exact' | 'name' | 'none';
 }
 
-const STATUS_TO_SLOT: Record<string, SlotType> = {
-  Act: 'active_roster',
-  Res: 'active_roster',
-  IR: 'ir_slots',
-  Min: 'redshirt_players',
+const STATUS_TO_SLOT: Record<string, PlayerSlot> = {
+  Act: 'active',
+  Res: 'active',
+  IR: 'ir',
+  Min: 'redshirt', // default for Min — user can toggle to 'international' per player
 };
 
-const SLOT_LABELS: Record<SlotType, string> = {
-  active_roster: 'Active',
-  ir_slots: 'IR',
-  redshirt_players: 'Redshirt',
+const SLOT_LABELS: Record<PlayerSlot, string> = {
+  active: 'Active',
+  ir: 'IR',
+  redshirt: 'Redshirt',
+  international: 'Int\'l',
+  bench: 'Bench',
 };
 
 function parseTSV(text: string): ParsedRow[] {
@@ -58,7 +58,7 @@ function parseTSV(text: string): ParsedRow[] {
     // Strip asterisks from Fantrax ID: *0631x* → 0631x
     const fantraxId = rawId.replace(/\*/g, '');
 
-    const slot = STATUS_TO_SLOT[status] || 'active_roster';
+    const slot = STATUS_TO_SLOT[status] || 'active';
 
     rows.push({
       fantraxId,
@@ -107,7 +107,7 @@ export function AdminRosterImport() {
   const canManage = useCanManageLeague();
   const navigate = useNavigate();
   const { currentLeagueId } = useLeague();
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
 
   const [teams, setTeams] = useState<Team[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -167,6 +167,12 @@ export function AdminRosterImport() {
 
   const unmatchedCount = parsedRows.filter(r => r.matchType === 'none').length;
 
+  const handleSlotToggle = (rowIndex: number, slot: PlayerSlot) => {
+    setParsedRows(prev =>
+      prev.map((r, i) => i === rowIndex ? { ...r, slot } : r)
+    );
+  };
+
   const handleManualMatch = (rowIndex: number, playerId: string) => {
     const player = players.find(p => p.id === playerId) || null;
     setParsedRows(prev =>
@@ -187,27 +193,18 @@ export function AdminRosterImport() {
 
     setConfirming(true);
     try {
-      const activeRoster: string[] = [];
-      const irSlots: string[] = [];
-      const redshirtPlayers: string[] = [];
       const matchedPlayerIds = new Set<string>();
 
+      // Collect all matched players with their slots
+      const playerUpdates: Array<{ id: string; slot: PlayerSlot; name: string }> = [];
       for (const row of parsedRows) {
         if (!row.matchedPlayer) continue;
-        const pid = row.matchedPlayer.id;
-        matchedPlayerIds.add(pid);
-
-        switch (row.slot) {
-          case 'active_roster':
-            activeRoster.push(pid);
-            break;
-          case 'ir_slots':
-            irSlots.push(pid);
-            break;
-          case 'redshirt_players':
-            redshirtPlayers.push(pid);
-            break;
-        }
+        matchedPlayerIds.add(row.matchedPlayer.id);
+        playerUpdates.push({
+          id: row.matchedPlayer.id,
+          slot: row.slot,
+          name: row.matchedPlayer.name,
+        });
       }
 
       // 1. Find players currently on this team that are NOT in the new roster
@@ -218,45 +215,29 @@ export function AdminRosterImport() {
         p => !matchedPlayerIds.has(p.id)
       );
 
-      // 2. Update regular_season_rosters
-      const rosterId = `${currentLeagueId}_${selectedTeamId}`;
-      const { error: rosterError } = await supabase
-        .from('regular_season_rosters')
-        .upsert({
-          id: rosterId,
-          league_id: currentLeagueId,
-          team_id: selectedTeamId,
-          season_year: new Date().getFullYear(),
-          active_roster: activeRoster,
-          ir_slots: irSlots,
-          redshirt_players: redshirtPlayers,
-          international_players: [],
-          benched_players: [],
-          is_legal_roster: activeRoster.length <= 13,
-        });
-
-      if (rosterError) throw rosterError;
-
-      // 3. Set players.team_id for all matched players
-      for (const row of parsedRows) {
-        if (!row.matchedPlayer) continue;
+      // 2. Set players.team_id + players.slot for all matched players
+      for (const update of playerUpdates) {
         const { error } = await supabase
           .from('players')
-          .update({ team_id: selectedTeamId, updated_at: new Date().toISOString() })
-          .eq('id', row.matchedPlayer.id);
+          .update({
+            team_id: selectedTeamId,
+            slot: update.slot,
+            on_ir: update.slot === 'ir',
+          })
+          .eq('id', update.id);
         if (error) {
-          logger.error(`Failed to update team_id for ${row.matchedPlayer.name}:`, error);
+          logger.error(`Failed to update ${update.name}:`, error);
         }
       }
 
-      // 4. Null team_id for removed players (they become free agents)
+      // 3. Release removed players (null team_id, reset slot)
       for (const p of removedPlayers) {
         const { error } = await supabase
           .from('players')
-          .update({ team_id: null, updated_at: new Date().toISOString() })
+          .update({ team_id: null, slot: 'active', on_ir: false })
           .eq('id', p.id);
         if (error) {
-          logger.error(`Failed to clear team_id for ${p.name}:`, error);
+          logger.error(`Failed to release ${p.name}:`, error);
         }
       }
 
@@ -298,9 +279,9 @@ export function AdminRosterImport() {
     <div className="min-h-screen bg-[#0a0a0a] text-white p-4 md:p-8 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">Admin Roster Import</h1>
       <p className="text-gray-400 text-sm mb-6">
-        Paste a Fantrax roster export to set a team's roster. Updates both{' '}
-        <code className="text-green-400">regular_season_rosters</code> and{' '}
-        <code className="text-green-400">players.team_id</code>.
+        Paste a Fantrax roster export to set a team's roster. Updates{' '}
+        <code className="text-green-400">players.team_id</code> and{' '}
+        <code className="text-green-400">players.slot</code>.
       </p>
 
       {/* Progress */}
@@ -416,17 +397,28 @@ export function AdminRosterImport() {
                     <td className="px-3 py-2 text-gray-400">{row.position}</td>
                     <td className="px-3 py-2 text-gray-400">{row.nbaTeam}</td>
                     <td className="px-3 py-2">
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded ${
-                          row.slot === 'active_roster'
-                            ? 'bg-green-900/50 text-green-400'
-                            : row.slot === 'ir_slots'
-                            ? 'bg-yellow-900/50 text-yellow-400'
-                            : 'bg-purple-900/50 text-purple-400'
-                        }`}
-                      >
-                        {SLOT_LABELS[row.slot]}
-                      </span>
+                      {row.status === 'Min' ? (
+                        <select
+                          value={row.slot}
+                          onChange={e => handleSlotToggle(i, e.target.value as PlayerSlot)}
+                          className="bg-[#1a1a1a] border border-purple-700 rounded px-2 py-1 text-xs text-purple-400"
+                        >
+                          <option value="redshirt">Redshirt</option>
+                          <option value="international">Int'l Stash</option>
+                        </select>
+                      ) : (
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded ${
+                            row.slot === 'active'
+                              ? 'bg-green-900/50 text-green-400'
+                              : row.slot === 'ir'
+                              ? 'bg-yellow-900/50 text-yellow-400'
+                              : 'bg-purple-900/50 text-purple-400'
+                          }`}
+                        >
+                          {SLOT_LABELS[row.slot]}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2">
                       {row.matchType === 'exact' && (

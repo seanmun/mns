@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
-import type { Team, Player, RegularSeasonRoster, LeagueRosterSettings } from '../types';
+import type { Team, Player, LeagueRosterSettings, PlayerSlot } from '../types';
 import { DEFAULT_ROSTER_SETTINGS } from '../types';
-import { mapTeam, mapPlayer, mapRegularSeasonRoster } from '../lib/mappers';
+import { mapTeam, mapPlayer } from '../lib/mappers';
 import { assignPlayerToTeam, dropPlayerFromTeam, movePlayerSlot } from '../lib/rosterOps';
 
 interface AdminRosterManagementProps {
@@ -19,7 +19,6 @@ type ActionType = 'add_to_ir' | 'move_to_active' | 'drop_player' | 'add_free_age
 export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = DEFAULT_ROSTER_SETTINGS, onClose }: AdminRosterManagementProps) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [rosters, setRosters] = useState<Map<string, RegularSeasonRoster>>(new Map());
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
@@ -35,40 +34,16 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
 
   const loadData = async () => {
     try {
-      // Load teams
-      const { data: teamsData, error: teamsError } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('league_id', leagueId);
+      const [teamsRes, playersRes] = await Promise.all([
+        supabase.from('teams').select('*').eq('league_id', leagueId),
+        supabase.from('players').select('*').eq('league_id', leagueId),
+      ]);
 
-      if (teamsError) throw teamsError;
-      const mappedTeams = (teamsData || []).map(mapTeam).sort((a, b) => a.name.localeCompare(b.name));
-      setTeams(mappedTeams);
+      if (teamsRes.error) throw teamsRes.error;
+      if (playersRes.error) throw playersRes.error;
 
-      // Load all players for this league
-      const { data: playersData = [], error: playersErr } = await supabase
-        .from('players')
-        .select('*')
-        .eq('league_id', leagueId);
-      if (playersErr) throw playersErr;
-      const mappedPlayers = (playersData || []).map(mapPlayer).sort((a, b) => a.name.localeCompare(b.name));
-      setPlayers(mappedPlayers);
-
-      // Load regular season rosters
-      const { data: rostersData, error: rostersError } = await supabase
-        .from('regular_season_rosters')
-        .select('*')
-        .eq('league_id', leagueId)
-        .eq('season_year', seasonYear);
-
-      if (rostersError) throw rostersError;
-      const rostersMap = new Map<string, RegularSeasonRoster>();
-      (rostersData || []).forEach((row: any) => {
-        const roster = mapRegularSeasonRoster(row);
-        rostersMap.set(roster.teamId, roster);
-      });
-      setRosters(rostersMap);
-
+      setTeams((teamsRes.data || []).map(mapTeam).sort((a, b) => a.name.localeCompare(b.name)));
+      setPlayers((playersRes.data || []).map(mapPlayer).sort((a, b) => a.name.localeCompare(b.name)));
       setLoading(false);
     } catch (error) {
       logger.error('Error loading data:', error);
@@ -76,55 +51,36 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
     }
   };
 
-  // Get current roster for selected team
-  const currentRoster = useMemo(() => {
-    if (!selectedTeam) return null;
-    return rosters.get(selectedTeam) || null;
-  }, [selectedTeam, rosters]);
+  // Get team's players from players.slot
+  const teamPlayers = useMemo(() => {
+    if (!selectedTeam) return [];
+    return players.filter(p => p.roster.teamId === selectedTeam);
+  }, [selectedTeam, players]);
+
+  const activeCount = teamPlayers.filter(p => p.slot === 'active' || p.slot === 'bench').length;
+  const irCount = teamPlayers.filter(p => p.slot === 'ir').length;
+  const redshirtCount = teamPlayers.filter(p => p.slot === 'redshirt').length;
+  const intCount = teamPlayers.filter(p => p.slot === 'international').length;
 
   // Get available players based on action type
   const availablePlayers = useMemo(() => {
-    if (!currentRoster) return [];
-
-    const ownedPlayerIds = new Set([
-      ...currentRoster.activeRoster,
-      ...currentRoster.irSlots,
-      ...currentRoster.redshirtPlayers,
-      ...currentRoster.internationalPlayers
-    ]);
-
     let filtered: Player[] = [];
 
     switch (actionType) {
       case 'add_to_ir':
-        // Only active roster players
-        filtered = players.filter(p => currentRoster.activeRoster.includes(p.id));
+        filtered = teamPlayers.filter(p => p.slot === 'active' || p.slot === 'bench');
         break;
-
       case 'move_to_active':
-        // Only IR players
-        filtered = players.filter(p => currentRoster.irSlots.includes(p.id));
+        filtered = teamPlayers.filter(p => p.slot === 'ir');
         break;
-
       case 'drop_player':
-        // Any owned player
-        filtered = players.filter(p => ownedPlayerIds.has(p.id));
+        filtered = teamPlayers;
         break;
-
       case 'add_free_agent':
-        // Players not owned by any team
-        const allOwnedIds = new Set<string>();
-        rosters.forEach(roster => {
-          roster.activeRoster.forEach(id => allOwnedIds.add(id));
-          roster.irSlots.forEach(id => allOwnedIds.add(id));
-          roster.redshirtPlayers.forEach(id => allOwnedIds.add(id));
-          roster.internationalPlayers.forEach(id => allOwnedIds.add(id));
-        });
-        filtered = players.filter(p => !allOwnedIds.has(p.id));
+        filtered = players.filter(p => !p.roster.teamId);
         break;
     }
 
-    // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(p =>
@@ -135,17 +91,11 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
     }
 
     return filtered;
-  }, [currentRoster, actionType, players, rosters, searchTerm]);
+  }, [teamPlayers, actionType, players, searchTerm]);
 
   const executeAction = async () => {
     if (!selectedTeam || !selectedPlayer) {
       toast.error('Please select a team and player');
-      return;
-    }
-
-    const roster = rosters.get(selectedTeam);
-    if (!roster) {
-      toast.error('Roster not found');
       return;
     }
 
@@ -156,7 +106,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
 
       switch (actionType) {
         case 'add_to_ir': {
-          if (roster.irSlots.length >= rosterSettings.maxIR) {
+          if (irCount >= rosterSettings.maxIR) {
             toast.error(`IR is full (max ${rosterSettings.maxIR} players)`);
             setProcessing(false);
             return;
@@ -165,9 +115,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
             playerId: selectedPlayer,
             teamId: selectedTeam,
             leagueId,
-            fromSlot: 'active_roster',
-            toSlot: 'ir_slots',
-            updatedBy: 'admin',
+            toSlot: 'ir',
           });
           break;
         }
@@ -177,9 +125,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
             playerId: selectedPlayer,
             teamId: selectedTeam,
             leagueId,
-            fromSlot: 'ir_slots',
-            toSlot: 'active_roster',
-            updatedBy: 'admin',
+            toSlot: 'active',
           });
           break;
         }
@@ -189,7 +135,6 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
             playerId: selectedPlayer,
             teamId: selectedTeam,
             leagueId,
-            updatedBy: 'admin',
           });
           break;
         }
@@ -199,8 +144,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
             playerId: selectedPlayer,
             teamId: selectedTeam,
             leagueId,
-            slot: 'active_roster',
-            updatedBy: 'admin',
+            slot: 'active',
           });
           break;
         }
@@ -212,10 +156,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
         toast.success('Action completed successfully');
       }
 
-      // Reload data
       await loadData();
-
-      // Reset form
       setSelectedPlayer('');
       setSearchTerm('');
     } catch (error) {
@@ -226,14 +167,15 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
     }
   };
 
-  const getPlayerLocation = (playerId: string) => {
-    if (!currentRoster) return '';
-
-    if (currentRoster.activeRoster.includes(playerId)) return 'Active Roster';
-    if (currentRoster.irSlots.includes(playerId)) return 'IR';
-    if (currentRoster.redshirtPlayers.includes(playerId)) return 'Redshirt';
-    if (currentRoster.internationalPlayers.includes(playerId)) return 'Int Stash';
-    return 'Free Agent';
+  const getSlotLabel = (slot: PlayerSlot) => {
+    switch (slot) {
+      case 'active': return 'Active';
+      case 'bench': return 'Bench';
+      case 'ir': return 'IR';
+      case 'redshirt': return 'Redshirt';
+      case 'international': return 'Int Stash';
+      default: return slot;
+    }
   };
 
   const selectedPlayerObj = players.find(p => p.id === selectedPlayer);
@@ -285,25 +227,25 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
           </div>
 
           {/* Current Roster Summary */}
-          {currentRoster && (
+          {selectedTeam && (
             <div className="bg-[#0a0a0a] rounded-lg border border-gray-800 p-4">
               <div className="text-sm font-semibold text-white mb-3">Current Roster</div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <div className="text-gray-400">Active</div>
-                  <div className="text-white font-semibold">{currentRoster.activeRoster.length}/{rosterSettings.maxActive}</div>
+                  <div className="text-white font-semibold">{activeCount}/{rosterSettings.maxActive}</div>
                 </div>
                 <div>
                   <div className="text-gray-400">IR</div>
-                  <div className="text-white font-semibold">{currentRoster.irSlots.length}/{rosterSettings.maxIR}</div>
+                  <div className="text-white font-semibold">{irCount}/{rosterSettings.maxIR}</div>
                 </div>
                 <div>
                   <div className="text-gray-400">Redshirt</div>
-                  <div className="text-white font-semibold">{currentRoster.redshirtPlayers.length}</div>
+                  <div className="text-white font-semibold">{redshirtCount}</div>
                 </div>
                 <div>
                   <div className="text-gray-400">Int Stash</div>
-                  <div className="text-white font-semibold">{currentRoster.internationalPlayers.length}</div>
+                  <div className="text-white font-semibold">{intCount}</div>
                 </div>
               </div>
             </div>
@@ -375,7 +317,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
                               {player.position} - {player.nbaTeam}
                               {actionType === 'drop_player' && (
                                 <span className="ml-2 text-xs text-gray-500">
-                                  ({getPlayerLocation(player.id)})
+                                  ({getSlotLabel(player.slot)})
                                 </span>
                               )}
                             </div>
@@ -401,7 +343,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
                 {selectedPlayerObj.position} - {selectedPlayerObj.nbaTeam} - ${(selectedPlayerObj.salary / 1_000_000).toFixed(1)}M
               </div>
               <div className="text-sm text-gray-500 mt-2">
-                Current Location: {getPlayerLocation(selectedPlayerObj.id)}
+                Current Slot: {getSlotLabel(selectedPlayerObj.slot)}
               </div>
             </div>
           )}
