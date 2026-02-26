@@ -8,6 +8,7 @@ import type { Player, Team, League, RosterSummary, TeamFees, PlayerSlot } from '
 import { DEFAULT_ROSTER_SETTINGS } from '../types';
 import { useGames } from '../hooks/useGames';
 import { CapThermometer } from './CapThermometer';
+import { todayET } from '../utils/date';
 import { SummaryCard } from './SummaryCard';
 
 interface RegularSeasonRosterViewProps {
@@ -43,7 +44,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
   };
 
   // Date navigation for game info
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => todayET());
   const { teamGameMap, loading: gamesLoading } = useGames(league.seasonYear, selectedDate);
 
   const navigateDate = (offset: number) => {
@@ -52,7 +53,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
     setSelectedDate(current.toISOString().split('T')[0]);
   };
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const isToday = selectedDate === todayET();
 
   const displayDate = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', {
     weekday: 'short',
@@ -632,7 +633,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
               )}
               {!isToday && (
                 <button
-                  onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+                  onClick={() => setSelectedDate(todayET())}
                   className="ml-2 text-xs text-green-400 hover:underline"
                 >
                   Today

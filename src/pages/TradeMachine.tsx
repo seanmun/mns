@@ -104,6 +104,7 @@ export function TradeMachine() {
           position: row.position,
           salary: row.salary,
           nbaTeam: row.nba_team,
+          sport: row.sport || 'nba',
           roster: {
             leagueId: row.league_id,
             teamId: row.team_id,

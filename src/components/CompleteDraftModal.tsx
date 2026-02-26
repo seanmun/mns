@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useModalA11y } from '../hooks/useModalA11y';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
@@ -42,6 +43,7 @@ export function CompleteDraftModal({
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [step, setStep] = useState<'confirm' | 'processing' | 'complete'>('confirm');
+  const { modalRef } = useModalA11y({ isOpen: true, onClose });
 
   useEffect(() => {
     loadData();
@@ -371,7 +373,7 @@ export function CompleteDraftModal({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Loading draft data">
         <div className="bg-[#121212] rounded-lg border border-gray-800 p-8">
           <div className="text-white">Loading draft data...</div>
         </div>
@@ -381,7 +383,7 @@ export function CompleteDraftModal({
 
   if (step === 'processing') {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Archiving draft">
         <div className="bg-[#121212] rounded-lg border border-gray-800 p-8">
           <div className="text-white text-center">
             <div className="text-2xl mb-4">🏀</div>
@@ -395,7 +397,7 @@ export function CompleteDraftModal({
 
   if (step === 'complete') {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Draft archived">
         <div className="bg-[#121212] rounded-lg border border-gray-800 p-8">
           <div className="text-white text-center">
             <div className="text-4xl mb-4">✓</div>
@@ -418,11 +420,11 @@ export function CompleteDraftModal({
   );
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-[#121212] rounded-lg border border-gray-800 max-w-4xl w-full my-8">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="archive-draft-title">
+      <div ref={modalRef} className="bg-[#121212] rounded-lg border border-gray-800 max-w-4xl w-full my-8">
         {/* Header */}
         <div className="p-6 border-b border-gray-800">
-          <h2 className="text-2xl font-bold text-white">Archive Draft</h2>
+          <h2 id="archive-draft-title" className="text-2xl font-bold text-white">Archive Draft</h2>
           <p className="text-sm text-gray-400 mt-1">
             This will archive the draft and create regular season rosters for all teams
           </p>

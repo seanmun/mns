@@ -54,13 +54,13 @@ export default defineConfig({
             './src/pages/AdminLeague.tsx',
             './src/pages/AdminDraftTest.tsx',
             './src/pages/AdminDraftSetup.tsx',
-            './src/pages/AdminViewRosters.tsx',
             './src/pages/AdminRookiePicks.tsx',
             './src/pages/AdminDraftPicks.tsx',
             './src/pages/AdminTradeManager.tsx',
             './src/pages/AdminPortfolio.tsx',
             './src/pages/AdminMigration.tsx',
-            './src/pages/AdminPicksView.tsx'
+            './src/pages/AdminPicksView.tsx',
+            './src/pages/AdminWNBAScraper.tsx'
           ],
         },
       },

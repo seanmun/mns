@@ -60,6 +60,6 @@ export const logger = {
       Sentry.captureMessage(message, { level: 'fatal', extra: { error, ...ctx } });
     }
     // Fire-and-forget Telegram alert for critical errors
-    sendTelegramMessage(formatTelegramMessage('critical', message, error, ctx)).catch(() => {});
+    sendTelegramMessage(formatTelegramMessage('critical', message, error, ctx), 'alert').catch(() => {});
   },
 };

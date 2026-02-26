@@ -7,7 +7,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY env vars');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storageKey: 'mns-auth-token',
+    // Increase lock timeout to prevent "lock timed out" errors
+    // when multiple tabs compete for the auth token lock.
+    // The underlying auth-js supports this but supabase-js types don't expose it.
+    ...({ lockAcquireTimeout: 30000 } as any),
+  },
+});
 
 /**
  * Fetch all rows from a table, paginating past the 1000-row API limit.

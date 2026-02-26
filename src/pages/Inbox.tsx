@@ -54,6 +54,7 @@ export function Inbox() {
   }, [leagueId, myTeam, user, wagers]);
 
   const today = new Date().toLocaleDateString('en-US', {
+    timeZone: 'America/New_York',
     weekday: 'long',
     year: 'numeric',
     month: 'long',

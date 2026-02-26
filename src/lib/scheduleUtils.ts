@@ -1,4 +1,5 @@
 import type { LeagueWeek, LeagueSchedule } from '../types';
+import { todayET } from '../utils/date';
 
 /**
  * Given an array of league weeks and today's date,
@@ -7,11 +8,10 @@ import type { LeagueWeek, LeagueSchedule } from '../types';
  */
 export function getCurrentWeek(
   weeks: LeagueWeek[],
-  today: Date = new Date()
 ): number | null {
   if (weeks.length === 0) return null;
 
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = todayET();
 
   for (const week of weeks) {
     if (todayStr >= week.startDate && todayStr <= week.endDate) {
@@ -34,10 +34,9 @@ export function getCurrentWeek(
  */
 export function isTradeDeadlinePassed(
   schedule: LeagueSchedule | undefined,
-  today: Date = new Date()
 ): boolean {
   if (!schedule?.tradeDeadlineDate) return false;
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = todayET();
   return todayStr > schedule.tradeDeadlineDate;
 }
 

@@ -43,17 +43,24 @@ export function AdminLeague() {
     'schedule.playoffWeeks': 3,
     'schedule.playoffByeTeams': 2,
     'schedule.consolationWeeks': 3,
+    'schedule.combineCup': false,
+    'schedule.combineAllStar': false,
+    'schedule.extendFirstWeek': false,
     'roster.maxActive': 13,
     'roster.maxStarters': 10,
     'roster.maxIR': 2,
+    telegramChatId: '',
   });
   const [generatingWeeks, setGeneratingWeeks] = useState(false);
   const [weeksGenerated, setWeeksGenerated] = useState(false);
   const [scheduleAnalysis, setScheduleAnalysis] = useState<ScheduleAnalysis | null>(null);
   const [analyzingSchedule, setAnalyzingSchedule] = useState(false);
-  const [combineCup, setCombineCup] = useState(false);
-  const [combineAllStar, setCombineAllStar] = useState(false);
-  const [extendFirstWeek, setExtendFirstWeek] = useState(false);
+  const combineCup = editForm['schedule.combineCup'];
+  const combineAllStar = editForm['schedule.combineAllStar'];
+  const extendFirstWeek = editForm['schedule.extendFirstWeek'];
+  const setCombineCup = (v: boolean) => setEditForm(f => ({ ...f, 'schedule.combineCup': v }));
+  const setCombineAllStar = (v: boolean) => setEditForm(f => ({ ...f, 'schedule.combineAllStar': v }));
+  const setExtendFirstWeek = (v: boolean) => setEditForm(f => ({ ...f, 'schedule.extendFirstWeek': v }));
 
   // Fee management state
   type FeeTeamInfo = { teamId: string; teamName: string; salary: number; firstApronFee: number; secondApronPenalty: number; feesLocked: boolean; tradeDelta: number };
@@ -156,14 +163,15 @@ export function AdminLeague() {
       'schedule.playoffWeeks': league.schedule?.playoffWeeks || 3,
       'schedule.playoffByeTeams': league.schedule?.playoffByeTeams || 2,
       'schedule.consolationWeeks': league.schedule?.consolationWeeks || 3,
+      'schedule.combineCup': league.schedule?.combineCup || false,
+      'schedule.combineAllStar': league.schedule?.combineAllStar || false,
+      'schedule.extendFirstWeek': league.schedule?.extendFirstWeek || false,
       'roster.maxActive': league.roster?.maxActive ?? 13,
       'roster.maxStarters': league.roster?.maxStarters ?? 10,
       'roster.maxIR': league.roster?.maxIR ?? 2,
+      telegramChatId: league.telegramChatId || '',
     });
     setWeeksGenerated(false);
-    setCombineCup(false);
-    setCombineAllStar(false);
-    setExtendFirstWeek(false);
     fetchScheduleAnalysis(league.seasonYear);
   };
 
@@ -179,6 +187,7 @@ export function AdminLeague() {
           name: editForm.name,
           season_year: editForm.seasonYear,
           scoring_mode: editForm.scoringMode,
+          telegram_chat_id: editForm.telegramChatId || null,
           cap: {
             floor: editForm['cap.floor'],
             firstApron: editForm['cap.firstApron'],
@@ -196,6 +205,9 @@ export function AdminLeague() {
             playoffWeeks: editForm['schedule.playoffWeeks'],
             playoffByeTeams: editForm['schedule.playoffByeTeams'],
             consolationWeeks: editForm['schedule.consolationWeeks'],
+            combineCup: editForm['schedule.combineCup'],
+            combineAllStar: editForm['schedule.combineAllStar'],
+            extendFirstWeek: editForm['schedule.extendFirstWeek'],
           },
           roster: {
             maxActive: editForm['roster.maxActive'],
@@ -215,6 +227,7 @@ export function AdminLeague() {
                 name: editForm.name,
                 seasonYear: editForm.seasonYear,
                 scoringMode: editForm.scoringMode,
+                telegramChatId: editForm.telegramChatId || undefined,
                 cap: {
                   ...league.cap,
                   floor: editForm['cap.floor'],
@@ -233,6 +246,9 @@ export function AdminLeague() {
                   playoffWeeks: editForm['schedule.playoffWeeks'],
                   playoffByeTeams: editForm['schedule.playoffByeTeams'],
                   consolationWeeks: editForm['schedule.consolationWeeks'],
+                  combineCup: editForm['schedule.combineCup'],
+                  combineAllStar: editForm['schedule.combineAllStar'],
+                  extendFirstWeek: editForm['schedule.extendFirstWeek'],
                 },
                 roster: {
                   maxActive: editForm['roster.maxActive'],
@@ -799,13 +815,26 @@ export function AdminLeague() {
                     onChange={(e) => setEditForm({ ...editForm, scoringMode: e.target.value as 'matchup_record' | 'category_record' })}
                     className={inputClass}
                   >
-                    <option value="category_record">Category Record</option>
+                    <option value="category_record">Matchup Category Record</option>
                     <option value="matchup_record">Matchup Record</option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
                     {editForm.scoringMode === 'category_record'
                       ? '7-2 week = +7W +2L to season record'
                       : '1 W or L per weekly matchup'}
+                  </p>
+                </div>
+                <div className="md:col-span-3">
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Telegram Chat ID</label>
+                  <input
+                    type="text"
+                    value={editForm.telegramChatId}
+                    onChange={(e) => setEditForm({ ...editForm, telegramChatId: e.target.value })}
+                    placeholder="-100xxxxxxxxxx"
+                    className={inputClass}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Add @mns_draft_bot to your Telegram group, then paste the chat ID here for draft notifications.
                   </p>
                 </div>
               </div>

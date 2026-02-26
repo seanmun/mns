@@ -61,7 +61,6 @@ const AdminLeague = lazy(() => import('./pages/AdminLeague').then(m => ({ defaul
 const AdminRosterManager = lazy(() => import('./pages/AdminRosterManager').then(m => ({ default: m.AdminRosterManager })));
 const AdminDraftTest = lazy(() => import('./pages/AdminDraftTest').then(m => ({ default: m.AdminDraftTest })));
 const AdminDraftSetup = lazy(() => import('./pages/AdminDraftSetup').then(m => ({ default: m.AdminDraftSetup })));
-const AdminViewRosters = lazy(() => import('./pages/AdminViewRosters').then(m => ({ default: m.AdminViewRosters })));
 const AdminRookiePicks = lazy(() => import('./pages/AdminRookiePicks').then(m => ({ default: m.AdminRookiePicks })));
 const AdminDraftPicks = lazy(() => import('./pages/AdminDraftPicks').then(m => ({ default: m.AdminDraftPicks })));
 const AdminTradeManager = lazy(() => import('./pages/AdminTradeManager').then(m => ({ default: m.AdminTradeManager })));
@@ -71,6 +70,9 @@ const AdminPicksView = lazy(() => import('./pages/AdminPicksView').then(m => ({ 
 const AdminEmailTemplates = lazy(() => import('./pages/AdminEmailTemplates').then(m => ({ default: m.AdminEmailTemplates })));
 const AdminDataAudit = lazy(() => import('./pages/AdminDataAudit').then(m => ({ default: m.AdminDataAudit })));
 const AdminRosterImport = lazy(() => import('./pages/AdminRosterImport').then(m => ({ default: m.AdminRosterImport })));
+const LeagueManagerHub = lazy(() => import('./pages/LeagueManagerHub').then(m => ({ default: m.LeagueManagerHub })));
+const AdminHub = lazy(() => import('./pages/AdminHub').then(m => ({ default: m.AdminHub })));
+const AdminWNBAScraper = lazy(() => import('./pages/AdminWNBAScraper').then(m => ({ default: m.AdminWNBAScraper })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -328,7 +330,7 @@ function App() {
             }
           />
           <Route
-            path="/admin/teams"
+            path="/lm/teams"
             element={
               <PrivateRoute>
                 <AppLayout>
@@ -338,17 +340,7 @@ function App() {
             }
           />
           <Route
-            path="/admin/view-rosters"
-            element={
-              <PrivateRoute>
-                <AppLayout>
-                  <AdminViewRosters />
-                </AppLayout>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/admin/rookie-picks"
+            path="/lm/rookie-picks"
             element={
               <PrivateRoute>
                 <AppLayout>
@@ -358,7 +350,7 @@ function App() {
             }
           />
           <Route
-            path="/admin/draft-picks"
+            path="/lm/draft-picks"
             element={
               <PrivateRoute>
                 <AppLayout>
@@ -368,7 +360,7 @@ function App() {
             }
           />
           <Route
-            path="/admin/portfolio"
+            path="/lm/portfolio"
             element={
               <PrivateRoute>
                 <AppLayout>
@@ -378,7 +370,7 @@ function App() {
             }
           />
           <Route
-            path="/admin/trade"
+            path="/lm/trade"
             element={
               <PrivateRoute>
                 <AppLayout>
@@ -428,7 +420,17 @@ function App() {
             }
           />
           <Route
-            path="/admin/roster-import"
+            path="/admin/wnba-scraper"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminWNBAScraper />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/lm/roster-import"
             element={
               <PrivateRoute>
                 <AppLayout>
@@ -458,7 +460,7 @@ function App() {
             }
           />
           <Route
-            path="/admin/league"
+            path="/lm/league"
             element={
               <PrivateRoute>
                 <AppLayout>
@@ -468,7 +470,7 @@ function App() {
             }
           />
           <Route
-            path="/admin/rosters"
+            path="/lm/rosters"
             element={
               <PrivateRoute>
                 <AppLayout>
@@ -478,7 +480,7 @@ function App() {
             }
           />
           <Route
-            path="/admin/draft-test"
+            path="/lm/draft-test"
             element={
               <PrivateRoute>
                 <AppLayout>
@@ -488,11 +490,31 @@ function App() {
             }
           />
           <Route
-            path="/admin/draft-setup"
+            path="/lm/draft-setup"
             element={
               <PrivateRoute>
                 <AppLayout>
                   <AdminDraftSetup />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/lm"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <LeagueManagerHub />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/site-admin"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminHub />
                 </AppLayout>
               </PrivateRoute>
             }

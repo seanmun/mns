@@ -6,6 +6,7 @@ import { useProjectedStats } from '../hooks/useProjectedStats';
 import { MATCHUP_CATEGORIES } from '../types';
 import type { Matchup, Player, RegularSeasonRoster, ProjectedStats } from '../types';
 import { mapMatchup, mapPlayer } from '../lib/mappers';
+import { todayET } from '../utils/date';
 
 type MatchupView = 'totals' | 'away' | 'home';
 type DayView = 'week' | string; // 'week' for week totals, or 'YYYY-MM-DD' for a specific day
@@ -123,7 +124,7 @@ function TeamRosterStats({
 
   // Day navigation
   const currentDayIdx = dayView === 'week' ? -1 : weekDates.indexOf(dayView);
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = todayET();
   const isToday = dayView === todayStr;
 
   const gridCols = 'grid-cols-[120px_36px_repeat(9,minmax(42px,1fr))]';

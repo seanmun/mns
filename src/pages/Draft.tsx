@@ -11,6 +11,7 @@ import { useWatchList, togglePlayerInWatchList } from '../hooks/useWatchList';
 import { CompleteDraftModal } from '../components/CompleteDraftModal';
 import type { Draft, Team, Player } from '../types';
 import { mapDraft, mapTeam, mapPlayer } from '../lib/mappers';
+import { sendTelegramMessage } from '../utils/telegram';
 
 export function Draft() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -361,8 +362,15 @@ export function Draft() {
         console.log('[Draft] Also updated pick_assignments:', pickAssignmentId);
       }
 
-      // Telegram notification is now handled server-side by Cloud Function
-      console.log('[Draft] Pick saved. Cloud Function will send Telegram notification.');
+      // Send draft pick notification to league's Telegram group (fire-and-forget)
+      if (currentLeague?.telegramChatId) {
+        const pickingTeam = teams.find(t => t.id === actualPickOwner);
+        const pickNum = currentDraft.currentPick?.overallPick || 0;
+        const round = currentDraft.currentPick?.round || 0;
+        const pickInRound = currentDraft.currentPick?.pickInRound || 0;
+        const msg = `🏀 *Pick ${pickNum}* (Rd ${round}, Pick ${pickInRound})\n${pickingTeam?.name || 'Unknown'} selects *${player.name}*`;
+        sendTelegramMessage(msg, 'draft', currentLeague.telegramChatId).catch(() => {});
+      }
 
       // Success! Switch back to board view
       setView('board');

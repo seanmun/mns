@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useModalA11y } from '../hooks/useModalA11y';
 import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
+import { todayET } from '../utils/date';
 import type { Team } from '../types';
 
 interface ProposeWagerModalProps {
@@ -28,6 +30,7 @@ export function ProposeWagerModal({
   const [settlementDate, setSettlementDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const { modalRef } = useModalA11y({ isOpen, onClose });
 
   // Filter out the user's team from opponent options
   const opponentOptions = allTeams.filter(team => team.id !== myTeam.id);
@@ -108,16 +111,17 @@ export function ProposeWagerModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#121212] rounded-lg border border-gray-800 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="wager-modal-title">
+      <div ref={modalRef} className="bg-[#121212] rounded-lg border border-gray-800 max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white">Propose Wager</h2>
+            <h2 id="wager-modal-title" className="text-2xl font-bold text-white">Propose Wager</h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-white transition-colors"
               disabled={isSubmitting}
+              aria-label="Close wager proposal"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -203,7 +207,7 @@ export function ProposeWagerModal({
               type="date"
               value={settlementDate}
               onChange={(e) => setSettlementDate(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
+              min={todayET()}
               className="w-full bg-[#0a0a0a] border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
               disabled={isSubmitting}
             />

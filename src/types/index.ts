@@ -29,6 +29,9 @@ export interface LeagueSchedule {
   playoffWeeks?: number;         // Number of playoff rounds (2, 3, or 4)
   playoffByeTeams?: number;      // Seeds that skip round 1
   consolationWeeks?: number;     // Weeks for consolation bracket (non-playoff teams, best cat record wins top rookie draft odds)
+  combineCup?: boolean;          // Combine NBA Cup knockout weeks into one matchup week
+  combineAllStar?: boolean;      // Combine All-Star break weeks into one matchup week
+  extendFirstWeek?: boolean;     // Extend short first week by combining with week 2
 }
 
 export interface LeagueWeek {
@@ -96,6 +99,7 @@ export interface League {
   commissionerId?: string;   // UUID of the league's commissioner (auto-set on creation)
   scoringMode: ScoringMode;  // How W-L-T records are computed
   roster: LeagueRosterSettings;  // Roster slot limits
+  telegramChatId?: string;  // Per-league Telegram group for @mns_draft_bot notifications
 }
 
 // Team
@@ -142,6 +146,7 @@ export interface PlayerKeeper {
 }
 
 export type PlayerSlot = 'active' | 'ir' | 'redshirt' | 'international' | 'bench';
+export type Sport = 'nba' | 'wnba';
 
 export interface Player {
   id: string;
@@ -150,9 +155,32 @@ export interface Player {
   position: string;
   salary: number;
   nbaTeam: string;
+  sport: Sport;
   slot: PlayerSlot;
   roster: PlayerRoster;
   keeper?: PlayerKeeper;
+}
+
+export interface WNBAScrapedPlayer {
+  name: string;
+  team: string;
+  position: string;
+  salary: number;
+  height: string | null;
+  stats: {
+    gamesPlayed: number;
+    pointsPerGame: number;
+    reboundsPerGame: number;
+    assistsPerGame: number;
+    stealsPerGame: number;
+    blocksPerGame: number;
+    fgPercent: number;
+    threePercent: number;
+    ftPercent: number;
+  } | null;
+  sources: string[];
+  confidence: number;
+  slug: string;
 }
 
 // Roster

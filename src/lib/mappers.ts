@@ -25,6 +25,7 @@ export function mapLeague(row: any): League {
     leaguePhase: row.league_phase || 'keeper_season',
     scoringMode: row.scoring_mode || 'category_record',
     roster: row.roster || DEFAULT_ROSTER_SETTINGS,
+    telegramChatId: row.telegram_chat_id ?? undefined,
   };
 }
 
@@ -55,6 +56,7 @@ export function mapPlayer(row: any): Player {
     position: row.position,
     salary: row.salary,
     nbaTeam: row.nba_team,
+    sport: row.sport || 'nba',
     slot: row.slot || 'active',
     roster: {
       leagueId: row.league_id,

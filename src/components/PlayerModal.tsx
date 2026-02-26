@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useModalA11y } from '../hooks/useModalA11y';
 import type { Player, ProjectedStats, PreviousStats } from '../types';
 
 interface PlayerModalProps {
@@ -23,6 +24,7 @@ export function PlayerModal({
   previousStats
 }: PlayerModalProps) {
   const [statsTab, setStatsTab] = useState<'projected' | 'previous'>('projected');
+  const { modalRef } = useModalA11y({ isOpen: !!player, onClose });
 
   if (!player) return null;
 
@@ -44,8 +46,12 @@ export function PlayerModal({
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="player-modal-title"
     >
       <div
+        ref={modalRef}
         className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
@@ -53,7 +59,7 @@ export function PlayerModal({
         <div className="border-b p-3 md:p-6">
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900">{player.name}</h2>
+              <h2 id="player-modal-title" className="text-xl md:text-2xl font-bold text-gray-900">{player.name}</h2>
               <p className="text-gray-500 text-sm md:text-base mt-0.5 md:mt-1">
                 {player.position} · {player.nbaTeam}
               </p>
@@ -61,6 +67,7 @@ export function PlayerModal({
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              aria-label="Close player details"
             >
               ×
             </button>

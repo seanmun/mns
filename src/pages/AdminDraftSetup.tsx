@@ -70,6 +70,7 @@ export function AdminDraftSetup() {
         position: row.position,
         salary: row.salary,
         nbaTeam: row.nba_team,
+        sport: row.sport || 'nba',
         roster: {
           leagueId: row.league_id,
           teamId: row.team_id,
@@ -538,7 +539,7 @@ export function AdminDraftSetup() {
             </button>
 
             <button
-              onClick={() => navigate('/admin/teams')}
+              onClick={() => navigate('/lm/teams')}
               className="w-full px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
             >
               Back to Admin

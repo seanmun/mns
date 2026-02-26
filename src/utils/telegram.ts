@@ -1,42 +1,35 @@
 /**
- * Sends a message to Telegram chat(s) via the bot API
- * Supports sending to multiple chat IDs (comma-separated in env)
+ * Sends a message to Telegram via Supabase Edge Function.
+ * Tokens are stored server-side — never exposed in the client bundle.
  */
-export async function sendTelegramMessage(message: string): Promise<void> {
-  const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-  const chatIds = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+export async function sendTelegramMessage(
+  message: string,
+  botType: 'draft' | 'alert' = 'draft',
+  chatId?: string
+): Promise<void> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-  if (!botToken || !chatIds) {
-    console.warn('Telegram bot credentials not configured');
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase credentials not configured');
     return;
   }
 
-  // Split chat IDs by comma and trim whitespace
-  const chatIdArray = chatIds.split(',').map((id: string) => id.trim());
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-telegram`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+      },
+      body: JSON.stringify({ message, botType, ...(chatId && { chatId }) }),
+    });
 
-  // Send to all chat IDs
-  const promises = chatIdArray.map(async (chatId: string) => {
-    try {
-      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: 'Markdown',
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error(`Telegram API error for chat ${chatId}:`, error);
-      }
-    } catch (error) {
-      console.error(`Failed to send Telegram message to chat ${chatId}:`, error);
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Telegram Edge Function error:', error);
     }
-  });
-
-  await Promise.all(promises);
+  } catch (error) {
+    console.error('Failed to send Telegram message:', error);
+  }
 }

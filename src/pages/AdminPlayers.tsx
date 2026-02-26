@@ -120,7 +120,7 @@ export function AdminPlayers() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <button
-            onClick={() => navigate('/admin/teams')}
+            onClick={() => navigate('/lm/teams')}
             className="text-green-400 hover:text-green-300 mb-4"
           >
             ← Back to Manage Teams
