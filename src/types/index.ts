@@ -674,6 +674,7 @@ export interface Prospect {
   positionRank: number;  // Rank within position
   height: string;  // Height (e.g., "6-7")
   weight: number;  // Weight in pounds
+  sport?: Sport;  // nba or wnba
 
   // Optional additional fields
   age?: number;

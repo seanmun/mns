@@ -73,6 +73,8 @@ const AdminRosterImport = lazy(() => import('./pages/AdminRosterImport').then(m 
 const LeagueManagerHub = lazy(() => import('./pages/LeagueManagerHub').then(m => ({ default: m.LeagueManagerHub })));
 const AdminHub = lazy(() => import('./pages/AdminHub').then(m => ({ default: m.AdminHub })));
 const AdminWNBAScraper = lazy(() => import('./pages/AdminWNBAScraper').then(m => ({ default: m.AdminWNBAScraper })));
+const AdminWNBAProspects = lazy(() => import('./pages/AdminWNBAProspects').then(m => ({ default: m.AdminWNBAProspects })));
+const AdminProspects = lazy(() => import('./pages/AdminProspects').then(m => ({ default: m.AdminProspects })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -425,6 +427,26 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <AdminWNBAScraper />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/wnba-prospects"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminWNBAProspects />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/prospects"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <AdminProspects />
                 </AppLayout>
               </PrivateRoute>
             }

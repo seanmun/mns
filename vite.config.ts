@@ -60,7 +60,9 @@ export default defineConfig({
             './src/pages/AdminPortfolio.tsx',
             './src/pages/AdminMigration.tsx',
             './src/pages/AdminPicksView.tsx',
-            './src/pages/AdminWNBAScraper.tsx'
+            './src/pages/AdminWNBAScraper.tsx',
+            './src/pages/AdminWNBAProspects.tsx',
+            './src/pages/AdminProspects.tsx'
           ],
         },
       },

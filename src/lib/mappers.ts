@@ -389,6 +389,7 @@ export function mapProspect(row: any): Prospect {
     positionRank: row.position_rank,
     height: row.height,
     weight: row.weight,
+    sport: row.sport || 'nba',
     age: row.age || undefined,
     hometown: row.hometown || undefined,
     highSchool: row.high_school || undefined,

@@ -12,6 +12,10 @@ if (sentryDsn) {
     dsn: sentryDsn,
     environment: import.meta.env.MODE,
     sendDefaultPii: true,
+    beforeSend(event) {
+      if (window.location.hostname === 'localhost') return null;
+      return event;
+    },
   });
 }
 
