@@ -1,42 +1,52 @@
 import { memo } from 'react';
-import type { RosterSummary } from '../types';
+import type { RosterSummary, LeagueCapSettings, LeagueFeeSettings } from '../types';
 
 interface CapThermometerProps {
   summary: RosterSummary;
   maxKeepers?: number;
   isRegularSeason?: boolean;
+  cap?: LeagueCapSettings;
+  fees?: LeagueFeeSettings;
 }
 
-export const CapThermometer = memo(function CapThermometer({ summary, maxKeepers = 13, isRegularSeason = false }: CapThermometerProps) {
+export const CapThermometer = memo(function CapThermometer({ summary, maxKeepers = 13, isRegularSeason = false, cap, fees }: CapThermometerProps) {
   const { capUsed, capEffective, overSecondApronByM, keepersCount } = summary;
-  const firstApron = 195_000_000;
-  const secondApron = 225_000_000;
-  const max = 255_000_000;
+  const firstApron = cap?.firstApron || 195_000_000;
+  const secondApron = cap?.secondApron || 225_000_000;
+  const max = cap?.max || 255_000_000;
+  const firstApronFeeAmount = fees?.firstApronFee ?? 50;
+  const penaltyRate = fees?.penaltyRatePerM ?? 2;
   const totalRosterSize = 13;  // Total roster spots (keepers + draft picks)
 
-  // Calculate marker positions on the full scale (0 to 255M)
-  const firstApronPercent = (firstApron / max) * 100;
-  const secondApronPercent = (secondApron / max) * 100;
+  // Hide apron markers if the league has no aprons (e.g. WNBA)
+  const hasAprons = firstApron > 0 && secondApron > 0;
+
+  // Calculate marker positions on the full scale
+  const firstApronPercent = hasAprons ? (firstApron / max) * 100 : 0;
+  const secondApronPercent = hasAprons ? (secondApron / max) * 100 : 0;
   const capUsedPercent = Math.min((capUsed / max) * 100, 100);
 
   const formatCap = (value: number) => {
-    return `$${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
+    return `$${value}`;
   };
 
   const getBarColor = () => {
-    if (capUsed > secondApron) return 'bg-orange-500';
-    if (capUsed > firstApron) return 'bg-yellow-500';
+    if (hasAprons && capUsed > secondApron) return 'bg-orange-500';
+    if (hasAprons && capUsed > firstApron) return 'bg-yellow-500';
+    if (capUsed > max) return 'bg-red-500';
     return 'bg-green-500';
   };
 
-  const isOverFirstApron = capUsed > firstApron;
-  const isOverSecondApron = capUsed > secondApron;
+  const isOverFirstApron = hasAprons && capUsed > firstApron;
+  const isOverSecondApron = hasAprons && capUsed > secondApron;
 
   return (
     <div className="bg-[#121212] p-6 rounded-lg border border-gray-800">
       <h3 className="text-lg font-semibold mb-4 text-white">Salary Cap Status</h3>
 
-      {/* Salary cap scale (0 to 250M) */}
+      {/* Salary cap scale */}
       <div className="mb-6 md:mb-6">
         <div className="flex justify-between text-xs text-gray-400 mb-2">
           <span>Cap Used: {formatCap(capUsed)}</span>
@@ -50,37 +60,45 @@ export const CapThermometer = memo(function CapThermometer({ summary, maxKeepers
             style={{ width: `${capUsedPercent}%` }}
           />
 
-          {/* First apron marker (195M) */}
-          <div
-            className="absolute top-0 h-full w-0.5 bg-yellow-400"
-            style={{ left: `${firstApronPercent}%` }}
-            title="First Apron: $195M"
-          />
+          {/* First apron marker */}
+          {hasAprons && (
+            <div
+              className="absolute top-0 h-full w-0.5 bg-yellow-400"
+              style={{ left: `${firstApronPercent}%` }}
+              title={`First Apron: ${formatCap(firstApron)}`}
+            />
+          )}
 
-          {/* Second apron marker (225M) */}
-          <div
-            className="absolute top-0 h-full w-0.5 bg-orange-400"
-            style={{ left: `${secondApronPercent}%` }}
-            title="Second Apron: $225M"
-          />
+          {/* Second apron marker */}
+          {hasAprons && (
+            <div
+              className="absolute top-0 h-full w-0.5 bg-orange-400"
+              style={{ left: `${secondApronPercent}%` }}
+              title={`Second Apron: ${formatCap(secondApron)}`}
+            />
+          )}
         </div>
 
         <div className="relative text-xs text-gray-400 mt-1 h-8 md:h-4">
-          <span className="absolute left-0">$0M</span>
-          {/* Mobile: Stack apron markers vertically */}
-          <span className="absolute text-yellow-400 md:hidden" style={{ left: `${firstApronPercent}%`, transform: 'translateX(-50%)' }}>
-            $195M
-          </span>
-          <span className="absolute text-orange-400 md:hidden" style={{ left: `${secondApronPercent}%`, transform: 'translateX(-50%)', top: '13px' }}>
-            $225M
-          </span>
-          {/* Desktop: Show full labels side by side */}
-          <span className="absolute text-yellow-400 hidden md:inline" style={{ left: `${firstApronPercent}%`, transform: 'translateX(-50%)' }}>
-            $195M (1st)
-          </span>
-          <span className="absolute text-orange-400 hidden md:inline" style={{ left: `${secondApronPercent}%`, transform: 'translateX(-50%)' }}>
-            $225M (2nd)
-          </span>
+          <span className="absolute left-0">$0</span>
+          {hasAprons && (
+            <>
+              {/* Mobile: Stack apron markers vertically */}
+              <span className="absolute text-yellow-400 md:hidden" style={{ left: `${firstApronPercent}%`, transform: 'translateX(-50%)' }}>
+                {formatCap(firstApron)}
+              </span>
+              <span className="absolute text-orange-400 md:hidden" style={{ left: `${secondApronPercent}%`, transform: 'translateX(-50%)', top: '13px' }}>
+                {formatCap(secondApron)}
+              </span>
+              {/* Desktop: Show full labels side by side */}
+              <span className="absolute text-yellow-400 hidden md:inline" style={{ left: `${firstApronPercent}%`, transform: 'translateX(-50%)' }}>
+                {formatCap(firstApron)} (1st)
+              </span>
+              <span className="absolute text-orange-400 hidden md:inline" style={{ left: `${secondApronPercent}%`, transform: 'translateX(-50%)' }}>
+                {formatCap(secondApron)} (2nd)
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -128,7 +146,7 @@ export const CapThermometer = memo(function CapThermometer({ summary, maxKeepers
           </div>
         </div>
 
-        {!isRegularSeason && (
+        {!isRegularSeason && hasAprons && (
           <div>
             <div className="text-gray-400">Avg/Spot (Before 1st Apron)</div>
             <div className="font-semibold text-lg text-yellow-400">
@@ -142,7 +160,7 @@ export const CapThermometer = memo(function CapThermometer({ summary, maxKeepers
           </div>
         )}
 
-        {!isRegularSeason && (
+        {!isRegularSeason && hasAprons && (
           <div>
             <div className="text-gray-400">Avg/Spot (Before 2nd Apron)</div>
             <div className="font-semibold text-lg text-orange-400">
@@ -158,15 +176,21 @@ export const CapThermometer = memo(function CapThermometer({ summary, maxKeepers
       </div>
 
       {/* Warning messages */}
-      {isOverFirstApron && !isOverSecondApron && (
+      {isOverFirstApron && !isOverSecondApron && firstApronFeeAmount > 0 && (
         <div className="mt-4 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded text-sm text-yellow-400">
-          ⚠️ First Apron: You are over $195M. A one-time $50 fee applies. After payment, you can stay over $195M for the rest of the season.
+          First Apron: You are over {formatCap(firstApron)}. A one-time ${firstApronFeeAmount} fee applies.
         </div>
       )}
 
-      {isOverSecondApron && (
+      {isOverSecondApron && penaltyRate > 0 && (
         <div className="mt-4 p-3 bg-orange-400/10 border border-orange-400/30 rounded text-sm text-orange-400">
-          ⚠️ Second Apron Penalty: ${summary.penaltyDues} due (${overSecondApronByM}M over × $2/M)
+          Second Apron Penalty: ${summary.penaltyDues} due (${overSecondApronByM}M over × ${penaltyRate}/M)
+        </div>
+      )}
+
+      {!hasAprons && capUsed > max && (
+        <div className="mt-4 p-3 bg-red-400/10 border border-red-400/30 rounded text-sm text-red-400">
+          Over salary cap by {formatCap(capUsed - max)}
         </div>
       )}
     </div>

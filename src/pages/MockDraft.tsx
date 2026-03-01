@@ -68,6 +68,7 @@ export function MockDraft() {
           setLeague({
             id: leagueRes.data.id,
             name: leagueRes.data.name,
+            sport: leagueRes.data.sport || 'nba',
             seasonYear: leagueRes.data.season_year,
             deadlines: leagueRes.data.deadlines,
             cap: leagueRes.data.cap,

@@ -49,6 +49,15 @@ export function AdminLeague() {
     'roster.maxActive': 13,
     'roster.maxStarters': 10,
     'roster.maxIR': 2,
+    'roster.maxKeepers': 8,
+    'roster.rookieDraftRounds': 2,
+    'roster.rookieDraftYears': 3,
+    'fees.buyIn': 100,
+    'fees.firstApronFee': 50,
+    'fees.penaltyRatePerM': 2,
+    'fees.redshirtFee': 10,
+    'fees.franchiseTagFee': 15,
+    'fees.activationFee': 25,
     telegramChatId: '',
   });
   const [generatingWeeks, setGeneratingWeeks] = useState(false);
@@ -169,6 +178,15 @@ export function AdminLeague() {
       'roster.maxActive': league.roster?.maxActive ?? 13,
       'roster.maxStarters': league.roster?.maxStarters ?? 10,
       'roster.maxIR': league.roster?.maxIR ?? 2,
+      'roster.maxKeepers': league.roster?.maxKeepers ?? 8,
+      'roster.rookieDraftRounds': league.roster?.rookieDraftRounds ?? 2,
+      'roster.rookieDraftYears': league.roster?.rookieDraftYears ?? 3,
+      'fees.buyIn': league.fees?.buyIn ?? 100,
+      'fees.firstApronFee': league.fees?.firstApronFee ?? 50,
+      'fees.penaltyRatePerM': league.fees?.penaltyRatePerM ?? 2,
+      'fees.redshirtFee': league.fees?.redshirtFee ?? 10,
+      'fees.franchiseTagFee': league.fees?.franchiseTagFee ?? 15,
+      'fees.activationFee': league.fees?.activationFee ?? 25,
       telegramChatId: league.telegramChatId || '',
     });
     setWeeksGenerated(false);
@@ -213,6 +231,17 @@ export function AdminLeague() {
             maxActive: editForm['roster.maxActive'],
             maxStarters: editForm['roster.maxStarters'],
             maxIR: editForm['roster.maxIR'],
+            maxKeepers: editForm['roster.maxKeepers'],
+            rookieDraftRounds: editForm['roster.rookieDraftRounds'],
+            rookieDraftYears: editForm['roster.rookieDraftYears'],
+          },
+          fees: {
+            buyIn: editForm['fees.buyIn'],
+            firstApronFee: editForm['fees.firstApronFee'],
+            penaltyRatePerM: editForm['fees.penaltyRatePerM'],
+            redshirtFee: editForm['fees.redshirtFee'],
+            franchiseTagFee: editForm['fees.franchiseTagFee'],
+            activationFee: editForm['fees.activationFee'],
           },
         })
         .eq('id', selectedLeague.id);
@@ -254,6 +283,17 @@ export function AdminLeague() {
                   maxActive: editForm['roster.maxActive'],
                   maxStarters: editForm['roster.maxStarters'],
                   maxIR: editForm['roster.maxIR'],
+                  maxKeepers: editForm['roster.maxKeepers'],
+                  rookieDraftRounds: editForm['roster.rookieDraftRounds'],
+                  rookieDraftYears: editForm['roster.rookieDraftYears'],
+                },
+                fees: {
+                  buyIn: editForm['fees.buyIn'],
+                  firstApronFee: editForm['fees.firstApronFee'],
+                  penaltyRatePerM: editForm['fees.penaltyRatePerM'],
+                  redshirtFee: editForm['fees.redshirtFee'],
+                  franchiseTagFee: editForm['fees.franchiseTagFee'],
+                  activationFee: editForm['fees.activationFee'],
                 },
               }
             : league
@@ -458,9 +498,13 @@ export function AdminLeague() {
       const existingFirstApron = existing?.first_apron_fee || 0;
       const existingPenalty = existing?.second_apron_penalty || 0;
 
-      const newFirstApron = Math.max(existingFirstApron, peak > 195_000_000 ? 50 : 0);
-      const overByM = peak > 225_000_000 ? Math.ceil((peak - 225_000_000) / 1_000_000) : 0;
-      const newPenalty = Math.max(existingPenalty, overByM * 2);
+      const leagueFirstApron = selectedLeague.cap?.firstApron || 195_000_000;
+      const leagueFirstApronFee = selectedLeague.fees?.firstApronFee ?? 50;
+      const leagueSecondApron = selectedLeague.cap?.secondApron || 225_000_000;
+      const leaguePenaltyRate = selectedLeague.fees?.penaltyRatePerM ?? 2;
+      const newFirstApron = Math.max(existingFirstApron, (leagueFirstApron > 0 && peak > leagueFirstApron) ? leagueFirstApronFee : 0);
+      const overByM = (leagueSecondApron > 0 && peak > leagueSecondApron) ? Math.ceil((peak - leagueSecondApron) / 1_000_000) : 0;
+      const newPenalty = Math.max(existingPenalty, overByM * leaguePenaltyRate);
 
       const franchiseTagFees = existing?.franchise_tag_fees || 0;
       const redshirtFees = existing?.redshirt_fees || 0;
@@ -576,9 +620,11 @@ export function AdminLeague() {
             .filter(p => p.roster.teamId === team.id && ['active', 'bench', 'ir'].includes(p.slot))
             .forEach(p => { totalSalary += p.salary || 0; });
 
-          const overBy = Math.max(0, totalSalary - 225_000_000);
+          const leagueSecondApron2 = selectedLeague.cap?.secondApron || 225_000_000;
+          const leaguePenaltyRate2 = selectedLeague.fees?.penaltyRatePerM ?? 2;
+          const overBy = (leagueSecondApron2 > 0) ? Math.max(0, totalSalary - leagueSecondApron2) : 0;
           const overByM = Math.ceil(overBy / 1_000_000);
-          const currentPenalty = overByM * 2;
+          const currentPenalty = overByM * leaguePenaltyRate2;
 
           const feesId = `${selectedLeague.id}_${team.id}_${selectedLeague.seasonYear}`;
 
@@ -602,9 +648,11 @@ export function AdminLeague() {
           }
 
           // Sticky: preserve existing first apron charge; only add for newly over teams
+          const leagueFirstApron2 = selectedLeague.cap?.firstApron || 195_000_000;
+          const leagueFirstApronFee2 = selectedLeague.fees?.firstApronFee ?? 50;
           const firstApronFee = (existingFees?.firstApronFee && existingFees.firstApronFee > 0)
             ? existingFees.firstApronFee
-            : (totalSalary > 195_000_000 ? 50 : 0);
+            : ((leagueFirstApron2 > 0 && totalSalary > leagueFirstApron2) ? leagueFirstApronFee2 : 0);
 
           // Highest watermark: never drop below previously stored penalty
           const secondApronPenalty = Math.max(existingFees?.secondApronPenalty || 0, currentPenalty);
@@ -751,7 +799,7 @@ export function AdminLeague() {
                 })}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {getNextPhase(selectedLeague.leaguePhase) && (
                   <button
                     onClick={handleAdvancePhase}
@@ -768,6 +816,35 @@ export function AdminLeague() {
                     Revert Phase
                   </button>
                 )}
+                <select
+                  value={selectedLeague.leaguePhase}
+                  onChange={async (e) => {
+                    const newPhase = e.target.value as typeof selectedLeague.leaguePhase;
+                    if (newPhase === selectedLeague.leaguePhase) return;
+                    const confirmed = confirm(
+                      `Set phase directly to ${LEAGUE_PHASE_LABELS[newPhase]}?\n\nCurrent: ${LEAGUE_PHASE_LABELS[selectedLeague.leaguePhase]}`
+                    );
+                    if (!confirmed) return;
+                    const { error } = await supabase
+                      .from('leagues')
+                      .update({ league_phase: newPhase })
+                      .eq('id', selectedLeague.id);
+                    if (error) {
+                      toast.error(`Failed to set phase: ${error.message}`);
+                      return;
+                    }
+                    setLeagues(prev => prev.map(l =>
+                      l.id === selectedLeague.id ? { ...l, leaguePhase: newPhase } : l
+                    ));
+                    setSelectedLeague(prev => prev ? { ...prev, leaguePhase: newPhase } : null);
+                    toast.success(`Phase set to ${LEAGUE_PHASE_LABELS[newPhase]}`);
+                  }}
+                  className="px-3 py-2.5 text-sm bg-[#0a0a0a] border border-gray-700 rounded-lg text-gray-400 hover:text-white focus:outline-none focus:border-green-400"
+                >
+                  {LEAGUE_PHASE_ORDER.map(phase => (
+                    <option key={phase} value={phase}>{LEAGUE_PHASE_LABELS[phase]}</option>
+                  ))}
+                </select>
                 {selectedLeague.leaguePhase === 'regular_season' && (
                   <button
                     onClick={handleLockFees}
@@ -905,6 +982,73 @@ export function AdminLeague() {
                   <label className="block text-sm font-medium text-gray-400 mb-1">IR Slots</label>
                   <input type="number" min={0} max={10} value={editForm['roster.maxIR']}
                     onChange={(e) => setEditForm({ ...editForm, 'roster.maxIR': parseInt(e.target.value) || 2 })}
+                    className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Max Keepers</label>
+                  <input type="number" min={0} max={editForm['roster.maxActive']} value={editForm['roster.maxKeepers']}
+                    onChange={(e) => setEditForm({ ...editForm, 'roster.maxKeepers': parseInt(e.target.value) || 8 })}
+                    className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Rookie Draft Rounds</label>
+                  <input type="number" min={1} max={10} value={editForm['roster.rookieDraftRounds']}
+                    onChange={(e) => setEditForm({ ...editForm, 'roster.rookieDraftRounds': parseInt(e.target.value) || 2 })}
+                    className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Rookie Pick Years</label>
+                  <input type="number" min={1} max={5} value={editForm['roster.rookieDraftYears']}
+                    onChange={(e) => setEditForm({ ...editForm, 'roster.rookieDraftYears': parseInt(e.target.value) || 3 })}
+                    className={inputClass} />
+                </div>
+              </div>
+            </div>
+
+            {/* Fee Settings */}
+            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Fee Settings</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Buy-In ($)</label>
+                  <input type="number" min={0} value={editForm['fees.buyIn']}
+                    onChange={(e) => setEditForm({ ...editForm, 'fees.buyIn': parseInt(e.target.value) || 0 })}
+                    className={inputClass} />
+                </div>
+                {selectedLeague.sport !== 'wnba' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">First Apron Fee ($)</label>
+                    <input type="number" min={0} value={editForm['fees.firstApronFee']}
+                      onChange={(e) => setEditForm({ ...editForm, 'fees.firstApronFee': parseInt(e.target.value) || 0 })}
+                      className={inputClass} />
+                    <p className="text-xs text-gray-600 mt-1">One-time fee for crossing the first apron</p>
+                  </div>
+                )}
+                {selectedLeague.sport !== 'wnba' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">Penalty Rate ($/M)</label>
+                    <input type="number" min={0} value={editForm['fees.penaltyRatePerM']}
+                      onChange={(e) => setEditForm({ ...editForm, 'fees.penaltyRatePerM': parseInt(e.target.value) || 0 })}
+                      className={inputClass} />
+                    <p className="text-xs text-gray-600 mt-1">Per $1M over second apron</p>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Redshirt Fee ($)</label>
+                  <input type="number" min={0} value={editForm['fees.redshirtFee']}
+                    onChange={(e) => setEditForm({ ...editForm, 'fees.redshirtFee': parseInt(e.target.value) || 0 })}
+                    className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Franchise Tag Fee ($)</label>
+                  <input type="number" min={0} value={editForm['fees.franchiseTagFee']}
+                    onChange={(e) => setEditForm({ ...editForm, 'fees.franchiseTagFee': parseInt(e.target.value) || 0 })}
+                    className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Activation Fee ($)</label>
+                  <input type="number" min={0} value={editForm['fees.activationFee']}
+                    onChange={(e) => setEditForm({ ...editForm, 'fees.activationFee': parseInt(e.target.value) || 0 })}
                     className={inputClass} />
                 </div>
               </div>
@@ -1086,7 +1230,7 @@ export function AdminLeague() {
                             {feeTeams.map(ft => (
                               <tr key={ft.teamId} className="border-b border-gray-800/50">
                                 <td className="py-2 text-white">{ft.teamName}</td>
-                                <td className={`py-2 text-right ${ft.salary > 195_000_000 ? 'text-yellow-400' : 'text-gray-300'}`}>
+                                <td className={`py-2 text-right ${(selectedLeague.cap?.firstApron || 195_000_000) > 0 && ft.salary > (selectedLeague.cap?.firstApron || 195_000_000) ? 'text-yellow-400' : 'text-gray-300'}`}>
                                   ${(ft.salary / 1_000_000).toFixed(1)}M
                                 </td>
                                 <td className="py-2 text-center">
@@ -1217,6 +1361,7 @@ export function AdminLeague() {
           leagueId={selectedLeague.id}
           seasonYear={selectedLeague.seasonYear}
           rosterSettings={selectedLeague.roster}
+          sport={selectedLeague.sport}
           onClose={() => setShowRosterManagement(false)}
         />
       )}

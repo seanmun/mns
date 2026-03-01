@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
@@ -204,8 +204,7 @@ export function Header() {
                   <button
                     onClick={() => {
                       setIsLeagueDropdownOpen(false);
-                      // TODO: Navigate to create league page
-                      toast('Create League feature coming soon!');
+                      navigate('/create-league');
                     }}
                     className="w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-gray-800 transition-colors flex items-center gap-2"
                   >

@@ -11,12 +11,13 @@ interface AdminRosterManagementProps {
   leagueId: string;
   seasonYear: number;
   rosterSettings?: LeagueRosterSettings;
+  sport?: string;
   onClose: () => void;
 }
 
 type ActionType = 'add_to_ir' | 'move_to_active' | 'drop_player' | 'add_free_agent';
 
-export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = DEFAULT_ROSTER_SETTINGS, onClose }: AdminRosterManagementProps) {
+export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = DEFAULT_ROSTER_SETTINGS, sport = 'nba', onClose }: AdminRosterManagementProps) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +28,11 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
   const [actionType, setActionType] = useState<ActionType>('add_free_agent');
   const [selectedPlayer, setSelectedPlayer] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Create player state
+  const [showCreatePlayer, setShowCreatePlayer] = useState(false);
+  const [newPlayer, setNewPlayer] = useState({ name: '', position: 'G', nbaTeam: '', salary: 0 });
+  const [creatingPlayer, setCreatingPlayer] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -164,6 +170,43 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
       toast.error(`Failed to execute action: ${error}`);
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handleCreatePlayer = async () => {
+    if (!newPlayer.name.trim()) {
+      toast.error('Player name is required');
+      return;
+    }
+    setCreatingPlayer(true);
+    try {
+      const playerId = `${sport}_${newPlayer.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+      const { error } = await supabase.from('players').insert({
+        id: playerId,
+        name: newPlayer.name.trim(),
+        position: newPlayer.position,
+        nba_team: newPlayer.nbaTeam.trim(),
+        salary: newPlayer.salary,
+        sport,
+        league_id: leagueId,
+        slot: 'free_agent',
+      });
+      if (error) {
+        if (error.code === '23505') {
+          toast.error('A player with this name already exists');
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success(`${newPlayer.name} created as free agent`);
+        setNewPlayer({ name: '', position: 'G', nbaTeam: '', salary: 0 });
+        await loadData();
+      }
+    } catch (error) {
+      logger.error('Error creating player:', error);
+      toast.error(`Failed to create player: ${error}`);
+    } finally {
+      setCreatingPlayer(false);
     }
   };
 
@@ -345,6 +388,63 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
               <div className="text-sm text-gray-500 mt-2">
                 Current Slot: {getSlotLabel(selectedPlayerObj.slot)}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Create Player */}
+        <div className="px-6 pb-4">
+          <button
+            onClick={() => setShowCreatePlayer(!showCreatePlayer)}
+            className="text-sm text-green-400 hover:text-green-300 transition-colors flex items-center gap-1"
+          >
+            <span>{showCreatePlayer ? '−' : '+'}</span>
+            <span>Create New Player</span>
+          </button>
+          {showCreatePlayer && (
+            <div className="mt-3 bg-[#0a0a0a] border border-gray-700 rounded-lg p-4 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <input
+                  type="text"
+                  placeholder="Player Name *"
+                  value={newPlayer.name}
+                  onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
+                  className="px-3 py-2 bg-[#121212] border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-green-400"
+                />
+                <select
+                  value={newPlayer.position}
+                  onChange={(e) => setNewPlayer({ ...newPlayer, position: e.target.value })}
+                  className="px-3 py-2 bg-[#121212] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-green-400"
+                >
+                  <option value="G">G</option>
+                  <option value="F">F</option>
+                  <option value="C">C</option>
+                  <option value="G-F">G-F</option>
+                  <option value="F-C">F-C</option>
+                  <option value="F-G">F-G</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder={sport === 'wnba' ? 'WNBA Team' : 'NBA Team'}
+                  value={newPlayer.nbaTeam}
+                  onChange={(e) => setNewPlayer({ ...newPlayer, nbaTeam: e.target.value })}
+                  className="px-3 py-2 bg-[#121212] border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-green-400"
+                />
+                <input
+                  type="number"
+                  placeholder="Salary"
+                  value={newPlayer.salary || ''}
+                  onChange={(e) => setNewPlayer({ ...newPlayer, salary: parseInt(e.target.value) || 0 })}
+                  className="px-3 py-2 bg-[#121212] border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-green-400"
+                />
+              </div>
+              <button
+                onClick={handleCreatePlayer}
+                disabled={creatingPlayer || !newPlayer.name.trim()}
+                className="px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {creatingPlayer ? 'Creating...' : 'Create Player'}
+              </button>
             </div>
           )}
         </div>

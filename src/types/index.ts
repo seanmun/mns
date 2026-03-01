@@ -14,6 +14,33 @@ export interface LeagueCapSettings {
   penaltyRatePerM: number; // $2 per $1M
 }
 
+export interface LeagueFeeSettings {
+  buyIn: number;              // Annual league entry fee (e.g. $100)
+  firstApronFee: number;      // Fee if salary exceeds first apron (e.g. $50)
+  penaltyRatePerM: number;    // $/M over second apron (e.g. $2)
+  redshirtFee: number;        // Fee per redshirted rookie (e.g. $10)
+  franchiseTagFee: number;    // Fee per extra Round 1 keeper (e.g. $15)
+  activationFee: number;      // Fee per in-season unredshirt (e.g. $25)
+}
+
+export const NBA_FEE_DEFAULTS: LeagueFeeSettings = {
+  buyIn: 100,
+  firstApronFee: 50,
+  penaltyRatePerM: 2,
+  redshirtFee: 10,
+  franchiseTagFee: 15,
+  activationFee: 25,
+};
+
+export const WNBA_FEE_DEFAULTS: LeagueFeeSettings = {
+  buyIn: 50,
+  firstApronFee: 0,
+  penaltyRatePerM: 0,
+  redshirtFee: 10,
+  franchiseTagFee: 15,
+  activationFee: 25,
+};
+
 export interface LeagueDeadlines {
   keepersLockAt: string;   // ISO timestamp
   redshirtLockAt: string;  // ISO timestamp
@@ -75,17 +102,46 @@ export interface LeagueRosterSettings {
   maxActive: number;       // default 13 — max players on active roster
   maxStarters: number;     // default 10 — max that can start (rest must bench)
   maxIR: number;           // default 2  — IR slots
+  maxKeepers: number;      // default 8  — max keepers per team
+  rookieDraftRounds: number; // default 2 — number of rookie draft rounds
+  rookieDraftYears: number;  // default 3 — years of future picks to generate
 }
 
 export const DEFAULT_ROSTER_SETTINGS: LeagueRosterSettings = {
   maxActive: 13,
   maxStarters: 10,
   maxIR: 2,
+  maxKeepers: 8,
+  rookieDraftRounds: 2,
+  rookieDraftYears: 3,
+};
+
+export const NBA_CAP_DEFAULTS: LeagueCapSettings = {
+  floor: 170_000_000,
+  base: 225_000_000,
+  tradeLimit: 40_000_000,
+  max: 255_000_000,
+  firstApron: 195_000_000,
+  secondApron: 225_000_000,
+  penaltyStart: 225_000_000,
+  penaltyRatePerM: 2,
+};
+
+export const WNBA_CAP_DEFAULTS: LeagueCapSettings = {
+  floor: 0,
+  base: 1_500_000,
+  tradeLimit: 0,
+  max: 1_500_000,
+  firstApron: 0,
+  secondApron: 0,
+  penaltyStart: 0,
+  penaltyRatePerM: 0,
 };
 
 export interface League {
   id: string;
   name: string;
+  sport: Sport;
   seasonYear: number;
   deadlines: LeagueDeadlines;
   cap: LeagueCapSettings;
@@ -99,6 +155,7 @@ export interface League {
   commissionerId?: string;   // UUID of the league's commissioner (auto-set on creation)
   scoringMode: ScoringMode;  // How W-L-T records are computed
   roster: LeagueRosterSettings;  // Roster slot limits
+  fees?: LeagueFeeSettings;  // Fee structure (buy-in, penalties, etc.)
   telegramChatId?: string;  // Per-league Telegram group for @mns_draft_bot notifications
 }
 
@@ -318,7 +375,7 @@ export interface PreviousStats {
 export type LeaguePhase = 'keeper_season' | 'draft' | 'regular_season' | 'playoffs' | 'champion' | 'rookie_draft';
 
 export const LEAGUE_PHASE_ORDER: LeaguePhase[] = [
-  'keeper_season', 'draft', 'regular_season', 'playoffs', 'champion', 'rookie_draft',
+  'rookie_draft', 'keeper_season', 'draft', 'regular_season', 'playoffs', 'champion',
 ];
 
 export const LEAGUE_PHASE_LABELS: Record<LeaguePhase, string> = {

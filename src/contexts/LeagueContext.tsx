@@ -10,6 +10,7 @@ interface LeagueContextType {
   userLeagues: League[];
   loading: boolean;
   setCurrentLeagueId: (leagueId: string) => void;
+  refreshLeagues: () => void;
   isLeagueManager: boolean;
 }
 
@@ -21,6 +22,7 @@ export function LeagueProvider({ children }: { children: React.ReactNode }) {
   const [currentLeague, setCurrentLeague] = useState<League | null>(null);
   const [userLeagues, setUserLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchVersion, setFetchVersion] = useState(0);
 
   // Fetch user's leagues
   useEffect(() => {
@@ -89,7 +91,7 @@ export function LeagueProvider({ children }: { children: React.ReactNode }) {
     };
 
     fetchUserLeagues();
-  }, [user, role]);
+  }, [user, role, fetchVersion]);
 
   // Update current league when ID changes
   useEffect(() => {
@@ -104,6 +106,10 @@ export function LeagueProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('currentLeagueId', leagueId);
   }, []);
 
+  const refreshLeagues = useCallback(() => {
+    setFetchVersion(v => v + 1);
+  }, []);
+
   const isLeagueManager = useMemo(
     () => !!(user && currentLeague?.commissionerId && user.id === currentLeague.commissionerId),
     [user, currentLeague]
@@ -115,8 +121,9 @@ export function LeagueProvider({ children }: { children: React.ReactNode }) {
     userLeagues,
     loading,
     setCurrentLeagueId,
+    refreshLeagues,
     isLeagueManager,
-  }), [currentLeagueId, currentLeague, userLeagues, loading, setCurrentLeagueId, isLeagueManager]);
+  }), [currentLeagueId, currentLeague, userLeagues, loading, setCurrentLeagueId, refreshLeagues, isLeagueManager]);
 
   return <LeagueContext.Provider value={value}>{children}</LeagueContext.Provider>;
 }

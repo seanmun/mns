@@ -5,12 +5,13 @@ import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
 import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { useLeague } from '../contexts/LeagueContext';
-import type { Team } from '../types';
+import type { Team, League } from '../types';
+import { mapLeague } from '../lib/mappers';
 
 interface RookieDraftPick {
   id: string;
   year: number;
-  round: 1 | 2;
+  round: number;
   originalTeam: string;
   originalTeamName: string;
   currentOwner: string;
@@ -24,6 +25,7 @@ export function AdminRookiePicks() {
 
   const [teams, setTeams] = useState<Team[]>([]);
   const [picks, setPicks] = useState<RookieDraftPick[]>([]);
+  const [league, setLeague] = useState<League | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingPick, setEditingPick] = useState<RookieDraftPick | null>(null);
   const [newOwner, setNewOwner] = useState('');
@@ -42,14 +44,21 @@ export function AdminRookiePicks() {
 
     setLoading(true);
     try {
-      // Load teams
-      const { data: teamsData, error: teamsError } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('league_id', currentLeagueId);
-      if (teamsError) throw teamsError;
+      // Load teams + league
+      const [teamsRes, leagueRes, picksRes] = await Promise.all([
+        supabase.from('teams').select('*').eq('league_id', currentLeagueId),
+        supabase.from('leagues').select('*').eq('id', currentLeagueId).single(),
+        supabase.from('rookie_draft_picks').select('*').eq('league_id', currentLeagueId),
+      ]);
 
-      const mappedTeams = (teamsData || []).map((t: any) => ({
+      if (teamsRes.error) throw teamsRes.error;
+      if (leagueRes.error) throw leagueRes.error;
+      if (picksRes.error) throw picksRes.error;
+
+      const mappedLeague = mapLeague(leagueRes.data);
+      setLeague(mappedLeague);
+
+      const mappedTeams = (teamsRes.data || []).map((t: any) => ({
         id: t.id,
         name: t.name,
         abbrev: t.abbrev,
@@ -61,12 +70,7 @@ export function AdminRookiePicks() {
       })) as Team[];
       setTeams(mappedTeams);
 
-      // Load rookie picks
-      const { data: picksData, error: picksError } = await supabase
-        .from('rookie_draft_picks')
-        .select('*')
-        .eq('league_id', currentLeagueId);
-      if (picksError) throw picksError;
+      const picksData = picksRes.data;
 
       const mappedPicks = (picksData || []).map((p: any): RookieDraftPick => ({
         id: p.id,
@@ -90,11 +94,16 @@ export function AdminRookiePicks() {
   const handleInitializePicks = async () => {
     if (!currentLeagueId) return;
 
+    const numRounds = league?.roster?.rookieDraftRounds ?? 2;
+    const numYears = league?.roster?.rookieDraftYears ?? 3;
+    const currentYear = league?.seasonYear ?? new Date().getFullYear();
+    const totalPicks = teams.length * numYears * numRounds;
+
     const confirmed = window.confirm(
       `Initialize rookie draft picks?\n\n` +
-      `This will create ${teams.length * 3 * 2} picks:\n` +
-      `- 3 years (2026-2028)\n` +
-      `- 2 rounds per year\n` +
+      `This will create ${totalPicks} picks:\n` +
+      `- ${numYears} years (${currentYear}-${currentYear + numYears - 1})\n` +
+      `- ${numRounds} rounds per year\n` +
       `- ${teams.length} teams\n\n` +
       `Continue?`
     );
@@ -103,12 +112,12 @@ export function AdminRookiePicks() {
 
     try {
       const newPicks: RookieDraftPick[] = [];
-      const currentYear = 2026;
 
       for (const team of teams) {
-        for (let yearOffset = 0; yearOffset < 3; yearOffset++) {
+        for (let yearOffset = 0; yearOffset < numYears; yearOffset++) {
           const year = currentYear + yearOffset;
-          for (const round of [1, 2] as const) {
+          for (let r = 1; r <= numRounds; r++) {
+            const round = r as 1 | 2;
             const pickId = `${currentLeagueId}_${year}_${round}_${team.id}`;
             const pick: RookieDraftPick = {
               id: pickId,
@@ -244,7 +253,7 @@ export function AdminRookiePicks() {
                 onClick={handleInitializePicks}
                 className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium"
               >
-                Initialize All Picks ({teams.length * 3 * 2} picks)
+                Initialize All Picks ({teams.length * (league?.roster?.rookieDraftYears ?? 3) * (league?.roster?.rookieDraftRounds ?? 2)} picks)
               </button>
             ) : (
               <>
@@ -269,85 +278,50 @@ export function AdminRookiePicks() {
             <h2 className="text-xl font-bold text-white mb-4">{year} Rookie Draft</h2>
 
             <div className="space-y-6">
-              {/* 1st Round */}
-              <div>
-                <h3 className="text-lg font-semibold text-green-400 mb-3">1st Round</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {picksByYear[year]
-                    .filter(p => p.round === 1)
-                    .map(pick => {
-                      const ownerTeam = teams.find(t => t.id === pick.currentOwner);
-                      const isTraded = pick.currentOwner !== pick.originalTeam;
+              {Array.from(new Set(picksByYear[year].map(p => p.round))).sort().map(round => {
+                const roundColors = ['text-green-400', 'text-purple-400', 'text-blue-400', 'text-orange-400'];
+                const colorClass = roundColors[(round - 1) % roundColors.length];
+                return (
+                  <div key={round}>
+                    <h3 className={`text-lg font-semibold ${colorClass} mb-3`}>Round {round}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {picksByYear[year]
+                        .filter(p => p.round === round)
+                        .map(pick => {
+                          const ownerTeam = teams.find(t => t.id === pick.currentOwner);
+                          const isTraded = pick.currentOwner !== pick.originalTeam;
 
-                      return (
-                        <div
-                          key={pick.id}
-                          className={`p-4 rounded border ${
-                            isTraded
-                              ? 'bg-yellow-400/10 border-yellow-400/30'
-                              : 'bg-[#0a0a0a] border-gray-700'
-                          }`}
-                        >
-                          <div className="font-semibold text-white">
-                            {pick.originalTeamName}
-                          </div>
-                          <div className="text-sm text-gray-400 mt-1">
-                            Owner: <span className="text-green-400">{ownerTeam?.name || 'Unknown'}</span>
-                          </div>
-                          {isTraded && (
-                            <div className="text-xs text-yellow-400 mt-1">Traded</div>
-                          )}
-                          <button
-                            onClick={() => handleEditPick(pick)}
-                            className="mt-2 text-xs text-blue-400 hover:text-blue-300"
-                          >
-                            Change Owner
-                          </button>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-
-              {/* 2nd Round */}
-              <div>
-                <h3 className="text-lg font-semibold text-purple-400 mb-3">2nd Round</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {picksByYear[year]
-                    .filter(p => p.round === 2)
-                    .map(pick => {
-                      const ownerTeam = teams.find(t => t.id === pick.currentOwner);
-                      const isTraded = pick.currentOwner !== pick.originalTeam;
-
-                      return (
-                        <div
-                          key={pick.id}
-                          className={`p-4 rounded border ${
-                            isTraded
-                              ? 'bg-yellow-400/10 border-yellow-400/30'
-                              : 'bg-[#0a0a0a] border-gray-700'
-                          }`}
-                        >
-                          <div className="font-semibold text-white">
-                            {pick.originalTeamName}
-                          </div>
-                          <div className="text-sm text-gray-400 mt-1">
-                            Owner: <span className="text-purple-400">{ownerTeam?.name || 'Unknown'}</span>
-                          </div>
-                          {isTraded && (
-                            <div className="text-xs text-yellow-400 mt-1">Traded</div>
-                          )}
-                          <button
-                            onClick={() => handleEditPick(pick)}
-                            className="mt-2 text-xs text-blue-400 hover:text-blue-300"
-                          >
-                            Change Owner
-                          </button>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
+                          return (
+                            <div
+                              key={pick.id}
+                              className={`p-4 rounded border ${
+                                isTraded
+                                  ? 'bg-yellow-400/10 border-yellow-400/30'
+                                  : 'bg-[#0a0a0a] border-gray-700'
+                              }`}
+                            >
+                              <div className="font-semibold text-white">
+                                {pick.originalTeamName}
+                              </div>
+                              <div className="text-sm text-gray-400 mt-1">
+                                Owner: <span className={colorClass}>{ownerTeam?.name || 'Unknown'}</span>
+                              </div>
+                              {isTraded && (
+                                <div className="text-xs text-yellow-400 mt-1">Traded</div>
+                              )}
+                              <button
+                                onClick={() => handleEditPick(pick)}
+                                className="mt-2 text-xs text-blue-400 hover:text-blue-300"
+                              >
+                                Change Owner
+                              </button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}

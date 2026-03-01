@@ -198,7 +198,17 @@ export function TeamSelect() {
                   )}
                 </div>
 
-                <p className="text-xs text-gray-600 mt-6">
+                <div className="mt-6 border-t border-gray-800 pt-5">
+                  <p className="text-sm text-gray-500 mb-3">Or start your own league:</p>
+                  <button
+                    onClick={() => navigate('/create-league')}
+                    className="w-full px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"
+                  >
+                    Create a League
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-600 mt-4">
                   Signed in as {user?.email}
                 </p>
               </>
@@ -209,6 +219,7 @@ export function TeamSelect() {
             )}
           </div>
         ) : (
+          <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {teams.map((team) => {
               const league = leagues.get(team.leagueId);
@@ -256,6 +267,17 @@ export function TeamSelect() {
               );
             })}
           </div>
+
+          {/* Create a League */}
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => navigate('/create-league')}
+              className="px-6 py-2.5 border-2 border-green-400 text-green-400 rounded-lg font-semibold hover:bg-green-400/10 transition-all"
+            >
+              + Create a League
+            </button>
+          </div>
+          </>
         )}
       </div>
     </div>

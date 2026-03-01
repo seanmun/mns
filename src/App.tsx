@@ -75,6 +75,7 @@ const AdminHub = lazy(() => import('./pages/AdminHub').then(m => ({ default: m.A
 const AdminWNBAScraper = lazy(() => import('./pages/AdminWNBAScraper').then(m => ({ default: m.AdminWNBAScraper })));
 const AdminWNBAProspects = lazy(() => import('./pages/AdminWNBAProspects').then(m => ({ default: m.AdminWNBAProspects })));
 const AdminProspects = lazy(() => import('./pages/AdminProspects').then(m => ({ default: m.AdminProspects })));
+const CreateLeague = lazy(() => import('./pages/CreateLeague').then(m => ({ default: m.CreateLeague })));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -207,6 +208,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <TeamSelect />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/create-league"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <CreateLeague />
                 </AppLayout>
               </PrivateRoute>
             }

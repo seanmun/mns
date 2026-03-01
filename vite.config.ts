@@ -64,6 +64,11 @@ export default defineConfig({
             './src/pages/AdminWNBAProspects.tsx',
             './src/pages/AdminProspects.tsx'
           ],
+
+          // League creation wizard (user-facing)
+          'create-league': [
+            './src/pages/CreateLeague.tsx'
+          ],
         },
       },
     },

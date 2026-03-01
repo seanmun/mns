@@ -166,19 +166,19 @@ export function LeagueHome() {
             {/* Prize Pool Section */}
             <div className="bg-gradient-to-br from-green-400 via-green-500 to-green-600 rounded-lg shadow-lg p-6 text-gray-900">
               <h2 className="text-xl font-bold mb-2">💰 Prize Pool</h2>
-              <div className="text-4xl font-bold mb-4">${teams.length * 50}</div>
+              <div className="text-4xl font-bold mb-4">${teams.length * (league?.fees?.buyIn ?? 50)}</div>
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div className="bg-white/30 rounded p-3">
                   <div className="font-semibold">1st Place</div>
-                  <div className="text-2xl font-bold">${teams.length * 50 * 0.5}</div>
+                  <div className="text-2xl font-bold">${teams.length * (league?.fees?.buyIn ?? 50) * 0.5}</div>
                 </div>
                 <div className="bg-white/30 rounded p-3">
                   <div className="font-semibold">2nd Place</div>
-                  <div className="text-2xl font-bold">${teams.length * 50 * 0.3}</div>
+                  <div className="text-2xl font-bold">${teams.length * (league?.fees?.buyIn ?? 50) * 0.3}</div>
                 </div>
                 <div className="bg-white/30 rounded p-3">
                   <div className="font-semibold">3rd Place</div>
-                  <div className="text-2xl font-bold">${teams.length * 50 * 0.2}</div>
+                  <div className="text-2xl font-bold">${teams.length * (league?.fees?.buyIn ?? 50) * 0.2}</div>
                 </div>
               </div>
             </div>

@@ -114,18 +114,24 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
 
   // Create summary for CapThermometer and SummaryCard
   const summary: RosterSummary = useMemo(() => {
-    const baseCap = 225_000_000;
+    const baseCap = league.cap?.secondApron || 225_000_000;
+    const capMax = league.cap?.max || 255_000_000;
+    const capFloor = league.cap?.floor || 170_000_000;
     const tradeDelta = team.capAdjustments.tradeDelta || 0;
-    const capEffective = Math.max(170_000_000, Math.min(255_000_000, baseCap + tradeDelta));
+    const capEffective = Math.max(capFloor, Math.min(capMax, baseCap + tradeDelta));
 
-    const overBy = Math.max(0, totalSalary - 225_000_000);
+    const penaltyStart = league.cap?.secondApron || 225_000_000;
+    const overBy = Math.max(0, totalSalary - penaltyStart);
     const overByM = Math.ceil(overBy / 1_000_000);
-    const penaltyDues = overByM * 2;
+    const penaltyRate = league.fees?.penaltyRatePerM ?? 2;
+    const penaltyDues = overByM * penaltyRate;
 
     // Sticky first apron: if already charged in DB, keep it; otherwise check current salary
+    const firstApronThreshold = league.cap?.firstApron || 195_000_000;
+    const firstApronFeeAmount = league.fees?.firstApronFee ?? 50;
     const firstApronFee = (teamFees?.firstApronFee && teamFees.firstApronFee > 0)
       ? teamFees.firstApronFee
-      : (totalSalary > 195_000_000 ? 50 : 0);
+      : (firstApronThreshold > 0 && totalSalary > firstApronThreshold ? firstApronFeeAmount : 0);
 
     const franchiseTagDues = teamFees?.franchiseTagFees || 0;
     const redshirtDues = teamFees?.redshirtFees || 0;
@@ -559,10 +565,10 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
       {/* Desktop: Side by side layout */}
       <div className="hidden lg:grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <CapThermometer summary={summary} maxKeepers={team.settings.maxKeepers} isRegularSeason={true} />
+          <CapThermometer summary={summary} maxKeepers={team.settings.maxKeepers} isRegularSeason={true} cap={league.cap} fees={league.fees} />
         </div>
         <div>
-          <SummaryCard summary={summary} maxKeepers={team.settings.maxKeepers} maxActive={rosterSettings.maxActive} isRegularSeason={true} />
+          <SummaryCard summary={summary} maxKeepers={team.settings.maxKeepers} maxActive={rosterSettings.maxActive} isRegularSeason={true} cap={league.cap} fees={league.fees} />
         </div>
       </div>
 
@@ -592,10 +598,10 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
         </div>
 
         {mobileCapTab === 0 && (
-          <CapThermometer summary={summary} maxKeepers={team.settings.maxKeepers} isRegularSeason={true} />
+          <CapThermometer summary={summary} maxKeepers={team.settings.maxKeepers} isRegularSeason={true} cap={league.cap} fees={league.fees} />
         )}
         {mobileCapTab === 1 && (
-          <SummaryCard summary={summary} maxKeepers={team.settings.maxKeepers} maxActive={rosterSettings.maxActive} isRegularSeason={true} />
+          <SummaryCard summary={summary} maxKeepers={team.settings.maxKeepers} maxActive={rosterSettings.maxActive} isRegularSeason={true} cap={league.cap} fees={league.fees} />
         )}
       </div>
 

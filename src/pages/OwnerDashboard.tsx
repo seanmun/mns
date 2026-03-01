@@ -23,7 +23,7 @@ import { mapPlayer } from '../lib/mappers';
 interface RookieDraftPick {
   id: string;
   year: number;
-  round: 1 | 2;
+  round: number;
   originalTeam: string;
   originalTeamName: string;
   currentOwner: string;
@@ -402,39 +402,52 @@ export function OwnerDashboard() {
 
   // Calculate stacked entries and current summary for display
   const { stackedEntries, currentSummary } = useMemo(() => {
-    // NEW: Calculate summary ONLY from pickAssignments (source of truth)
+    // Calculate summary from pickAssignments if available, otherwise fall back to team players
     const picksWithPlayers = teamDraftPicks.filter((pick: any) => pick.playerId);
 
-    // SIMPLIFIED APPROACH: Use draftedPlayers which was already loaded from pickAssignments
-    const players = draftedPlayers;
+    // Use draftedPlayers from pickAssignments if populated, otherwise use actual team players
+    // This handles migrated leagues that haven't gone through keeper/draft flow yet
+    const rosterPlayers = draftedPlayers.length > 0 ? draftedPlayers : players;
 
     // Count keepers vs drafted
-    const keepersCount = picksWithPlayers.filter((pick: any) => pick.isKeeperSlot === true).length;
-    const draftedCount = picksWithPlayers.filter((pick: any) => pick.isKeeperSlot === false).length;
+    const keepersCount = draftedPlayers.length > 0
+      ? picksWithPlayers.filter((pick: any) => pick.isKeeperSlot === true).length
+      : rosterPlayers.length;
+    const draftedCount = draftedPlayers.length > 0
+      ? picksWithPlayers.filter((pick: any) => pick.isKeeperSlot === false).length
+      : 0;
 
-    // Calculate salary cap from ALL players in draftedPlayers
-    const capUsed = players.reduce((sum, player) => sum + (player.salary || 0), 0);
+    // Calculate salary cap from roster players
+    const capUsed = rosterPlayers.reduce((sum, player) => sum + (player.salary || 0), 0);
 
-    // Calculate effective cap
-    const baseCap = 225_000_000;
+    // Calculate effective cap (use league settings, fallback to NBA defaults)
+    const baseCap = league?.cap?.secondApron || 225_000_000;
+    const capMax = league?.cap?.max || 255_000_000;
+    const capFloor = league?.cap?.floor || 170_000_000;
     const tradeDelta = team?.capAdjustments.tradeDelta || 0;
-    const capEffective = Math.max(170_000_000, Math.min(255_000_000, baseCap + tradeDelta));
+    const capEffective = Math.max(capFloor, Math.min(capMax, baseCap + tradeDelta));
 
     // Calculate penalties
-    const overBy = Math.max(0, capUsed - 225_000_000);
+    const penaltyStart = league?.cap?.secondApron || 225_000_000;
+    const overBy = Math.max(0, capUsed - penaltyStart);
     const overByM = Math.ceil(overBy / 1_000_000);
-    const penaltyDues = overByM * 2;
-    const firstApronFee = capUsed > 195_000_000 ? 50 : 0;
+    const penaltyRate = league?.fees?.penaltyRatePerM ?? 2;
+    const penaltyDues = overByM * penaltyRate;
+    const firstApronThreshold = league?.cap?.firstApron || 195_000_000;
+    const firstApronFeeAmount = league?.fees?.firstApronFee ?? 50;
+    const firstApronFee = (firstApronThreshold > 0 && capUsed > firstApronThreshold) ? firstApronFeeAmount : 0;
 
     // Get redshirts/stash from old entries (these aren't in picks yet)
     const redshirtIds = entries.filter(e => e.decision === 'REDSHIRT').map(e => e.playerId);
     const intStashIds = entries.filter(e => e.decision === 'INT_STASH').map(e => e.playerId);
-    const redshirtDues = redshirtIds.length * 10;
+    const redshirtFee = league?.fees?.redshirtFee ?? 10;
+    const redshirtDues = redshirtIds.length * redshirtFee;
 
     // Franchise tags from stacking
     const entriesCopy = entries.map(e => ({ ...e }));
     const { franchiseTags } = stackKeeperRounds(entriesCopy);
-    const franchiseTagDues = franchiseTags * 15;
+    const franchiseTagFee = league?.fees?.franchiseTagFee ?? 15;
+    const franchiseTagDues = franchiseTags * franchiseTagFee;
 
     const totalFees = penaltyDues + franchiseTagDues + redshirtDues + firstApronFee;
 
@@ -564,10 +577,10 @@ export function OwnerDashboard() {
         {/* Desktop: Side by side layout */}
         <div className="hidden lg:grid lg:grid-cols-3 gap-6 mb-6">
           <div className="lg:col-span-2">
-            <CapThermometer summary={currentSummary} maxKeepers={team?.settings.maxKeepers} isRegularSeason={isRegularSeason} />
+            <CapThermometer summary={currentSummary} maxKeepers={team?.settings.maxKeepers} isRegularSeason={isRegularSeason} cap={league?.cap} fees={league?.fees} />
           </div>
           <div>
-            <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} isRegularSeason={isRegularSeason} />
+            <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} isRegularSeason={isRegularSeason} cap={league?.cap} fees={league?.fees} />
           </div>
         </div>
 
@@ -598,10 +611,10 @@ export function OwnerDashboard() {
             </div>
 
             {carouselIndex === 0 && (
-              <CapThermometer summary={currentSummary} maxKeepers={team?.settings.maxKeepers} isRegularSeason={isRegularSeason} />
+              <CapThermometer summary={currentSummary} maxKeepers={team?.settings.maxKeepers} isRegularSeason={isRegularSeason} cap={league?.cap} fees={league?.fees} />
             )}
             {carouselIndex === 1 && (
-              <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} isRegularSeason={isRegularSeason} />
+              <SummaryCard summary={currentSummary} maxKeepers={team?.settings.maxKeepers} isRegularSeason={isRegularSeason} cap={league?.cap} fees={league?.fees} />
             )}
         </div>
 

@@ -108,6 +108,8 @@ export function LeagueHome() {
   const [showFeeBreakdown, setShowFeeBreakdown] = useState(false);
   const [isWagerModalOpen, setIsWagerModalOpen] = useState(false);
 
+  const buyIn = league?.fees?.buyIn ?? 50;
+
   // Fetch accepted wagers (live wagers)
   const { wagers: liveWagers } = useWagers({
     leagueId,
@@ -199,12 +201,16 @@ export function LeagueHome() {
           // Sticky first apron: DB value if charged, otherwise check current salary
           const teamSalary = salariesMap.get(fees.teamId) || 0;
           const dbFirstApron = fees.firstApronFee || 0;
-          const dynamicFirstApron = teamSalary > 195_000_000 ? 50 : 0;
+          const leagueFirstApron = league?.cap?.firstApron || 195_000_000;
+          const leagueFirstApronFee = league?.fees?.firstApronFee ?? 50;
+          const dynamicFirstApron = (leagueFirstApron > 0 && teamSalary > leagueFirstApron) ? leagueFirstApronFee : 0;
           firstApronFees += dbFirstApron > 0 ? dbFirstApron : dynamicFirstApron;
 
           // Highest watermark second apron
           const dbPenalty = fees.secondApronPenalty || 0;
-          const dynamicPenalty = teamSalary > 225_000_000 ? Math.ceil((teamSalary - 225_000_000) / 1_000_000) * 2 : 0;
+          const leagueSecondApron = league?.cap?.secondApron || 225_000_000;
+          const leaguePenaltyRate = league?.fees?.penaltyRatePerM ?? 2;
+          const dynamicPenalty = (leagueSecondApron > 0 && teamSalary > leagueSecondApron) ? Math.ceil((teamSalary - leagueSecondApron) / 1_000_000) * leaguePenaltyRate : 0;
           secondApronPenalties += Math.max(dbPenalty, dynamicPenalty);
         });
 
@@ -461,28 +467,28 @@ export function LeagueHome() {
                   <div className="text-center">
                     <div className="text-sm text-gray-400 mb-2">Total Prize Pool Value</div>
                     <div className="text-5xl font-bold text-green-400 mb-3">
-                      ${(portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)).toFixed(2)}
+                      ${(portfolio.cachedUsdValue + (teams.length * buyIn + totalKeeperFees - portfolio.usdInvested)).toFixed(2)}
                     </div>
                     <div className="flex items-center justify-center gap-4">
                       <div className="text-center">
                         <div className="text-xs text-gray-500">Return</div>
                         <div className={`text-2xl font-bold ${
-                          (portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) > (teams.length * 50 + totalKeeperFees)
+                          (portfolio.cachedUsdValue + (teams.length * buyIn + totalKeeperFees - portfolio.usdInvested)) > (teams.length * buyIn + totalKeeperFees)
                             ? 'text-green-400'
                             : 'text-red-400'
                         }`}>
-                          {((portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) > (teams.length * 50 + totalKeeperFees) ? '+' : '')}
-                          ${((portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) - (teams.length * 50 + totalKeeperFees)).toFixed(2)}
+                          {((portfolio.cachedUsdValue + (teams.length * buyIn + totalKeeperFees - portfolio.usdInvested)) > (teams.length * buyIn + totalKeeperFees) ? '+' : '')}
+                          ${((portfolio.cachedUsdValue + (teams.length * buyIn + totalKeeperFees - portfolio.usdInvested)) - (teams.length * buyIn + totalKeeperFees)).toFixed(2)}
                         </div>
                       </div>
                       <div className="text-center">
                         <div className="text-xs text-gray-500">Return %</div>
                         <div className={`text-2xl font-bold ${
-                          (portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) > (teams.length * 50 + totalKeeperFees)
+                          (portfolio.cachedUsdValue + (teams.length * buyIn + totalKeeperFees - portfolio.usdInvested)) > (teams.length * buyIn + totalKeeperFees)
                             ? 'text-green-400'
                             : 'text-red-400'
                         }`}>
-                          {(((portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) / (teams.length * 50 + totalKeeperFees) - 1) * 100).toFixed(2)}%
+                          {(((portfolio.cachedUsdValue + (teams.length * buyIn + totalKeeperFees - portfolio.usdInvested)) / (teams.length * buyIn + totalKeeperFees) - 1) * 100).toFixed(2)}%
                         </div>
                       </div>
                     </div>
@@ -513,7 +519,7 @@ export function LeagueHome() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
                         <div className="text-xs text-gray-400 mb-1">Total Collected</div>
-                        <div className="text-2xl font-bold text-white">${teams.length * 50 + totalKeeperFees}</div>
+                        <div className="text-2xl font-bold text-white">${teams.length * buyIn + totalKeeperFees}</div>
                       </div>
                       <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
                         <div className="text-xs text-gray-400 mb-1">USD Invested</div>
@@ -521,7 +527,7 @@ export function LeagueHome() {
                       </div>
                       <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
                         <div className="text-xs text-gray-400 mb-1">Cash on Hand</div>
-                        <div className="text-2xl font-bold text-blue-400">${teams.length * 50 + totalKeeperFees - portfolio.usdInvested}</div>
+                        <div className="text-2xl font-bold text-blue-400">${teams.length * buyIn + totalKeeperFees - portfolio.usdInvested}</div>
                       </div>
                       <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
                         <div className="text-xs text-gray-400 mb-1">Wallet Value</div>
@@ -554,53 +560,53 @@ export function LeagueHome() {
                       {showFeeBreakdown && (
                         <div className="mt-3 text-xs space-y-2 text-gray-400">
                           <div className="flex justify-between">
-                            <span>Base Entry Fees ({teams.length} × $50)</span>
-                            <span className="font-semibold text-white">${teams.length * 50}</span>
+                            <span>Base Entry Fees ({teams.length} × ${buyIn})</span>
+                            <span className="font-semibold text-white">${teams.length * buyIn}</span>
                           </div>
                           {feeBreakdown.firstApronFee > 0 && (
                             <div className="flex justify-between">
-                              <span>First Apron Fees ($50 over $195M)</span>
+                              <span>First Apron Fees (${league?.fees?.firstApronFee ?? 50})</span>
                               <span className="font-semibold text-white">${feeBreakdown.firstApronFee}</span>
                             </div>
                           )}
                           {feeBreakdown.penaltyDues > 0 && (
                             <div className="flex justify-between">
-                              <span>Second Apron Penalties ($2/M over $225M)</span>
+                              <span>Second Apron Penalties (${league?.fees?.penaltyRatePerM ?? 2}/M)</span>
                               <span className="font-semibold text-white">${feeBreakdown.penaltyDues}</span>
                             </div>
                           )}
                           {feeBreakdown.franchiseTagDues > 0 && (
                             <div className="flex justify-between">
-                              <span>Franchise Tag Fees ($15 each)</span>
+                              <span>Franchise Tag Fees (${league?.fees?.franchiseTagFee ?? 15} each)</span>
                               <span className="font-semibold text-white">${feeBreakdown.franchiseTagDues}</span>
                             </div>
                           )}
                           {feeBreakdown.redshirtDues > 0 && (
                             <div className="flex justify-between">
-                              <span>Redshirt Fees ($10 each)</span>
+                              <span>Redshirt Fees (${league?.fees?.redshirtFee ?? 10} each)</span>
                               <span className="font-semibold text-white">${feeBreakdown.redshirtDues}</span>
                             </div>
                           )}
                           {feeBreakdown.activationDues > 0 && (
                             <div className="flex justify-between">
-                              <span>Redshirt Activation Fees ($25 each)</span>
+                              <span>Activation Fees (${league?.fees?.activationFee ?? 25} each)</span>
                               <span className="font-semibold text-white">${feeBreakdown.activationDues}</span>
                             </div>
                           )}
                           <div className="flex justify-between pt-2 mt-2 border-t border-gray-700 font-bold text-white">
                             <span>Total Collected</span>
-                            <span>${teams.length * 50 + totalKeeperFees}</span>
+                            <span>${teams.length * buyIn + totalKeeperFees}</span>
                           </div>
                           {portfolio && (
                             <div className={`flex justify-between font-semibold ${
-                              (portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) > (teams.length * 50 + totalKeeperFees)
+                              (portfolio.cachedUsdValue + (teams.length * buyIn + totalKeeperFees - portfolio.usdInvested)) > (teams.length * buyIn + totalKeeperFees)
                                 ? 'text-green-400'
                                 : 'text-red-400'
                             }`}>
                               <span>Gain/Loss</span>
                               <span>
-                                {(portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) > (teams.length * 50 + totalKeeperFees) ? '+' : ''}
-                                ${((portfolio.cachedUsdValue + (teams.length * 50 + totalKeeperFees - portfolio.usdInvested)) - (teams.length * 50 + totalKeeperFees)).toFixed(2)}
+                                {(portfolio.cachedUsdValue + (teams.length * buyIn + totalKeeperFees - portfolio.usdInvested)) > (teams.length * buyIn + totalKeeperFees) ? '+' : ''}
+                                ${((portfolio.cachedUsdValue + (teams.length * buyIn + totalKeeperFees - portfolio.usdInvested)) - (teams.length * buyIn + totalKeeperFees)).toFixed(2)}
                               </span>
                             </div>
                           )}
@@ -614,7 +620,7 @@ export function LeagueHome() {
 
             {/* Prize Pool Section */}
             {(() => {
-              const totalCollected = teams.length * 50 + totalKeeperFees;
+              const totalCollected = teams.length * buyIn + totalKeeperFees;
               const totalPrizePool = portfolio?.cachedUsdValue
                 ? portfolio.cachedUsdValue + (totalCollected - portfolio.usdInvested)
                 : totalCollected;
@@ -762,8 +768,8 @@ export function LeagueHome() {
               <div className="divide-y divide-gray-800">
                 {sortedTeams.map((team, idx) => {
                   const totalSalary = teamSalaries.get(team.id) || 0;
-                  const firstApron = 195_000_000;
-                  const isOverApron = totalSalary > firstApron;
+                  const firstApron = league?.cap?.firstApron || 195_000_000;
+                  const isOverApron = firstApron > 0 && totalSalary > firstApron;
                   const record = teamRecords.get(team.id);
                   const wins = record?.wins || 0;
                   const losses = record?.losses || 0;

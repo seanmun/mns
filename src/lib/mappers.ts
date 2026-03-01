@@ -12,6 +12,7 @@ export function mapLeague(row: any): League {
   return {
     id: row.id,
     name: row.name,
+    sport: row.sport || 'nba',
     seasonYear: row.season_year,
     deadlines: row.deadlines || {},
     cap: row.cap || {},
@@ -24,7 +25,8 @@ export function mapLeague(row: any): League {
     commissionerId: row.commissioner_id || undefined,
     leaguePhase: row.league_phase || 'keeper_season',
     scoringMode: row.scoring_mode || 'category_record',
-    roster: row.roster || DEFAULT_ROSTER_SETTINGS,
+    roster: { ...DEFAULT_ROSTER_SETTINGS, ...row.roster },
+    fees: row.fees || undefined,
     telegramChatId: row.telegram_chat_id ?? undefined,
   };
 }

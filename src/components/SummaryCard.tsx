@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import type { RosterSummary } from '../types';
+import type { RosterSummary, LeagueCapSettings, LeagueFeeSettings } from '../types';
 import { CAP_CONSTANTS } from '../types';
 
 interface SummaryCardProps {
@@ -7,10 +7,18 @@ interface SummaryCardProps {
   maxKeepers?: number;
   maxActive?: number;
   isRegularSeason?: boolean;
+  cap?: LeagueCapSettings;
+  fees?: LeagueFeeSettings;
 }
 
-export const SummaryCard = memo(function SummaryCard({ summary, maxKeepers = 8, maxActive = 13, isRegularSeason = false }: SummaryCardProps) {
+export const SummaryCard = memo(function SummaryCard({ summary, maxKeepers = 8, maxActive = 13, isRegularSeason = false, cap, fees }: SummaryCardProps) {
   const formatMoney = (cents: number) => `$${cents.toFixed(0)}`;
+  const buyIn = fees?.buyIn ?? 50;
+  const franchiseTagFee = fees?.franchiseTagFee ?? CAP_CONSTANTS.FRANCHISE_TAG_FEE;
+  const redshirtFee = fees?.redshirtFee ?? CAP_CONSTANTS.REDSHIRT_FEE;
+  const activationFee = fees?.activationFee ?? CAP_CONSTANTS.IN_SEASON_ACTIVATION_FEE;
+  const penaltyRate = fees?.penaltyRatePerM ?? CAP_CONSTANTS.PENALTY_RATE_PER_M;
+  const hasAprons = (cap?.firstApron || 0) > 0 && (cap?.secondApron || 0) > 0;
 
   return (
     <div className="bg-[#121212] p-6 rounded-lg border border-gray-800">
@@ -48,7 +56,7 @@ export const SummaryCard = memo(function SummaryCard({ summary, maxKeepers = 8, 
           {/* Buy-in fee (always shown) */}
           <div className="flex justify-between">
             <span className="text-gray-400">Buy-in Fee</span>
-            <span className="font-medium text-white">$50</span>
+            <span className="font-medium text-white">${buyIn}</span>
           </div>
 
           {summary.franchiseTagDues > 0 && (
@@ -56,7 +64,7 @@ export const SummaryCard = memo(function SummaryCard({ summary, maxKeepers = 8, 
               <div className="flex justify-between">
                 <span className="text-gray-400">
                   {summary.franchiseTags > 0
-                    ? `Franchise Tags (${summary.franchiseTags} × $${CAP_CONSTANTS.FRANCHISE_TAG_FEE})`
+                    ? `Franchise Tags (${summary.franchiseTags} × $${franchiseTagFee})`
                     : 'Franchise Tags'
                   }
                 </span>
@@ -76,7 +84,7 @@ export const SummaryCard = memo(function SummaryCard({ summary, maxKeepers = 8, 
             <div className="flex justify-between">
               <span className="text-gray-400">
                 {summary.redshirtsCount > 0
-                  ? `Redshirt Fee (${summary.redshirtsCount} × $${CAP_CONSTANTS.REDSHIRT_FEE})`
+                  ? `Redshirt Fee (${summary.redshirtsCount} × $${redshirtFee})`
                   : 'Redshirt Fee'
                 }
               </span>
@@ -89,7 +97,7 @@ export const SummaryCard = memo(function SummaryCard({ summary, maxKeepers = 8, 
           {summary.activationDues > 0 && (
             <div className="flex justify-between">
               <span className="text-gray-400">
-                Redshirt Activation Fee (${CAP_CONSTANTS.IN_SEASON_ACTIVATION_FEE} each)
+                Redshirt Activation Fee (${activationFee} each)
               </span>
               <span className="font-medium text-white">
                 {formatMoney(summary.activationDues)}
@@ -97,7 +105,7 @@ export const SummaryCard = memo(function SummaryCard({ summary, maxKeepers = 8, 
             </div>
           )}
 
-          {summary.firstApronFee > 0 && (
+          {summary.firstApronFee > 0 && hasAprons && (
             <div className="flex justify-between">
               <span className="text-gray-400">
                 First Apron Fee (one-time)
@@ -108,11 +116,11 @@ export const SummaryCard = memo(function SummaryCard({ summary, maxKeepers = 8, 
             </div>
           )}
 
-          {summary.penaltyDues > 0 && (
+          {summary.penaltyDues > 0 && hasAprons && (
             <div className="flex justify-between">
               <span className="text-gray-400">
                 Second Apron ({summary.overSecondApronByM}M × $
-                {CAP_CONSTANTS.PENALTY_RATE_PER_M}/M)
+                {penaltyRate}/M)
               </span>
               <span className="font-medium text-orange-400">
                 {formatMoney(summary.penaltyDues)}
@@ -123,9 +131,9 @@ export const SummaryCard = memo(function SummaryCard({ summary, maxKeepers = 8, 
           <div className="border-t border-gray-800 pt-2 mt-2 flex justify-between font-semibold">
             <span className="text-white">Total Fees</span>
             <span
-              className={summary.totalFees + 50 > 0 ? 'text-green-400' : 'text-white'}
+              className={summary.totalFees + buyIn > 0 ? 'text-green-400' : 'text-white'}
             >
-              {formatMoney(summary.totalFees + 50)}
+              {formatMoney(summary.totalFees + buyIn)}
             </span>
           </div>
         </div>
