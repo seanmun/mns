@@ -2,11 +2,33 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useIsSiteAdmin } from '../hooks/useCanManageLeague';
+import { useLeague } from '../contexts/LeagueContext';
 import { WNBA_ABBREV_TO_NAME } from '../lib/wnbaTeams';
 import type { WNBAScrapedPlayer } from '../types';
 
+// --- Helpers ---
+
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z ]/g, '')
+    .trim();
+}
+
+interface ExistingPlayer {
+  id: string;
+  name: string;
+  team_id: string | null;
+  league_id: string | null;
+}
+
+// --- Types ---
+
 type Phase = 'idle' | 'scraping' | 'review' | 'importing';
-type Filter = 'all' | 'new' | 'updated';
+type Filter = 'all' | 'new' | 'updated' | 'fuzzy';
+type PlayerStatus = 'new' | 'updated' | 'fuzzy_match';
 type SortKey = 'name' | 'salary' | 'ppg' | 'confidence';
 
 interface ScrapeResponse {
@@ -24,34 +46,44 @@ interface ScrapeResponse {
 export function AdminWNBAScraper() {
   const navigate = useNavigate();
   const isSiteAdmin = useIsSiteAdmin();
+  const { currentLeagueId } = useLeague();
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [scrapeData, setScrapeData] = useState<ScrapeResponse | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [existingIds, setExistingIds] = useState<Set<string>>(new Set());
+  const [existingPlayers, setExistingPlayers] = useState<Map<string, ExistingPlayer>>(new Map());
   const [existingCount, setExistingCount] = useState(0);
+  const [fuzzyMatches, setFuzzyMatches] = useState<Map<string, ExistingPlayer>>(new Map());
   const [filter, setFilter] = useState<Filter>('all');
   const [sortKey, setSortKey] = useState<SortKey>('salary');
   const [sortAsc, setSortAsc] = useState(false);
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
 
-  // Load existing WNBA player count and IDs
+  // Load existing WNBA players (IDs + names for fuzzy matching)
   useEffect(() => {
     async function load() {
       const { data, count } = await supabase
         .from('players')
-        .select('id', { count: 'exact' })
+        .select('id, name, team_id, league_id', { count: 'exact' })
         .eq('sport', 'wnba');
       setExistingCount(count || 0);
-      if (data) setExistingIds(new Set(data.map(p => p.id)));
+      if (data) {
+        setExistingIds(new Set(data.map(p => p.id)));
+        const map = new Map<string, ExistingPlayer>();
+        for (const p of data) map.set(p.id, p as ExistingPlayer);
+        setExistingPlayers(map);
+      }
     }
     load();
   }, []);
 
-  const getPlayerStatus = useCallback((slug: string): 'new' | 'updated' => {
-    return existingIds.has(`wnba-${slug}`) ? 'updated' : 'new';
-  }, [existingIds]);
+  const getPlayerStatus = useCallback((slug: string): PlayerStatus => {
+    if (existingIds.has(`wnba-${slug}`)) return 'updated';
+    if (fuzzyMatches.has(slug)) return 'fuzzy_match';
+    return 'new';
+  }, [existingIds, fuzzyMatches]);
 
   const handleScrape = async () => {
     setPhase('scraping');
@@ -61,15 +93,37 @@ export function AdminWNBAScraper() {
         'scrape-wnba-players'
       );
       if (fnError) throw new Error(fnError.message);
-      setScrapeData(data as ScrapeResponse);
-      // Auto-select new players
-      const newSelected = new Set<string>();
-      for (const p of (data as ScrapeResponse).players) {
-        if (getPlayerStatus(p.slug) === 'new') {
-          newSelected.add(p.slug);
+      const scraped = data as ScrapeResponse;
+      setScrapeData(scraped);
+
+      // Build normalized name → existing player lookup for fuzzy matching
+      const nameToExisting = new Map<string, ExistingPlayer>();
+      for (const [, p] of existingPlayers) {
+        nameToExisting.set(normalizeName(p.name), p);
+      }
+
+      // Find fuzzy matches for players without exact ID match
+      const fuzzy = new Map<string, ExistingPlayer>();
+      for (const p of scraped.players) {
+        const id = `wnba-${p.slug}`;
+        if (!existingIds.has(id)) {
+          const norm = normalizeName(p.name);
+          const match = nameToExisting.get(norm);
+          if (match) {
+            fuzzy.set(p.slug, match);
+          }
         }
       }
-      setSelected(newSelected);
+      setFuzzyMatches(fuzzy);
+
+      // Auto-select new + updated; fuzzy matches need manual review
+      const autoSelected = new Set<string>();
+      for (const p of scraped.players) {
+        if (!fuzzy.has(p.slug)) {
+          autoSelected.add(p.slug);
+        }
+      }
+      setSelected(autoSelected);
       setPhase('review');
     } catch (err: any) {
       setError(err.message || 'Scrape failed');
@@ -87,42 +141,147 @@ export function AdminWNBAScraper() {
     const batchSize = 20;
     for (let i = 0; i < toImport.length; i += batchSize) {
       const batch = toImport.slice(i, i + batchSize);
-      const rows = batch.map(p => ({
-        id: `wnba-${p.slug}`,
-        fantrax_id: `wnba-${p.slug}`,
-        name: p.name,
-        position: p.position || 'G/F',
-        salary: p.salary,
-        nba_team: p.team,
-        sport: 'wnba',
-        league_id: null,
-        team_id: null,
-        on_ir: false,
-        is_rookie: false,
-        is_international_stash: false,
-        int_eligible: false,
-        slot: 'active',
-      }));
 
-      const { error: upsertError } = await supabase
-        .from('players')
-        .upsert(rows, { onConflict: 'id' });
+      const newRows: Record<string, unknown>[] = [];
+      const updateRows: Record<string, unknown>[] = [];
+      const fuzzyUpdates: { existingId: string; data: Record<string, unknown> }[] = [];
+      const statsRows: Record<string, unknown>[] = [];
 
-      if (upsertError) {
-        setError(`Import error: ${upsertError.message}`);
-        setPhase('review');
-        return;
+      for (const p of batch) {
+        const id = `wnba-${p.slug}`;
+        const status = getPlayerStatus(p.slug);
+
+        if (status === 'updated') {
+          // Safe update: NEVER touch team_id, league_id, slot, on_ir
+          updateRows.push({
+            id,
+            name: p.name,
+            salary: p.salary,
+            position: p.position || 'G/F',
+            nba_team: p.team,
+            sport: 'wnba',
+          });
+        } else if (status === 'fuzzy_match') {
+          // Update the matched existing player (not create a duplicate)
+          const match = fuzzyMatches.get(p.slug);
+          if (match) {
+            fuzzyUpdates.push({
+              existingId: match.id,
+              data: {
+                name: p.name,
+                salary: p.salary,
+                position: p.position || 'G/F',
+                nba_team: p.team,
+              },
+            });
+          }
+        } else {
+          // New player: full insert
+          newRows.push({
+            id,
+            fantrax_id: id,
+            name: p.name,
+            position: p.position || 'G/F',
+            salary: p.salary,
+            nba_team: p.team,
+            sport: 'wnba',
+            league_id: currentLeagueId,
+            team_id: null,
+            on_ir: false,
+            is_rookie: false,
+            is_international_stash: false,
+            int_eligible: false,
+            slot: 'active',
+          });
+        }
+
+        // Collect stats for previous_stats table
+        if (p.stats) {
+          const statsId = status === 'fuzzy_match'
+            ? (fuzzyMatches.get(p.slug)?.id || id)
+            : id;
+          statsRows.push({
+            fantrax_id: statsId,
+            name: p.name,
+            nba_team: p.team,
+            position: p.position || 'G/F',
+            fg_percent: p.stats.fgPercent || null,
+            three_point_made: p.stats.threePercent || null,
+            ft_percent: p.stats.ftPercent || null,
+            points: p.stats.pointsPerGame || null,
+            rebounds: p.stats.reboundsPerGame || null,
+            assists: p.stats.assistsPerGame || null,
+            steals: p.stats.stealsPerGame || null,
+            blocks: p.stats.blocksPerGame || null,
+            season_year: '2025',
+          });
+        }
       }
+
+      // 1. Insert new players
+      if (newRows.length > 0) {
+        const { error: insertErr } = await supabase
+          .from('players')
+          .insert(newRows);
+        if (insertErr) {
+          setError(`Insert error: ${insertErr.message}`);
+          setPhase('review');
+          return;
+        }
+      }
+
+      // 2. Safe-update existing players (only safe fields, never team_id/league_id/slot)
+      if (updateRows.length > 0) {
+        const { error: upsertErr } = await supabase
+          .from('players')
+          .upsert(updateRows, { onConflict: 'id' });
+        if (upsertErr) {
+          setError(`Update error: ${upsertErr.message}`);
+          setPhase('review');
+          return;
+        }
+      }
+
+      // 3. Fuzzy match updates (individual updates to matched existing player IDs)
+      for (const { existingId, data } of fuzzyUpdates) {
+        const { error: fuzzyErr } = await supabase
+          .from('players')
+          .update(data)
+          .eq('id', existingId);
+        if (fuzzyErr) {
+          setError(`Fuzzy update error for ${existingId}: ${fuzzyErr.message}`);
+          setPhase('review');
+          return;
+        }
+      }
+
+      // 4. Save 2024 season stats to previous_stats
+      if (statsRows.length > 0) {
+        const { error: statsErr } = await supabase
+          .from('previous_stats')
+          .upsert(statsRows, { onConflict: 'fantrax_id' });
+        if (statsErr) {
+          console.warn('Stats save warning:', statsErr.message);
+        }
+      }
+
       done += batch.length;
       setImportProgress({ done, total: toImport.length });
     }
 
-    // Refresh existing count
-    const { count } = await supabase
+    // Refresh existing players
+    const { data: refreshed, count } = await supabase
       .from('players')
-      .select('id', { count: 'exact' })
+      .select('id, name, team_id, league_id', { count: 'exact' })
       .eq('sport', 'wnba');
     setExistingCount(count || 0);
+    if (refreshed) {
+      setExistingIds(new Set(refreshed.map(p => p.id)));
+      const map = new Map<string, ExistingPlayer>();
+      for (const p of refreshed) map.set(p.id, p as ExistingPlayer);
+      setExistingPlayers(map);
+    }
+    setFuzzyMatches(new Map());
     setPhase('idle');
     setScrapeData(null);
   };
@@ -156,6 +315,7 @@ export function AdminWNBAScraper() {
     let list = scrapeData.players;
     if (filter === 'new') list = list.filter(p => getPlayerStatus(p.slug) === 'new');
     if (filter === 'updated') list = list.filter(p => getPlayerStatus(p.slug) === 'updated');
+    if (filter === 'fuzzy') list = list.filter(p => getPlayerStatus(p.slug) === 'fuzzy_match');
 
     const sorted = [...list].sort((a, b) => {
       let cmp = 0;
@@ -184,6 +344,7 @@ export function AdminWNBAScraper() {
   const filteredPlayers = getFilteredPlayers();
   const newCount = scrapeData?.players.filter(p => getPlayerStatus(p.slug) === 'new').length || 0;
   const updatedCount = scrapeData?.players.filter(p => getPlayerStatus(p.slug) === 'updated').length || 0;
+  const fuzzyCount = scrapeData?.players.filter(p => getPlayerStatus(p.slug) === 'fuzzy_match').length || 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -205,12 +366,12 @@ export function AdminWNBAScraper() {
           </span>
         </div>
         <p className="text-sm text-gray-500">
-          Scrape WNBA player data from Her Hoop Stats + BallDontLie for import.
+          Scrape WNBA player data from Her Hoop Stats + BallDontLie. Safe re-scrape preserves roster assignments.
         </p>
       </div>
 
       {/* Stats bar */}
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 mb-6">
+      <div className={`grid gap-3 grid-cols-2 ${scrapeData ? 'sm:grid-cols-5' : 'sm:grid-cols-2'} mb-6`}>
         <div className="bg-[#121212] border border-gray-800 rounded-lg p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider">In Database</p>
           <p className="text-xl font-bold text-white mt-1">{existingCount}</p>
@@ -229,9 +390,27 @@ export function AdminWNBAScraper() {
               <p className="text-xs text-gray-500 uppercase tracking-wider">Updated</p>
               <p className="text-xl font-bold text-yellow-400 mt-1">{updatedCount}</p>
             </div>
+            {fuzzyCount > 0 && (
+              <div className="bg-[#121212] border border-orange-500/30 rounded-lg p-4">
+                <p className="text-xs text-orange-400 uppercase tracking-wider">Fuzzy Match</p>
+                <p className="text-xl font-bold text-orange-400 mt-1">{fuzzyCount}</p>
+              </div>
+            )}
           </>
         )}
       </div>
+
+      {/* Fuzzy match warning banner */}
+      {fuzzyCount > 0 && phase === 'review' && (
+        <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4 mb-4 text-sm">
+          <p className="text-orange-400 font-medium">
+            {fuzzyCount} player(s) matched existing DB entries by name but with different IDs.
+          </p>
+          <p className="text-orange-400/70 mt-1">
+            Review these carefully. Selecting a fuzzy match will update the existing player&apos;s salary and position without creating a duplicate.
+          </p>
+        </div>
+      )}
 
       {/* Source status */}
       {scrapeData?.sourceStatus && (
@@ -259,7 +438,7 @@ export function AdminWNBAScraper() {
           onClick={handleScrape}
           className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
         >
-          Scrape WNBA Players
+          {existingCount > 0 ? 'Re-scrape WNBA Players' : 'Scrape WNBA Players'}
         </button>
       )}
 
@@ -279,7 +458,7 @@ export function AdminWNBAScraper() {
           <div className="w-full bg-gray-800 rounded-full h-2">
             <div
               className="bg-purple-500 h-2 rounded-full transition-all"
-              style={{ width: `${(importProgress.done / importProgress.total) * 100}%` }}
+              style={{ width: `${importProgress.total > 0 ? (importProgress.done / importProgress.total) * 100 : 0}%` }}
             />
           </div>
         </div>
@@ -291,17 +470,22 @@ export function AdminWNBAScraper() {
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex gap-1 bg-[#121212] border border-gray-800 rounded-lg p-0.5">
-              {(['all', 'new', 'updated'] as Filter[]).map(f => (
+              {([
+                { key: 'all' as Filter, label: `All (${scrapeData.totalCount})` },
+                { key: 'new' as Filter, label: `New (${newCount})` },
+                { key: 'updated' as Filter, label: `Updated (${updatedCount})` },
+                ...(fuzzyCount > 0 ? [{ key: 'fuzzy' as Filter, label: `Fuzzy (${fuzzyCount})` }] : []),
+              ]).map(f => (
                 <button
-                  key={f}
-                  onClick={() => setFilter(f)}
+                  key={f.key}
+                  onClick={() => setFilter(f.key)}
                   className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                    filter === f
+                    filter === f.key
                       ? 'bg-purple-600 text-white'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  {f === 'all' ? `All (${scrapeData.totalCount})` : f === 'new' ? `New (${newCount})` : `Updated (${updatedCount})`}
+                  {f.label}
                 </button>
               ))}
             </div>
@@ -313,15 +497,18 @@ export function AdminWNBAScraper() {
             </button>
             <div className="flex-1" />
             <span className="text-xs text-gray-500">{selected.size} selected</span>
+            {!currentLeagueId && (
+              <span className="text-xs text-red-400">No league selected — select a league first</span>
+            )}
             <button
               onClick={handleImport}
-              disabled={selected.size === 0}
+              disabled={selected.size === 0 || !currentLeagueId}
               className="px-4 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
             >
               Import Selected ({selected.size})
             </button>
             <button
-              onClick={() => { setPhase('idle'); setScrapeData(null); }}
+              onClick={() => { setPhase('idle'); setScrapeData(null); setFuzzyMatches(new Map()); }}
               className="px-4 py-1.5 text-sm text-gray-400 hover:text-white border border-gray-700 rounded-lg"
             >
               Cancel
@@ -355,10 +542,13 @@ export function AdminWNBAScraper() {
               <tbody>
                 {filteredPlayers.map(p => {
                   const status = getPlayerStatus(p.slug);
+                  const fuzzyMatch = fuzzyMatches.get(p.slug);
                   return (
                     <tr
                       key={p.slug}
-                      className="border-b border-gray-800/50 hover:bg-[#1a1a1a] transition-colors"
+                      className={`border-b border-gray-800/50 hover:bg-[#1a1a1a] transition-colors ${
+                        status === 'fuzzy_match' ? 'bg-orange-900/5' : ''
+                      }`}
                     >
                       <td className="px-3 py-2">
                         <input
@@ -368,22 +558,29 @@ export function AdminWNBAScraper() {
                           className="accent-purple-500"
                         />
                       </td>
-                      <td className="px-3 py-2 text-white font-medium whitespace-nowrap">{p.name}</td>
+                      <td className="px-3 py-2">
+                        <div className="text-white font-medium whitespace-nowrap">{p.name}</div>
+                        {fuzzyMatch && (
+                          <div className="text-xs text-orange-400 mt-0.5">
+                            Matches: {fuzzyMatch.name} ({fuzzyMatch.id})
+                          </div>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-gray-400" title={WNBA_ABBREV_TO_NAME[p.team] || p.team}>
                         {p.team}
                       </td>
-                      <td className="px-3 py-2 text-gray-400">{p.position || '—'}</td>
+                      <td className="px-3 py-2 text-gray-400">{p.position || '\u2014'}</td>
                       <td className="px-3 py-2 text-gray-300 font-mono">
-                        {p.salary ? `$${p.salary.toLocaleString()}` : '—'}
+                        {p.salary ? `$${p.salary.toLocaleString()}` : '$0'}
                       </td>
                       <td className="px-3 py-2 text-gray-300 font-mono">
-                        {p.stats?.pointsPerGame?.toFixed(1) || '—'}
+                        {p.stats?.pointsPerGame?.toFixed(1) || '\u2014'}
                       </td>
                       <td className="px-3 py-2 text-gray-400 font-mono">
-                        {p.stats?.reboundsPerGame?.toFixed(1) || '—'}
+                        {p.stats?.reboundsPerGame?.toFixed(1) || '\u2014'}
                       </td>
                       <td className="px-3 py-2 text-gray-400 font-mono">
-                        {p.stats?.assistsPerGame?.toFixed(1) || '—'}
+                        {p.stats?.assistsPerGame?.toFixed(1) || '\u2014'}
                       </td>
                       <td className="px-3 py-2">
                         <span className={`text-xs ${
@@ -397,9 +594,11 @@ export function AdminWNBAScraper() {
                         <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
                           status === 'new'
                             ? 'bg-green-900/40 text-green-400'
-                            : 'bg-yellow-900/40 text-yellow-400'
+                            : status === 'fuzzy_match'
+                              ? 'bg-orange-900/40 text-orange-400'
+                              : 'bg-yellow-900/40 text-yellow-400'
                         }`}>
-                          {status}
+                          {status === 'new' ? 'new' : status === 'fuzzy_match' ? 'match?' : 'update'}
                         </span>
                       </td>
                     </tr>

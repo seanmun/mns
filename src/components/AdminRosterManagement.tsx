@@ -180,7 +180,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
     }
     setCreatingPlayer(true);
     try {
-      const playerId = `${sport}_${newPlayer.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+      const playerId = `${sport}-${newPlayer.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
       const { error } = await supabase.from('players').insert({
         id: playerId,
         name: newPlayer.name.trim(),
