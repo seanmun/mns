@@ -39,7 +39,7 @@ export function Home() {
   // Show loading while checking auth status
   if (authLoading || (user && leaguesLoading)) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-mns-dark flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-500 border-r-transparent" />
           <div className="mt-4 text-gray-400">Loading...</div>
@@ -50,7 +50,7 @@ export function Home() {
 
   // Only show home page to unauthenticated users
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-mns-dark text-white">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Background Video - left-ball for desktop, center-ball for mobile */}
@@ -132,7 +132,7 @@ export function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Feature 1: Salary Cap */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 hover:border-green-400/50 transition-all hover:shadow-[0_0_20px_rgba(74,222,128,0.2)]">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-8 hover:border-green-400/50 transition-all hover:shadow-[0_0_20px_rgba(74,222,128,0.2)]">
             <div className="flex items-center gap-3 mb-4">
               <img src="/icons/money-icon.webp" alt="Salary Cap" className="w-12 h-12 rounded-full" />
               <h3 className="text-xl font-bold">Real NBA Salary Cap</h3>
@@ -157,7 +157,7 @@ export function Home() {
           </div>
 
           {/* Feature 2: Dynasty Keepers */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 hover:border-purple-400/50 transition-all hover:shadow-[0_0_20px_rgba(192,132,252,0.2)]">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-8 hover:border-purple-400/50 transition-all hover:shadow-[0_0_20px_rgba(192,132,252,0.2)]">
             <div className="flex items-center gap-3 mb-4">
               <img src="/icons/lock-icon.webp" alt="Keepers" className="w-12 h-12 rounded-full" />
               <h3 className="text-xl font-bold">Dynasty Keeper System</h3>
@@ -182,7 +182,7 @@ export function Home() {
           </div>
 
           {/* Feature 3: Rookie Development */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 hover:border-pink-400/50 transition-all hover:shadow-[0_0_20px_rgba(244,114,182,0.2)]">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-8 hover:border-pink-400/50 transition-all hover:shadow-[0_0_20px_rgba(244,114,182,0.2)]">
             <div className="flex items-center gap-3 mb-4">
               <img src="/icons/rookie-icon.webp" alt="Rookies" className="w-12 h-12 rounded-full" />
               <h3 className="text-xl font-bold">Rookie Pipeline</h3>
@@ -207,7 +207,7 @@ export function Home() {
           </div>
 
           {/* Feature 4: Live Draft */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 hover:border-blue-400/50 transition-all hover:shadow-[0_0_20px_rgba(96,165,250,0.2)]">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-8 hover:border-blue-400/50 transition-all hover:shadow-[0_0_20px_rgba(96,165,250,0.2)]">
             <div className="flex items-center gap-3 mb-4">
               <img src="/icons/draft-icon.webp" alt="Draft" className="w-12 h-12 rounded-full" />
               <h3 className="text-xl font-bold">Live Draft Board</h3>
@@ -232,7 +232,7 @@ export function Home() {
           </div>
 
           {/* Feature 5: Prize Pool */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 hover:border-yellow-400/50 transition-all hover:shadow-[0_0_20px_rgba(250,204,21,0.2)]">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-8 hover:border-yellow-400/50 transition-all hover:shadow-[0_0_20px_rgba(250,204,21,0.2)]">
             <div className="flex items-center gap-3 mb-4">
               <img src="/icons/trophy-icon.webp" alt="Prize Pool" className="w-12 h-12 rounded-full" />
               <h3 className="text-xl font-bold">Prize Pool Investment</h3>
@@ -257,7 +257,7 @@ export function Home() {
           </div>
 
           {/* Feature 6: Analytics */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 hover:border-emerald-400/50 transition-all hover:shadow-[0_0_20px_rgba(52,211,153,0.2)]">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-8 hover:border-emerald-400/50 transition-all hover:shadow-[0_0_20px_rgba(52,211,153,0.2)]">
             <div className="flex items-center gap-3 mb-4">
               <img src="/icons/settings-icon.webp" alt="Analytics" className="w-12 h-12 rounded-full" />
               <h3 className="text-xl font-bold">Advanced Analytics</h3>

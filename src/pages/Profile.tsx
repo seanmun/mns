@@ -184,14 +184,14 @@ export function Profile() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -203,13 +203,13 @@ export function Profile() {
 
         {/* Teams List */}
         {teams.length === 0 ? (
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 text-center">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-8 text-center">
             <p className="text-gray-400">You don't own any teams yet.</p>
           </div>
         ) : (
           <div className="space-y-6">
             {teams.map((team) => (
-              <div key={team.id} className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+              <div key={team.id} className="bg-mns-card rounded-lg border border-gray-800 p-6">
                 {/* Team Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
@@ -237,7 +237,7 @@ export function Profile() {
                         type="text"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full rounded-md bg-[#0a0a0a] border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-green-400 focus:ring-green-400 px-4 py-2"
+                        className="w-full rounded-md bg-mns-dark border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-green-400 focus:ring-green-400 px-4 py-2"
                         placeholder="Team name"
                       />
                     </div>
@@ -250,7 +250,7 @@ export function Profile() {
                         value={formData.abbreviation}
                         onChange={(e) => setFormData({ ...formData, abbreviation: e.target.value })}
                         maxLength={4}
-                        className="w-full rounded-md bg-[#0a0a0a] border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-green-400 focus:ring-green-400 px-4 py-2"
+                        className="w-full rounded-md bg-mns-dark border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-green-400 focus:ring-green-400 px-4 py-2"
                         placeholder="e.g., LAL"
                       />
                       <p className="text-xs text-gray-500 mt-1">Max 4 characters</p>
@@ -279,7 +279,7 @@ export function Profile() {
                   <h3 className="text-white font-semibold mb-4">Team Owners</h3>
                   <div className="space-y-2 mb-4">
                     {team.owners.map((ownerEmail, index) => (
-                      <div key={index} className="flex items-center justify-between bg-[#0a0a0a] rounded px-4 py-3">
+                      <div key={index} className="flex items-center justify-between bg-mns-dark rounded px-4 py-3">
                         <span className="text-gray-300 text-sm">{ownerEmail}</span>
                         {team.owners.length > 1 && (
                           <button
@@ -301,7 +301,7 @@ export function Profile() {
                       value={formData.newOwnerEmail}
                       onChange={(e) => setFormData({ ...formData, newOwnerEmail: e.target.value })}
                       placeholder="Add owner email"
-                      className="flex-1 rounded-md bg-[#0a0a0a] border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-green-400 focus:ring-green-400 px-4 py-2 text-sm"
+                      className="flex-1 rounded-md bg-mns-dark border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-green-400 focus:ring-green-400 px-4 py-2 text-sm"
                     />
                     <button
                       onClick={() => handleAddOwner(team.id)}

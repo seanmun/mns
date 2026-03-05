@@ -204,7 +204,7 @@ export function CreateLeague() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -323,7 +323,7 @@ function StepSport({ onSelect }: { onSelect: (sport: Sport) => void }) {
         {/* NBA Card */}
         <button
           onClick={() => onSelect('nba')}
-          className="bg-[#121212] rounded-xl border-2 border-gray-800 p-8 text-left hover:border-green-400 hover:shadow-[0_0_20px_rgba(74,222,128,0.15)] transition-all group"
+          className="bg-mns-card rounded-xl border-2 border-gray-800 p-8 text-left hover:border-green-400 hover:shadow-[0_0_20px_rgba(74,222,128,0.15)] transition-all group"
         >
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
@@ -346,7 +346,7 @@ function StepSport({ onSelect }: { onSelect: (sport: Sport) => void }) {
         {/* WNBA Card */}
         <button
           onClick={() => onSelect('wnba')}
-          className="bg-[#121212] rounded-xl border-2 border-gray-800 p-8 text-left hover:border-green-400 hover:shadow-[0_0_20px_rgba(74,222,128,0.15)] transition-all group"
+          className="bg-mns-card rounded-xl border-2 border-gray-800 p-8 text-left hover:border-green-400 hover:shadow-[0_0_20px_rgba(74,222,128,0.15)] transition-all group"
         >
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
@@ -425,7 +425,7 @@ function StepBasics({
         </p>
       </div>
 
-      <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 space-y-5">
+      <div className="bg-mns-card rounded-xl border border-gray-800 p-6 space-y-5">
         {/* League Name */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1.5">League Name</label>
@@ -434,7 +434,7 @@ function StepBasics({
             value={state.leagueName}
             onChange={(e) => handleNameChange(e.target.value)}
             placeholder="e.g. Money Never Sleeps"
-            className="w-full px-4 py-2.5 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:border-green-400 focus:outline-none transition-colors"
+            className="w-full px-4 py-2.5 bg-mns-dark border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:border-green-400 focus:outline-none transition-colors"
           />
         </div>
 
@@ -446,7 +446,7 @@ function StepBasics({
             value={state.leagueSlug}
             onChange={(e) => onUpdate({ leagueSlug: slugify(e.target.value) })}
             placeholder="auto-generated"
-            className={`w-full px-4 py-2.5 bg-[#0a0a0a] border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-colors ${
+            className={`w-full px-4 py-2.5 bg-mns-dark border rounded-lg text-white placeholder-gray-600 focus:outline-none transition-colors ${
               slugError ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-green-400'
             }`}
           />
@@ -462,7 +462,7 @@ function StepBasics({
           <select
             value={state.seasonYear}
             onChange={(e) => handleYearChange(Number(e.target.value))}
-            className="w-full px-4 py-2.5 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:border-green-400 focus:outline-none transition-colors"
+            className="w-full px-4 py-2.5 bg-mns-dark border border-gray-700 rounded-lg text-white focus:border-green-400 focus:outline-none transition-colors"
           >
             {[2025, 2026, 2027, 2028].map(y => (
               <option key={y} value={y}>{y}</option>
@@ -493,7 +493,7 @@ function StepBasics({
         </div>
 
         {/* Cap Summary */}
-        <div className="bg-[#0a0a0a] rounded-lg border border-gray-800 p-4">
+        <div className="bg-mns-dark rounded-lg border border-gray-800 p-4">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Salary Cap</span>
             <span className="text-xs text-gray-600">(customizable later)</span>
@@ -557,7 +557,7 @@ function StepOrigin({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button
           onClick={() => onChoose(false)}
-          className="bg-[#121212] rounded-xl border-2 border-gray-800 p-8 text-left hover:border-green-400 hover:shadow-[0_0_20px_rgba(74,222,128,0.15)] transition-all"
+          className="bg-mns-card rounded-xl border-2 border-gray-800 p-8 text-left hover:border-green-400 hover:shadow-[0_0_20px_rgba(74,222,128,0.15)] transition-all"
         >
           <div className="w-10 h-10 rounded-full bg-green-400/20 flex items-center justify-center mb-4">
             <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -572,7 +572,7 @@ function StepOrigin({
 
         <button
           onClick={() => onChoose(true)}
-          className="bg-[#121212] rounded-xl border-2 border-gray-800 p-8 text-left hover:border-green-400 hover:shadow-[0_0_20px_rgba(74,222,128,0.15)] transition-all"
+          className="bg-mns-card rounded-xl border-2 border-gray-800 p-8 text-left hover:border-green-400 hover:shadow-[0_0_20px_rgba(74,222,128,0.15)] transition-all"
         >
           <div className="w-10 h-10 rounded-full bg-blue-400/20 flex items-center justify-center mb-4">
             <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -636,7 +636,7 @@ function StepTeams({
         {state.teams.map((team, i) => (
           <div
             key={i}
-            className={`bg-[#121212] rounded-lg border p-4 transition-colors ${
+            className={`bg-mns-card rounded-lg border p-4 transition-colors ${
               team.name.trim() && team.abbrev.trim()
                 ? 'border-green-400/30'
                 : 'border-gray-800'
@@ -659,7 +659,7 @@ function StepTeams({
                 placeholder="Team Name"
                 value={team.name}
                 onChange={(e) => updateTeam(i, 'name', e.target.value)}
-                className="col-span-2 sm:col-span-1 px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 focus:border-green-400 focus:outline-none transition-colors"
+                className="col-span-2 sm:col-span-1 px-3 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 focus:border-green-400 focus:outline-none transition-colors"
               />
               <input
                 type="text"
@@ -667,21 +667,21 @@ function StepTeams({
                 value={team.abbrev}
                 onChange={(e) => updateTeam(i, 'abbrev', e.target.value.toUpperCase().slice(0, 4))}
                 maxLength={4}
-                className="px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 focus:border-green-400 focus:outline-none transition-colors uppercase"
+                className="px-3 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 focus:border-green-400 focus:outline-none transition-colors uppercase"
               />
               <input
                 type="email"
                 placeholder="Owner Email"
                 value={team.ownerEmail}
                 onChange={(e) => updateTeam(i, 'ownerEmail', e.target.value)}
-                className="px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 focus:border-green-400 focus:outline-none transition-colors"
+                className="px-3 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 focus:border-green-400 focus:outline-none transition-colors"
               />
               <input
                 type="text"
                 placeholder="Owner Name"
                 value={team.ownerName}
                 onChange={(e) => updateTeam(i, 'ownerName', e.target.value)}
-                className="px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 focus:border-green-400 focus:outline-none transition-colors"
+                className="px-3 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 focus:border-green-400 focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -767,7 +767,7 @@ function FeeConfig({
     : FEE_FIELDS;
 
   return (
-    <div className="bg-[#0a0a0a] rounded-lg border border-gray-800">
+    <div className="bg-mns-dark rounded-lg border border-gray-800">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between p-4 text-left"
@@ -798,7 +798,7 @@ function FeeConfig({
                   min={0}
                   value={fees[field.key]}
                   onChange={(e) => onUpdate({ ...fees, [field.key]: Number(e.target.value) || 0 })}
-                  className="w-full pl-7 pr-3 py-2 bg-[#121212] border border-gray-700 rounded-lg text-white text-sm focus:border-green-400 focus:outline-none transition-colors"
+                  className="w-full pl-7 pr-3 py-2 bg-mns-card border border-gray-700 rounded-lg text-white text-sm focus:border-green-400 focus:outline-none transition-colors"
                 />
               </div>
             </div>
@@ -835,7 +835,7 @@ function StepReview({
         <p className="text-sm text-gray-400 mt-1">Everything look good?</p>
       </div>
 
-      <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 space-y-5">
+      <div className="bg-mns-card rounded-xl border border-gray-800 p-6 space-y-5">
         {/* League Info */}
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -884,7 +884,7 @@ function StepReview({
             {validTeams.map((t, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0a0a0a] border border-gray-700 rounded-lg text-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-mns-dark border border-gray-700 rounded-lg text-sm"
               >
                 <span className="font-semibold text-green-400">{t.abbrev}</span>
                 <span className="text-gray-400">{t.name}</span>

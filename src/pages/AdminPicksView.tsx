@@ -27,7 +27,7 @@ export function AdminPicksView() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-mns-dark flex items-center justify-center">
         <div className="text-white">Loading...</div>
       </div>
     );
@@ -96,7 +96,7 @@ export function AdminPicksView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-mns-dark flex items-center justify-center">
         <div className="text-white">Loading picks...</div>
       </div>
     );
@@ -110,7 +110,7 @@ export function AdminPicksView() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Pick Assignments View</h1>
@@ -119,7 +119,7 @@ export function AdminPicksView() {
 
         <div className="space-y-8">
           {Object.keys(byRound).sort((a, b) => parseInt(a) - parseInt(b)).map(round => (
-            <div key={round} className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div key={round} className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <h2 className="text-2xl font-bold text-white mb-4">Round {round}</h2>
               <div className="overflow-x-auto">
                 <table className="w-full">

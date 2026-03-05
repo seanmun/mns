@@ -13,7 +13,7 @@ export function AdminMigration() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-mns-dark flex items-center justify-center">
         <div className="text-white">Loading...</div>
       </div>
     );
@@ -252,7 +252,7 @@ export function AdminMigration() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Migration Tool</h1>
@@ -260,7 +260,7 @@ export function AdminMigration() {
         </div>
 
         {/* Step 1: Export */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
           <h2 className="text-xl font-bold text-white mb-4">Step 1: Export Draft to CSV</h2>
           <p className="text-gray-400 mb-4">
             Download the current draft as a CSV file. You'll edit this file to fix the traded picks.
@@ -275,21 +275,21 @@ export function AdminMigration() {
         </div>
 
         {/* Step 2: Edit CSV */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
           <h2 className="text-xl font-bold text-white mb-4">Step 2: Edit CSV File</h2>
           <p className="text-gray-400 mb-4">
             Open the downloaded CSV in Excel/Sheets and fix the traded picks:
           </p>
           <ul className="text-gray-400 space-y-2 ml-6 list-disc">
-            <li>Find pick #4 (Ja Morant) → change <code className="bg-[#0a0a0a] px-2 py-1 rounded">currentTeamId</code> from Woods to Raskob (9sRGjDOjvdSJbFwRwEDq)</li>
-            <li>Find pick #126 (Quentin Grimes) → change <code className="bg-[#0a0a0a] px-2 py-1 rounded">currentTeamId</code> from Raskob to Woods (Yy7xO376mKWlJ7cZYhQ1)</li>
-            <li>Verify pick #102 (Naz Reid) → <code className="bg-[#0a0a0a] px-2 py-1 rounded">currentTeamId</code> should be Woods</li>
+            <li>Find pick #4 (Ja Morant) → change <code className="bg-mns-dark px-2 py-1 rounded">currentTeamId</code> from Woods to Raskob (9sRGjDOjvdSJbFwRwEDq)</li>
+            <li>Find pick #126 (Quentin Grimes) → change <code className="bg-mns-dark px-2 py-1 rounded">currentTeamId</code> from Raskob to Woods (Yy7xO376mKWlJ7cZYhQ1)</li>
+            <li>Verify pick #102 (Naz Reid) → <code className="bg-mns-dark px-2 py-1 rounded">currentTeamId</code> should be Woods</li>
           </ul>
           <p className="text-yellow-400 mt-4 text-sm">Save the file after editing</p>
         </div>
 
         {/* Step 3: Import */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
           <h2 className="text-xl font-bold text-white mb-4">Step 3: Import Edited CSV</h2>
           <p className="text-gray-400 mb-4">
             Upload the edited CSV to create the new pick_assignments records in Supabase.
@@ -304,7 +304,7 @@ export function AdminMigration() {
         </div>
 
         {/* Step 4: Test */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
           <h2 className="text-xl font-bold text-white mb-4">Step 4: Verify Data</h2>
           <p className="text-gray-400 mb-4">
             View all picks from the pick_assignments table to verify the data looks correct.
@@ -320,7 +320,7 @@ export function AdminMigration() {
 
         {/* Status */}
         {status && (
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
             <h3 className="text-lg font-bold text-white mb-2">Status</h3>
             <pre className="text-gray-400 whitespace-pre-wrap font-mono text-sm">{status}</pre>
           </div>

@@ -1,6 +1,6 @@
 export function Rules() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-mns-dark">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -12,7 +12,7 @@ export function Rules() {
         </div>
 
         {/* Overview */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 mb-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 mb-6">
           <div className="p-6">
             <p className="text-base text-gray-300 leading-relaxed">
               A fantasy basketball dynasty league that uses actual NBA salary cap rules and player salaries to construct teams for head-to-head weekly matchups. Each owner must keep their team under the cap or pay monetary penalties. This is a 12-team dynasty league where you can keep up to 8 players season to season.
@@ -23,7 +23,7 @@ export function Rules() {
         {/* Rules Sections */}
         <div className="space-y-6">
           {/* Salary Cap */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800">
+          <div className="bg-mns-card rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <img src="/icons/money-icon.webp" alt="Money" className="w-6 h-6 rounded-full" />
@@ -58,7 +58,7 @@ export function Rules() {
           </div>
 
           {/* League Settings */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800">
+          <div className="bg-mns-card rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <img src="/icons/settings-icon.webp" alt="Settings" className="w-6 h-6 rounded-full" />
@@ -109,7 +109,7 @@ export function Rules() {
           </div>
 
           {/* Draft Rules */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800">
+          <div className="bg-mns-card rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <img src="/icons/draft-icon.webp" alt="Draft" className="w-6 h-6 rounded-full" />
@@ -147,7 +147,7 @@ export function Rules() {
           </div>
 
           {/* Keeper Rules */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800">
+          <div className="bg-mns-card rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <img src="/icons/lock-icon.webp" alt="Lock" className="w-6 h-6 rounded-full" />
@@ -198,7 +198,7 @@ export function Rules() {
           </div>
 
           {/* Redshirt Rules */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800">
+          <div className="bg-mns-card rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <img src="/icons/rookie-icon.webp" alt="Rookie" className="w-6 h-6 rounded-full" />
@@ -221,7 +221,7 @@ export function Rules() {
           </div>
 
           {/* International Stash */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800">
+          <div className="bg-mns-card rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <img src="/icons/planet-icon.webp" alt="International" className="w-6 h-6 rounded-full" />
@@ -242,7 +242,7 @@ export function Rules() {
           </div>
 
           {/* League Fees */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800">
+          <div className="bg-mns-card rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <img src="/icons/money-icon.webp" alt="Money" className="w-6 h-6 rounded-full" />
@@ -264,7 +264,7 @@ export function Rules() {
           </div>
 
           {/* Prize Pool */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800">
+          <div className="bg-mns-card rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <img src="/icons/trophy-icon.webp" alt="Trophy" className="w-6 h-6 rounded-full" />
@@ -317,7 +317,7 @@ export function Rules() {
           </div>
 
           {/* Additional Notes */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800">
+          <div className="bg-mns-card rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <img src="/icons/note-icon.webp" alt="Notes" className="w-6 h-6 rounded-full" />

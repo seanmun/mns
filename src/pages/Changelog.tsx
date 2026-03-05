@@ -133,7 +133,7 @@ function getTypeBadge(type: ChangelogEntry['type']) {
 
 export function Changelog() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-mns-dark text-white">
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="mb-8">
           <Link to="/" className="text-gray-400 hover:text-green-400 text-sm transition-colors">

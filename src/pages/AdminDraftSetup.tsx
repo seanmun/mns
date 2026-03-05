@@ -176,7 +176,7 @@ export function AdminDraftSetup() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
@@ -476,11 +476,11 @@ export function AdminDraftSetup() {
 
   if (step === 'complete' && existingDraft) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] py-8">
+      <div className="min-h-screen bg-mns-dark py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold text-white mb-8">Draft Ready</h1>
 
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center">
                 <svg className="w-6 h-6 text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -570,7 +570,7 @@ export function AdminDraftSetup() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-white mb-8">Draft Setup</h1>
 
@@ -588,11 +588,11 @@ export function AdminDraftSetup() {
           </div>
         )}
 
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
           <h2 className="text-xl font-semibold text-white mb-4">Set Draft Order</h2>
 
           {/* Test/Real Draft Toggle */}
-          <div className="mb-6 p-4 bg-[#0a0a0a] border border-gray-700 rounded-lg">
+          <div className="mb-6 p-4 bg-mns-dark border border-gray-700 rounded-lg">
             <label className="flex items-center justify-between cursor-pointer">
               <div>
                 <div className="font-semibold text-white">Draft Type</div>
@@ -632,7 +632,7 @@ export function AdminDraftSetup() {
                 return (
                   <div
                     key={teamId}
-                    className="flex items-center gap-3 p-3 bg-[#0a0a0a] border border-gray-700 rounded-lg"
+                    className="flex items-center gap-3 p-3 bg-mns-dark border border-gray-700 rounded-lg"
                   >
                     <span className="text-green-400 font-bold text-lg w-8">{index + 1}.</span>
                     <span className="flex-1 text-white">

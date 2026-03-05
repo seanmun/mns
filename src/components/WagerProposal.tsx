@@ -71,7 +71,7 @@ export function WagerProposal({ wager, userEmail, isOpponent }: WagerProposalPro
   const isUnread = isOpponent && isPending;
 
   return (
-    <div className={`bg-[#121212] rounded-lg border overflow-hidden transition-colors ${
+    <div className={`bg-mns-card rounded-lg border overflow-hidden transition-colors ${
       isUnread ? 'border-green-400/50 shadow-[0_0_15px_rgba(74,222,128,0.3)]' : 'border-gray-800'
     }`}>
       {/* Wager Header - Clickable */}
@@ -139,24 +139,24 @@ export function WagerProposal({ wager, userEmail, isOpponent }: WagerProposalPro
           <div className="space-y-4">
             <div>
               <h4 className="text-sm font-semibold text-gray-400 mb-2">Wager Details</h4>
-              <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+              <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
                 <p className="text-white text-lg">{wager.description}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+              <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
                 <div className="text-xs text-gray-400 mb-1">Amount</div>
                 <div className="text-2xl font-bold text-green-400">${wager.amount.toFixed(2)}</div>
               </div>
 
-              <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+              <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
                 <div className="text-xs text-gray-400 mb-1">Settlement Date</div>
                 <div className="text-lg font-semibold text-white">{formatDate(wager.settlementDate)}</div>
               </div>
             </div>
 
-            <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+            <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
               <div className="text-xs text-gray-400 mb-2">Parties</div>
               <div className="flex items-center justify-between">
                 <div>

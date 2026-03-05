@@ -14,7 +14,7 @@ function HubCard({ title, description, icon, onClick }: ToolCard & { onClick: ()
   return (
     <button
       onClick={onClick}
-      className="bg-[#121212] border border-gray-800 rounded-lg p-5 hover:border-green-400/60 hover:shadow-[0_0_20px_rgba(74,222,128,0.15)] transition-all text-left group w-full"
+      className="bg-mns-card border border-gray-800 rounded-lg p-5 hover:border-green-400/60 hover:shadow-[0_0_20px_rgba(74,222,128,0.15)] transition-all text-left group w-full"
     >
       <div className="flex items-start gap-4">
         <div className="text-green-400/80 group-hover:text-green-400 transition-colors shrink-0 mt-0.5">

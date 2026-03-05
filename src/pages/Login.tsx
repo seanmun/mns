@@ -11,7 +11,7 @@ export function Login() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
@@ -37,7 +37,7 @@ export function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+    <div className="flex items-center justify-center min-h-screen bg-mns-dark">
       <div className="max-w-md w-full space-y-8 p-8">
         <div className="text-center">
           <div className="mb-6">
@@ -56,7 +56,7 @@ export function Login() {
           </div>
         </div>
 
-        <div className="bg-[#121212] p-8 rounded-lg border border-gray-800 space-y-6">
+        <div className="bg-mns-card p-8 rounded-lg border border-gray-800 space-y-6">
           {/* Email Link Sign In */}
           {!emailSent ? (
             <>
@@ -76,7 +76,7 @@ export function Login() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
-                      className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-mns-dark border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
                     />
                   </div>
                   {error && (
@@ -97,7 +97,7 @@ export function Login() {
                   <div className="w-full border-t border-gray-800" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-[#121212] text-gray-400">Or</span>
+                  <span className="px-2 bg-mns-card text-gray-400">Or</span>
                 </div>
               </div>
             </>
@@ -143,7 +143,7 @@ export function Login() {
           {!emailSent && (
             <button
               onClick={signInWithGoogle}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#0a0a0a] border-2 border-gray-700 rounded-md text-white hover:border-green-400 hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.3)] transition-all font-semibold cursor-pointer"
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-mns-dark border-2 border-gray-700 rounded-md text-white hover:border-green-400 hover:bg-green-400/10 hover:shadow-[0_0_15px_rgba(74,222,128,0.3)] transition-all font-semibold cursor-pointer"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path

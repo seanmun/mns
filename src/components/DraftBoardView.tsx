@@ -26,7 +26,7 @@ export function DraftBoardView({ players, entries, pickAssignments = [] }: Draft
   const rounds = Array.from(picksByRound.keys()).sort((a, b) => a - b);
 
   return (
-    <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+    <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
       <h2 className="text-xl font-bold text-white mb-4">Draft Board</h2>
       <p className="text-sm text-gray-400 mb-6">
         Your draft picks by round. Keepers in green, drafted players in purple.

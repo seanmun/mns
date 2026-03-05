@@ -114,14 +114,14 @@ export function TeamSelect() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading your teams...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -141,7 +141,7 @@ export function TeamSelect() {
 
         {/* Teams list */}
         {teams.length === 0 ? (
-          <div className="bg-[#121212] p-8 rounded-lg border border-gray-800 text-center max-w-lg mx-auto">
+          <div className="bg-mns-card p-8 rounded-lg border border-gray-800 text-center max-w-lg mx-auto">
             {waitlistStatus === 'joined' ? (
               <>
                 <div className="w-16 h-16 bg-green-400/20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-green-400">
@@ -155,7 +155,7 @@ export function TeamSelect() {
                 </p>
 
                 {/* Roadmap */}
-                <div className="bg-[#0a0a0a] rounded-lg border border-gray-800 p-4 mb-4 text-left">
+                <div className="bg-mns-dark rounded-lg border border-gray-800 p-4 mb-4 text-left">
                   <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Roadmap</h3>
                   <ul className="space-y-2.5">
                     <li className="flex items-start gap-2.5">
@@ -170,7 +170,7 @@ export function TeamSelect() {
                 </div>
 
                 {/* Marketing opt-in */}
-                <div className="bg-[#0a0a0a] rounded-lg border border-gray-800 p-4 text-left">
+                <div className="bg-mns-dark rounded-lg border border-gray-800 p-4 text-left">
                   <button
                     onClick={handleMarketingOptin}
                     className="flex items-start gap-3 w-full text-left group"
@@ -227,7 +227,7 @@ export function TeamSelect() {
                 <button
                   key={team.id}
                   onClick={() => handleSelectTeam(team)}
-                  className="bg-[#121212] p-6 rounded-lg border border-gray-800 hover:border-green-400 transition-all text-left cursor-pointer"
+                  className="bg-mns-card p-6 rounded-lg border border-gray-800 hover:border-green-400 transition-all text-left cursor-pointer"
                 >
                   <div className="flex items-start justify-between">
                     <div>

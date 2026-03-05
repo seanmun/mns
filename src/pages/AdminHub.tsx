@@ -23,7 +23,7 @@ function HubCard({ title, description, icon, onClick }: ToolCard & { onClick: ()
   return (
     <button
       onClick={onClick}
-      className="bg-[#121212] border border-gray-800 rounded-lg p-5 hover:border-purple-400/60 hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all text-left group w-full"
+      className="bg-mns-card border border-gray-800 rounded-lg p-5 hover:border-purple-400/60 hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all text-left group w-full"
     >
       <div className="flex items-start gap-4">
         <div className="text-purple-400/80 group-hover:text-purple-400 transition-colors shrink-0 mt-0.5">
@@ -49,7 +49,7 @@ function SectionHeader({ title }: { title: string }) {
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="bg-[#121212] border border-gray-800 rounded-lg p-5">
+    <div className="bg-mns-card border border-gray-800 rounded-lg p-5">
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</p>
       <p className="text-2xl font-bold text-white mt-1">{value}</p>
       {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
@@ -59,7 +59,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 
 function StatSkeleton() {
   return (
-    <div className="bg-[#121212] border border-gray-800 rounded-lg p-5 animate-pulse">
+    <div className="bg-mns-card border border-gray-800 rounded-lg p-5 animate-pulse">
       <div className="h-3 w-20 bg-gray-800 rounded mb-3" />
       <div className="h-7 w-16 bg-gray-800 rounded" />
     </div>

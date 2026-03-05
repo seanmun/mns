@@ -290,22 +290,6 @@ export interface RosterDoc {
   savedScenarios?: SavedScenario[];
 }
 
-// Constants
-export const CAP_CONSTANTS = {
-  FLOOR: 170_000_000,
-  BASE: 225_000_000,  // Second apron is the base cap
-  TRADE_LIMIT: 40_000_000,
-  MAX: 255_000_000,
-  FIRST_APRON: 195_000_000,
-  SECOND_APRON: 225_000_000,
-  FIRST_APRON_FEE: 50,
-  PENALTY_START: 225_000_000,
-  PENALTY_RATE_PER_M: 2,
-  REDSHIRT_FEE: 10,
-  FRANCHISE_TAG_FEE: 15,
-  IN_SEASON_ACTIVATION_FEE: 25,
-} as const;
-
 // CSV Import types
 export interface CSVPlayerRow {
   name: string;

@@ -152,14 +152,14 @@ export function AdminEmailTemplates() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-mns-dark flex items-center justify-center">
         <div className="text-gray-400">Loading templates...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-mns-dark text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold mb-2">Email Templates</h1>
         <p className="text-gray-400 mb-8">
@@ -169,7 +169,7 @@ export function AdminEmailTemplates() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Template List */}
           <div className="lg:col-span-1">
-            <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+            <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-800">
                 <h2 className="text-sm font-semibold text-gray-300">Templates</h2>
               </div>
@@ -200,7 +200,7 @@ export function AdminEmailTemplates() {
           {/* Editor */}
           <div className="lg:col-span-3">
             {selected ? (
-              <div className="bg-[#121212] rounded-lg border border-gray-800">
+              <div className="bg-mns-card rounded-lg border border-gray-800">
                 <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-bold text-white">{selected.name}</h2>
@@ -252,7 +252,7 @@ export function AdminEmailTemplates() {
                       type="text"
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+                      className="w-full px-3 py-2 bg-mns-dark border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
                     />
                   </div>
 
@@ -263,7 +263,7 @@ export function AdminEmailTemplates() {
                       type="text"
                       value={editSubject}
                       onChange={(e) => setEditSubject(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent font-mono"
+                      className="w-full px-3 py-2 bg-mns-dark border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent font-mono"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Use {'{{variableName}}'} for dynamic content
@@ -277,7 +277,7 @@ export function AdminEmailTemplates() {
                       value={editHtmlBody}
                       onChange={(e) => setEditHtmlBody(e.target.value)}
                       rows={20}
-                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent font-mono leading-relaxed resize-y"
+                      className="w-full px-3 py-2 bg-mns-dark border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent font-mono leading-relaxed resize-y"
                       placeholder="Paste your HTML email template here..."
                     />
                   </div>
@@ -300,7 +300,7 @@ export function AdminEmailTemplates() {
                 </div>
               </div>
             ) : (
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-12 text-center">
+              <div className="bg-mns-card rounded-lg border border-gray-800 p-12 text-center">
                 <p className="text-gray-500">Select a template to edit</p>
               </div>
             )}

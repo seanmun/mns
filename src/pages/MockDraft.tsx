@@ -99,8 +99,14 @@ export function MockDraft() {
           })));
         }
 
-        if (prospectsRes.data) {
-          setProspects(prospectsRes.data.map((row: any) => ({
+        // Filter prospects by league sport (WNBA leagues only see WNBA prospects)
+        const leagueSport = leagueRes.data?.sport || 'nba';
+        const sportProspects = (prospectsRes.data || []).filter(
+          (p: any) => (p.sport || 'nba') === leagueSport
+        );
+
+        if (sportProspects.length > 0) {
+          setProspects(sportProspects.map((row: any) => ({
             id: row.id,
             rank: row.rank,
             player: row.player,
@@ -229,7 +235,7 @@ export function MockDraft() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] py-8">
+      <div className="min-h-screen bg-mns-dark py-8">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-12">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-500 border-r-transparent" />
@@ -241,7 +247,7 @@ export function MockDraft() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -294,7 +300,7 @@ export function MockDraft() {
         {/* Phase 1: Lottery Odds Table */}
         {phase === 'odds' && (
           <div className="space-y-6">
-            <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+            <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
               <div className="p-6 border-b border-gray-800">
                 <h2 className="text-lg font-bold text-white">Lottery Odds</h2>
                 <p className="text-sm text-gray-400 mt-1">
@@ -303,7 +309,7 @@ export function MockDraft() {
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-[#0a0a0a] border-b border-gray-800">
+                  <thead className="bg-mns-dark border-b border-gray-800">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Rank</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Team</th>
@@ -315,7 +321,7 @@ export function MockDraft() {
                   </thead>
                   <tbody className="divide-y divide-gray-800">
                     {odds.map((entry, i) => (
-                      <tr key={entry.team.teamId} className="hover:bg-[#1a1a1a] transition-colors">
+                      <tr key={entry.team.teamId} className="hover:bg-mns-hover transition-colors">
                         <td className="px-4 py-3">
                           <span className="text-sm font-bold text-gray-400">{i + 1}</span>
                         </td>
@@ -361,7 +367,7 @@ export function MockDraft() {
             </div>
 
             {/* How It Works */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">How It Works</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-400">
                 <div>
@@ -404,7 +410,7 @@ export function MockDraft() {
                     className={`rounded-lg border p-5 text-center ${
                       result.pick === 1
                         ? 'border-yellow-400/50 bg-yellow-400/10'
-                        : 'border-gray-700 bg-[#121212]'
+                        : 'border-gray-700 bg-mns-card'
                     }`}
                   >
                     <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Pick</div>
@@ -431,7 +437,7 @@ export function MockDraft() {
             </div>
 
             {/* Full Pick Order Table */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+            <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
               <div className="p-4 border-b border-gray-800">
                 <h2 className="text-lg font-bold text-white">Full Draft Order</h2>
               </div>
@@ -504,7 +510,7 @@ export function MockDraft() {
         {/* Phase 3: Mock Draft Board */}
         {phase === 'draft' && (
           <div className="space-y-6">
-            <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+            <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
               <div className="p-6 border-b border-gray-800">
                 <h2 className="text-lg font-bold text-white">First Round Mock Draft</h2>
                 <p className="text-sm text-gray-400 mt-1">
@@ -513,7 +519,7 @@ export function MockDraft() {
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-[#0a0a0a] border-b border-gray-800">
+                  <thead className="bg-mns-dark border-b border-gray-800">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Pick</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Team</th>
@@ -532,7 +538,7 @@ export function MockDraft() {
                           key={pick.pick}
                           className={`transition-colors ${
                             pick.wasExpected
-                              ? 'hover:bg-[#1a1a1a]'
+                              ? 'hover:bg-mns-hover'
                               : isReach
                                 ? 'bg-orange-400/5 hover:bg-orange-400/10'
                                 : 'bg-blue-400/5 hover:bg-blue-400/10'

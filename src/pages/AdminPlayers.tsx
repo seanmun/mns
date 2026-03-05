@@ -109,14 +109,14 @@ export function AdminPlayers() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <button
@@ -136,7 +136,7 @@ export function AdminPlayers() {
         </div>
 
         {/* Search and Filter */}
-        <div className="bg-[#121212] border border-gray-800 rounded-lg p-6 mb-8">
+        <div className="bg-mns-card border border-gray-800 rounded-lg p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
@@ -147,7 +147,7 @@ export function AdminPlayers() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by name or NBA team..."
-                className="w-full bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
+                className="w-full bg-mns-dark border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
               />
             </div>
             <div>
@@ -157,7 +157,7 @@ export function AdminPlayers() {
               <select
                 value={selectedTeamFilter}
                 onChange={(e) => setSelectedTeamFilter(e.target.value)}
-                className="w-full bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
+                className="w-full bg-mns-dark border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
               >
                 <option value="all">All Players</option>
                 <option value="free-agent">Free Agents</option>
@@ -175,10 +175,10 @@ export function AdminPlayers() {
         </div>
 
         {/* Players Table */}
-        <div className="bg-[#121212] border border-gray-800 rounded-lg overflow-hidden">
+        <div className="bg-mns-card border border-gray-800 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-800">
-              <thead className="bg-[#0a0a0a]">
+              <thead className="bg-mns-dark">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Player
@@ -207,7 +207,7 @@ export function AdminPlayers() {
                 {filteredPlayers.map((player) => {
                   const team = teams.find((t) => t.id === player.roster?.teamId);
                   return (
-                    <tr key={player.id} className="hover:bg-[#1a1a1a]">
+                    <tr key={player.id} className="hover:bg-mns-hover">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-white font-medium">{player.name}</div>
                         <div className="text-xs text-gray-500">{player.fantraxId}</div>
@@ -271,7 +271,7 @@ export function AdminPlayers() {
         {/* Edit Modal */}
         {editingPlayer && (
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#121212] border border-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-mns-card border border-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold text-white">Edit Player</h2>
@@ -295,7 +295,7 @@ export function AdminPlayers() {
                       onChange={(e) =>
                         setEditingPlayer({ ...editingPlayer, name: e.target.value })
                       }
-                      className="w-full bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
+                      className="w-full bg-mns-dark border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
                     />
                   </div>
 
@@ -312,7 +312,7 @@ export function AdminPlayers() {
                           setEditingPlayer({ ...editingPlayer, position: e.target.value })
                         }
                         placeholder="e.g., PG, SG,SF"
-                        className="w-full bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
+                        className="w-full bg-mns-dark border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
                       />
                     </div>
                     <div>
@@ -326,7 +326,7 @@ export function AdminPlayers() {
                           setEditingPlayer({ ...editingPlayer, nbaTeam: e.target.value })
                         }
                         placeholder="e.g., LAL"
-                        className="w-full bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
+                        className="w-full bg-mns-dark border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
                       />
                     </div>
                   </div>
@@ -346,7 +346,7 @@ export function AdminPlayers() {
                         })
                       }
                       step="0.1"
-                      className="w-full bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
+                      className="w-full bg-mns-dark border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
                     />
                   </div>
 
@@ -366,7 +366,7 @@ export function AdminPlayers() {
                           },
                         })
                       }
-                      className="w-full bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
+                      className="w-full bg-mns-dark border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
                     >
                       <option value="">Free Agent</option>
                       {teams.map((team) => (
@@ -392,7 +392,7 @@ export function AdminPlayers() {
                             },
                           })
                         }
-                        className="rounded bg-[#0a0a0a] border-gray-800 text-green-400 focus:ring-green-400"
+                        className="rounded bg-mns-dark border-gray-800 text-green-400 focus:ring-green-400"
                       />
                       <span className="text-sm text-gray-300">On IR</span>
                     </label>
@@ -410,7 +410,7 @@ export function AdminPlayers() {
                             },
                           })
                         }
-                        className="rounded bg-[#0a0a0a] border-gray-800 text-green-400 focus:ring-green-400"
+                        className="rounded bg-mns-dark border-gray-800 text-green-400 focus:ring-green-400"
                       />
                       <span className="text-sm text-gray-300">Rookie</span>
                     </label>
@@ -428,7 +428,7 @@ export function AdminPlayers() {
                             },
                           })
                         }
-                        className="rounded bg-[#0a0a0a] border-gray-800 text-green-400 focus:ring-green-400"
+                        className="rounded bg-mns-dark border-gray-800 text-green-400 focus:ring-green-400"
                       />
                       <span className="text-sm text-gray-300">International Stash</span>
                     </label>
@@ -446,7 +446,7 @@ export function AdminPlayers() {
                             },
                           })
                         }
-                        className="rounded bg-[#0a0a0a] border-gray-800 text-green-400 focus:ring-green-400"
+                        className="rounded bg-mns-dark border-gray-800 text-green-400 focus:ring-green-400"
                       />
                       <span className="text-sm text-gray-300">Int'l Eligible</span>
                     </label>
@@ -472,7 +472,7 @@ export function AdminPlayers() {
                       min="1"
                       max="13"
                       placeholder="Leave blank for new players"
-                      className="w-full bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
+                      className="w-full bg-mns-dark border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
                     />
                   </div>
 
@@ -504,7 +504,7 @@ export function AdminPlayers() {
                             }
                             min="1"
                             max="3"
-                            className="w-full bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
+                            className="w-full bg-mns-dark border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
                           />
                         </div>
                         <div>
@@ -530,7 +530,7 @@ export function AdminPlayers() {
                             }
                             min="1"
                             max="12"
-                            className="w-full bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
+                            className="w-full bg-mns-dark border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
                           />
                         </div>
                         <div>
@@ -553,7 +553,7 @@ export function AdminPlayers() {
                                 },
                               })
                             }
-                            className="mt-2 rounded bg-[#0a0a0a] border-gray-800 text-green-400 focus:ring-green-400"
+                            className="mt-2 rounded bg-mns-dark border-gray-800 text-green-400 focus:ring-green-400"
                           />
                         </div>
                       </div>
@@ -571,7 +571,7 @@ export function AdminPlayers() {
                   </button>
                   <button
                     onClick={() => setEditingPlayer(null)}
-                    className="px-6 py-2 border border-gray-800 text-gray-300 rounded-lg hover:bg-[#1a1a1a]"
+                    className="px-6 py-2 border border-gray-800 text-gray-300 rounded-lg hover:bg-mns-hover"
                   >
                     Cancel
                   </button>

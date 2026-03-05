@@ -80,7 +80,7 @@ const CreateLeague = lazy(() => import('./pages/CreateLeague').then(m => ({ defa
 // Loading fallback component
 function LoadingFallback() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+    <div className="flex items-center justify-center min-h-screen bg-mns-dark">
       <div className="text-center">
         <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-500 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
         <div className="mt-4 text-gray-400">Loading...</div>

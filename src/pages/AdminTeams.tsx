@@ -318,7 +318,7 @@ export function AdminTeams() {
         </div>
 
         {/* League Settings */}
-        <div className="bg-[#121212] border border-gray-800 rounded-lg p-6 mb-8">
+        <div className="bg-mns-card border border-gray-800 rounded-lg p-6 mb-8">
           <h2 className="text-xl font-bold text-white mb-4">League Settings</h2>
           {leagues.map((league) => (
             <div key={league.id} className="flex items-center justify-between py-3 border-b border-gray-800 last:border-b-0">

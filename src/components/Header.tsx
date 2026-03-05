@@ -106,7 +106,7 @@ export function Header() {
   // If no user, show simple header with logo and login button
   if (!user) {
     return (
-      <header className="sticky top-0 z-50 bg-[#0a0a0a] shadow-sm border-b border-gray-800">
+      <header className="sticky top-0 z-50 bg-mns-dark shadow-sm border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center gap-2">
@@ -126,7 +126,7 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0a0a0a] shadow-sm border-b border-gray-800">
+    <header className="sticky top-0 z-50 bg-mns-dark shadow-sm border-b border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo / League Switcher */}
@@ -162,7 +162,7 @@ export function Header() {
 
               {/* League Dropdown */}
               {isLeagueDropdownOpen && !leaguesLoading && (
-                <div className="absolute left-0 mt-2 w-64 bg-[#121212] rounded-lg shadow-lg border border-gray-800 py-1 z-50" role="menu">
+                <div className="absolute left-0 mt-2 w-64 bg-mns-card rounded-lg shadow-lg border border-gray-800 py-1 z-50" role="menu">
                   {userLeagues.length > 0 ? (
                     <>
                       <div className="px-4 py-2 text-xs text-gray-500 uppercase tracking-wider">
@@ -266,7 +266,7 @@ export function Header() {
 
               {/* Dropdown Menu */}
               {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-[#121212] rounded-lg shadow-lg border border-gray-800 py-1 z-50" role="menu">
+                <div className="absolute right-0 mt-2 w-48 bg-mns-card rounded-lg shadow-lg border border-gray-800 py-1 z-50" role="menu">
                   {/* My Team Link - only show if user has a team in current league */}
                   {userTeamId && currentLeague && (
                     <>

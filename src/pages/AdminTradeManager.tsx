@@ -370,14 +370,14 @@ export function AdminTradeManager() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Admin Trade Manager</h1>
@@ -385,7 +385,7 @@ export function AdminTradeManager() {
         </div>
 
         {/* Step 1: Select Teams */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
           <h2 className="text-xl font-bold text-white mb-4">Step 1: Select Teams Involved</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {teams.map(team => (
@@ -395,7 +395,7 @@ export function AdminTradeManager() {
                 className={`p-4 rounded-lg border-2 transition-all ${
                   selectedTeamIds.includes(team.id)
                     ? 'bg-green-400/20 border-green-400'
-                    : 'bg-[#0a0a0a] border-gray-700 hover:border-gray-600'
+                    : 'bg-mns-dark border-gray-700 hover:border-gray-600'
                 }`}
               >
                 <div className="font-semibold text-white">{team.name}</div>
@@ -406,7 +406,7 @@ export function AdminTradeManager() {
 
         {/* Step 2: Select Assets */}
         {selectedTeamIds.length >= 2 && (
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
             <h2 className="text-xl font-bold text-white mb-4">Step 2: Select Assets to Trade</h2>
 
             <div className="space-y-6">
@@ -423,7 +423,7 @@ export function AdminTradeManager() {
                 const intStash = roster.entries?.filter(e => e.decision === 'INT_STASH') || [];
 
                 return (
-                  <div key={teamId} className="bg-[#0a0a0a] rounded-lg p-4">
+                  <div key={teamId} className="bg-mns-dark rounded-lg p-4">
                     <h3 className="text-lg font-bold text-white mb-3">{team.name}</h3>
 
                     {/* Keepers */}
@@ -446,7 +446,7 @@ export function AdminTradeManager() {
                                 className={`w-full text-left px-3 py-2 rounded text-sm ${
                                   isSelected
                                     ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                                    : 'bg-[#121212] text-white hover:bg-gray-800'
+                                    : 'bg-mns-card text-white hover:bg-gray-800'
                                 }`}
                               >
                                 {player?.name || 'Unknown'} - {player?.position}
@@ -477,7 +477,7 @@ export function AdminTradeManager() {
                                 className={`w-full text-left px-3 py-2 rounded text-sm ${
                                   isSelected
                                     ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                                    : 'bg-[#121212] text-white hover:bg-gray-800'
+                                    : 'bg-mns-card text-white hover:bg-gray-800'
                                 }`}
                               >
                                 {player?.name || 'Unknown'} - {player?.position}
@@ -508,7 +508,7 @@ export function AdminTradeManager() {
                                 className={`w-full text-left px-3 py-2 rounded text-sm ${
                                   isSelected
                                     ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                                    : 'bg-[#121212] text-white hover:bg-gray-800'
+                                    : 'bg-mns-card text-white hover:bg-gray-800'
                                 }`}
                               >
                                 {player?.name || 'Unknown'} - {player?.position}
@@ -541,7 +541,7 @@ export function AdminTradeManager() {
                                     ? 'bg-gray-900 text-gray-600 cursor-not-allowed'
                                     : isSelected
                                     ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                                    : 'bg-[#121212] text-white hover:bg-gray-800'
+                                    : 'bg-mns-card text-white hover:bg-gray-800'
                                 }`}
                               >
                                 {displayName} {pick.isKeeperSlot && '(Keeper)'}
@@ -572,7 +572,7 @@ export function AdminTradeManager() {
                                 className={`w-full text-left px-3 py-2 rounded text-sm ${
                                   isSelected
                                     ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                                    : 'bg-[#121212] text-white hover:bg-gray-800'
+                                    : 'bg-mns-card text-white hover:bg-gray-800'
                                 }`}
                               >
                                 {displayName}
@@ -591,13 +591,13 @@ export function AdminTradeManager() {
 
         {/* Step 3: Trade Summary */}
         {tradeAssets.length > 0 && (
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
             <h2 className="text-xl font-bold text-white mb-4">Step 3: Assign Destinations</h2>
             <div className="space-y-3">
               {tradeAssets.map((asset, index) => {
                 const fromTeam = teams.find(t => t.id === asset.fromTeam);
                 return (
-                  <div key={index} className="bg-[#0a0a0a] p-4 rounded-lg flex items-center gap-4">
+                  <div key={index} className="bg-mns-dark p-4 rounded-lg flex items-center gap-4">
                     <button
                       onClick={() => removeAsset(index)}
                       className="text-red-400 hover:text-red-300"
@@ -622,7 +622,7 @@ export function AdminTradeManager() {
                       <select
                         value={asset.toTeam}
                         onChange={(e) => updateAssetDestination(index, e.target.value)}
-                        className="px-3 py-2 bg-[#121212] border border-gray-700 rounded text-white text-sm"
+                        className="px-3 py-2 bg-mns-card border border-gray-700 rounded text-white text-sm"
                       >
                         <option value="">Select team...</option>
                         {selectedTeamIds

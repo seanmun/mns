@@ -30,9 +30,9 @@ export function FinishSignIn() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="max-w-md w-full space-y-8 p-8">
-          <div className="bg-[#121212] p-8 rounded-lg border border-gray-800 text-center">
+          <div className="bg-mns-card p-8 rounded-lg border border-gray-800 text-center">
             <div className="text-red-400 mb-4">
               <svg
                 className="mx-auto h-12 w-12"
@@ -65,7 +65,7 @@ export function FinishSignIn() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+    <div className="flex items-center justify-center min-h-screen bg-mns-dark">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400 mx-auto mb-4"></div>
         <div className="text-gray-400">Signing you in...</div>

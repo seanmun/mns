@@ -89,7 +89,7 @@ function TeamRosterStats({
 
   if (!roster) {
     return (
-      <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6 text-center text-gray-500">
+      <div className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6 text-center text-gray-500">
         No roster data available.
       </div>
     );
@@ -140,7 +140,7 @@ function TeamRosterStats({
           isBenched ? 'opacity-40' : ''
         }`}
       >
-        <div className="text-white font-medium truncate sticky left-0 bg-[#121212] z-10 px-3 flex items-center">
+        <div className="text-white font-medium truncate sticky left-0 bg-mns-card z-10 px-3 flex items-center">
           <span className="sm:hidden">{truncateName(player.name)}</span>
           <span className="hidden sm:inline truncate">{player.name}</span>
         </div>
@@ -155,10 +155,10 @@ function TeamRosterStats({
   };
 
   return (
-    <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden mb-6">
+    <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden mb-6">
       {/* Header + day nav */}
       <div className={`px-4 py-3 border-b border-gray-800 ${
-        isMyTeam ? 'bg-green-400/5' : 'bg-[#0a0a0a]'
+        isMyTeam ? 'bg-green-400/5' : 'bg-mns-dark'
       }`}>
         <div className="flex items-center justify-between">
           <div>
@@ -243,8 +243,8 @@ function TeamRosterStats({
       {/* Scrollable table */}
       <div className="overflow-x-auto">
         {/* Column headers */}
-        <div className={`grid ${gridCols} gap-1 py-2 bg-[#0a0a0a] border-b border-gray-800`}>
-          <div className="text-xs text-gray-500 font-medium sticky left-0 bg-[#0a0a0a] z-10 px-3">Player</div>
+        <div className={`grid ${gridCols} gap-1 py-2 bg-mns-dark border-b border-gray-800`}>
+          <div className="text-xs text-gray-500 font-medium sticky left-0 bg-mns-dark z-10 px-3">Player</div>
           <div className="text-xs text-gray-500 font-medium text-center">POS</div>
           {MATCHUP_CATEGORIES.map(cat => (
             <div key={cat} className="text-xs text-gray-500 font-medium text-center">
@@ -257,8 +257,8 @@ function TeamRosterStats({
         {starters.map(p => renderPlayerRow(p, false))}
 
         {/* Totals row */}
-        <div className={`grid ${gridCols} gap-1 py-2 bg-[#0a0a0a] border-t border-gray-700`}>
-          <div className="text-xs font-bold text-white sticky left-0 bg-[#0a0a0a] z-10 px-3">Totals</div>
+        <div className={`grid ${gridCols} gap-1 py-2 bg-mns-dark border-t border-gray-700`}>
+          <div className="text-xs font-bold text-white sticky left-0 bg-mns-dark z-10 px-3">Totals</div>
           <div />
           {starterTotals.map((val, i) => (
             <div key={MATCHUP_CATEGORIES[i]} className="text-xs text-white font-bold text-center tabular-nums">
@@ -461,7 +461,7 @@ export function MatchupDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-mns-dark flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-500 border-r-transparent" />
           <div className="mt-4 text-gray-400">Loading matchup...</div>
@@ -472,7 +472,7 @@ export function MatchupDetail() {
 
   if (!matchup) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a]">
+      <div className="min-h-screen bg-mns-dark">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center text-gray-400 py-12">
             Matchup not found.
@@ -505,7 +505,7 @@ export function MatchupDetail() {
   const ties = categoryData.filter(c => c.tie).length;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-mns-dark">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Week navigation */}
         <div className="flex items-center justify-between mb-6">
@@ -532,7 +532,7 @@ export function MatchupDetail() {
         <div className={`rounded-lg border p-6 mb-6 ${
           isMyMatchup
             ? 'border-green-400/50 bg-green-400/5'
-            : 'border-gray-800 bg-[#121212]'
+            : 'border-gray-800 bg-mns-card'
         }`}>
           <h1 className="text-center text-gray-400 text-sm font-medium mb-4">
             Matchup {currentMatchupNum}
@@ -600,9 +600,9 @@ export function MatchupDetail() {
 
         {/* View-dependent content */}
         {view === 'totals' && (
-          <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden mb-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden mb-6">
             {/* Table header */}
-            <div className="grid grid-cols-[1fr_auto_1fr] bg-[#0a0a0a] border-b border-gray-800 px-4 py-3">
+            <div className="grid grid-cols-[1fr_auto_1fr] bg-mns-dark border-b border-gray-800 px-4 py-3">
               <div className={`text-xs font-medium uppercase tracking-wider text-center ${
                 matchup.awayTeamId === myTeamId ? 'text-green-400' : 'text-gray-400'
               }`}>
@@ -668,7 +668,7 @@ export function MatchupDetail() {
 
         {/* Other matchups this week */}
         {weekMatchups.length > 0 && (
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
             <h2 className="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wider">
               Other Matchup {currentMatchupNum} Games
             </h2>

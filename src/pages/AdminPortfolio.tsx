@@ -107,14 +107,14 @@ export function AdminPortfolio() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -134,7 +134,7 @@ export function AdminPortfolio() {
         </div>
 
         {/* Form */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
           <div className="space-y-6">
             {/* Wallet Address */}
             <div>
@@ -146,7 +146,7 @@ export function AdminPortfolio() {
                 value={walletAddress}
                 onChange={(e) => setWalletAddress(e.target.value)}
                 placeholder="0x..."
-                className="w-full px-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-400"
+                className="w-full px-4 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-400"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Ethereum mainnet address (e.g., 0xe4e7a9ed3f7e3b32d16a495068fb2852dbdf8132)
@@ -167,7 +167,7 @@ export function AdminPortfolio() {
                   placeholder="0.00"
                   min="0"
                   step="0.01"
-                  className="w-full pl-8 pr-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-400"
+                  className="w-full pl-8 pr-4 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-400"
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">

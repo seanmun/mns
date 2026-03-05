@@ -279,7 +279,7 @@ export function AdminProspects() {
             className={`px-5 py-2 rounded-lg font-semibold text-sm transition-all ${
               sport === s
                 ? 'bg-orange-500 text-white'
-                : 'bg-[#121212] text-gray-400 border border-gray-800 hover:border-orange-400/50'
+                : 'bg-mns-card text-gray-400 border border-gray-800 hover:border-orange-400/50'
             }`}
           >
             {s.toUpperCase()}
@@ -289,7 +289,7 @@ export function AdminProspects() {
 
       {/* Stats + Add button row */}
       <div className="flex items-center gap-4 mb-6">
-        <div className="bg-[#121212] border border-gray-800 rounded-lg px-4 py-3">
+        <div className="bg-mns-card border border-gray-800 rounded-lg px-4 py-3">
           <span className="text-xs text-gray-500 uppercase tracking-wider mr-2">{sport.toUpperCase()} Prospects:</span>
           <span className="text-lg font-bold text-white">{prospects.length}</span>
         </div>
@@ -307,7 +307,7 @@ export function AdminProspects() {
 
       {/* Add form */}
       {showAddForm && (
-        <div className="bg-[#121212] border border-gray-800 rounded-lg p-5 mb-6">
+        <div className="bg-mns-card border border-gray-800 rounded-lg p-5 mb-6">
           <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">New Prospect</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
             <input
@@ -316,19 +316,19 @@ export function AdminProspects() {
               min={1}
               value={newProspect.rank}
               onChange={(e) => setNewProspect({ ...newProspect, rank: e.target.value ? parseInt(e.target.value) : '' })}
-              className="bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
+              className="bg-mns-dark border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
             />
             <input
               type="text"
               placeholder="Player Name *"
               value={newProspect.player}
               onChange={(e) => setNewProspect({ ...newProspect, player: e.target.value })}
-              className="bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 sm:col-span-2"
+              className="bg-mns-dark border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 sm:col-span-2"
             />
             <select
               value={newProspect.position}
               onChange={(e) => setNewProspect({ ...newProspect, position: e.target.value })}
-              className="bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
+              className="bg-mns-dark border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
             >
               <option value="">Position *</option>
               {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
@@ -340,12 +340,12 @@ export function AdminProspects() {
               placeholder="School"
               value={newProspect.school}
               onChange={(e) => setNewProspect({ ...newProspect, school: e.target.value })}
-              className="bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
+              className="bg-mns-dark border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
             />
             <select
               value={newProspect.year}
               onChange={(e) => setNewProspect({ ...newProspect, year: e.target.value })}
-              className="bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
+              className="bg-mns-dark border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
             >
               <option value="">Year</option>
               {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
@@ -355,19 +355,19 @@ export function AdminProspects() {
               placeholder='Height (6-7)'
               value={newProspect.height}
               onChange={(e) => setNewProspect({ ...newProspect, height: e.target.value })}
-              className="bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
+              className="bg-mns-dark border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
             />
             <input
               type="number"
               placeholder="Weight"
               value={newProspect.weight}
               onChange={(e) => setNewProspect({ ...newProspect, weight: e.target.value ? parseInt(e.target.value) : '' })}
-              className="bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
+              className="bg-mns-dark border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
             />
             <select
               value={newProspect.draftProjection}
               onChange={(e) => setNewProspect({ ...newProspect, draftProjection: e.target.value })}
-              className="bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
+              className="bg-mns-dark border border-gray-800 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
             >
               <option value="">Projection</option>
               {PROJECTIONS.map(p => <option key={p} value={p}>{p}</option>)}
@@ -393,7 +393,7 @@ export function AdminProspects() {
 
       {/* Empty state */}
       {!loading && prospects.length === 0 && (
-        <div className="bg-[#121212] border border-gray-800 rounded-lg p-12 text-center">
+        <div className="bg-mns-card border border-gray-800 rounded-lg p-12 text-center">
           <h3 className="text-lg font-bold text-white mb-2">No {sport.toUpperCase()} prospects</h3>
           <p className="text-sm text-gray-400">
             Add prospects manually or use the {sport === 'wnba' ? 'WNBA Prospect Scraper' : 'CSV Upload'} tool.
@@ -406,7 +406,7 @@ export function AdminProspects() {
         <div className="overflow-x-auto border border-gray-800 rounded-lg">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-[#0a0a0a] border-b border-gray-800">
+              <tr className="bg-mns-dark border-b border-gray-800">
                 <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-20">Rank</th>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Player</th>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Pos</th>
@@ -440,14 +440,14 @@ export function AdminProspects() {
                           type="text"
                           value={editForm.player}
                           onChange={(e) => setEditForm({ ...editForm, player: e.target.value })}
-                          className="w-full bg-[#0a0a0a] border border-gray-700 text-white rounded px-2 py-1 text-sm focus:outline-none focus:border-orange-400"
+                          className="w-full bg-mns-dark border border-gray-700 text-white rounded px-2 py-1 text-sm focus:outline-none focus:border-orange-400"
                         />
                       </td>
                       <td className="px-3 py-2">
                         <select
                           value={editForm.position}
                           onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
-                          className="bg-[#0a0a0a] border border-gray-700 text-white rounded px-2 py-1 text-sm focus:outline-none focus:border-orange-400"
+                          className="bg-mns-dark border border-gray-700 text-white rounded px-2 py-1 text-sm focus:outline-none focus:border-orange-400"
                         >
                           {POSITIONS.map(pos => <option key={pos} value={pos}>{pos}</option>)}
                         </select>
@@ -457,14 +457,14 @@ export function AdminProspects() {
                           type="text"
                           value={editForm.school}
                           onChange={(e) => setEditForm({ ...editForm, school: e.target.value })}
-                          className="w-full bg-[#0a0a0a] border border-gray-700 text-white rounded px-2 py-1 text-sm focus:outline-none focus:border-orange-400"
+                          className="w-full bg-mns-dark border border-gray-700 text-white rounded px-2 py-1 text-sm focus:outline-none focus:border-orange-400"
                         />
                       </td>
                       <td className="px-3 py-2">
                         <select
                           value={editForm.year}
                           onChange={(e) => setEditForm({ ...editForm, year: e.target.value })}
-                          className="bg-[#0a0a0a] border border-gray-700 text-white rounded px-2 py-1 text-sm focus:outline-none focus:border-orange-400"
+                          className="bg-mns-dark border border-gray-700 text-white rounded px-2 py-1 text-sm focus:outline-none focus:border-orange-400"
                         >
                           <option value="">—</option>
                           {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
@@ -475,7 +475,7 @@ export function AdminProspects() {
                           type="text"
                           value={editForm.height}
                           onChange={(e) => setEditForm({ ...editForm, height: e.target.value })}
-                          className="w-20 bg-[#0a0a0a] border border-gray-700 text-white rounded px-2 py-1 text-sm focus:outline-none focus:border-orange-400"
+                          className="w-20 bg-mns-dark border border-gray-700 text-white rounded px-2 py-1 text-sm focus:outline-none focus:border-orange-400"
                           placeholder="6-7"
                         />
                       </td>
@@ -484,14 +484,14 @@ export function AdminProspects() {
                           type="number"
                           value={editForm.weight}
                           onChange={(e) => setEditForm({ ...editForm, weight: e.target.value ? parseInt(e.target.value) : '' })}
-                          className="w-16 bg-[#0a0a0a] border border-gray-700 text-white rounded px-2 py-1 text-sm focus:outline-none focus:border-orange-400"
+                          className="w-16 bg-mns-dark border border-gray-700 text-white rounded px-2 py-1 text-sm focus:outline-none focus:border-orange-400"
                         />
                       </td>
                       <td className="px-3 py-2">
                         <select
                           value={editForm.draftProjection}
                           onChange={(e) => setEditForm({ ...editForm, draftProjection: e.target.value })}
-                          className="bg-[#0a0a0a] border border-gray-700 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-400"
+                          className="bg-mns-dark border border-gray-700 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-400"
                         >
                           <option value="">—</option>
                           {PROJECTIONS.map(pr => <option key={pr} value={pr}>{pr}</option>)}
@@ -519,14 +519,14 @@ export function AdminProspects() {
                 }
 
                 return (
-                  <tr key={p.id} className="hover:bg-[#1a1a1a] transition-colors">
+                  <tr key={p.id} className="hover:bg-mns-hover transition-colors">
                     <td className="px-3 py-2">
                       <input
                         type="number"
                         min={1}
                         value={displayRank}
                         onChange={(e) => handleRankChange(p.id, p.rank, e.target.value)}
-                        className={`w-16 bg-[#0a0a0a] border rounded px-2 py-1 text-sm text-center font-bold focus:outline-none ${
+                        className={`w-16 bg-mns-dark border rounded px-2 py-1 text-sm text-center font-bold focus:outline-none ${
                           isEdited
                             ? 'border-orange-400 text-orange-400'
                             : 'border-gray-800 text-white focus:border-gray-600'
@@ -588,7 +588,7 @@ export function AdminProspects() {
 
       {/* Save order sticky bar */}
       {dirtyCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-[#121212] border-t border-orange-500/50 p-4 flex items-center justify-between z-40">
+        <div className="fixed bottom-0 left-0 right-0 bg-mns-card border-t border-orange-500/50 p-4 flex items-center justify-between z-40">
           <span className="text-sm text-gray-400">
             {dirtyCount} rank change{dirtyCount !== 1 ? 's' : ''} pending
           </span>

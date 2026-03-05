@@ -236,7 +236,7 @@ export function TradeProposalCard({
   const proposerName = teamNames.get(proposal.proposedByTeamId) || 'Unknown';
 
   return (
-    <div className={`bg-[#121212] rounded-lg border overflow-hidden transition-colors ${
+    <div className={`bg-mns-card rounded-lg border overflow-hidden transition-colors ${
       isUnread ? 'border-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.3)]' : 'border-gray-800'
     }`}>
       {/* Header */}
@@ -307,7 +307,7 @@ export function TradeProposalCard({
               </h4>
               <div className="space-y-1">
                 {assets.map((asset, i) => (
-                  <div key={i} className="bg-[#0a0a0a] rounded-lg p-3 border border-gray-800 flex items-center justify-between">
+                  <div key={i} className="bg-mns-dark rounded-lg p-3 border border-gray-800 flex items-center justify-between">
                     <div>
                       <span className={`text-xs font-bold px-1.5 py-0.5 rounded mr-2 ${
                         asset.type === 'keeper' ? 'bg-green-400/20 text-green-400' :
@@ -334,14 +334,14 @@ export function TradeProposalCard({
 
           {/* Note from proposer */}
           {proposal.note && (
-            <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+            <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
               <div className="text-xs text-gray-400 mb-1">Note</div>
               <p className="text-white text-sm">{proposal.note}</p>
             </div>
           )}
 
           {/* Response Status */}
-          <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+          <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
             <div className="text-xs text-gray-400 mb-3">Team Responses</div>
             <div className="space-y-2">
               {responses.map(resp => (

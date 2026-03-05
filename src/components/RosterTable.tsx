@@ -150,14 +150,14 @@ export const RosterTable = memo(function RosterTable({
 
   return (
     <>
-      <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+      <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
         {/* Mobile: Sticky first column with horizontal scroll */}
         <div className="overflow-x-auto">
           <div className="inline-block min-w-full align-middle">
             <table className="min-w-full divide-y divide-gray-800">
-              <thead className="bg-[#0a0a0a]">
+              <thead className="bg-mns-dark">
                 <tr>
-                  <th className="sticky left-0 z-10 bg-[#0a0a0a] px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800">
+                  <th className="sticky left-0 z-10 bg-mns-dark px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800">
                     Player
                   </th>
                   {canViewDecisions && (
@@ -185,7 +185,7 @@ export const RosterTable = memo(function RosterTable({
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-[#121212] divide-y divide-gray-800">
+              <tbody className="bg-mns-card divide-y divide-gray-800">
                 {players.map((player, index) => {
                   const entry = getEntryForPlayer(player.id);
                   const decision = entry?.decision || 'DROP';
@@ -197,7 +197,7 @@ export const RosterTable = memo(function RosterTable({
                       className={getRowClassName(decision, player)}
                       onClick={() => handlePlayerClick(player, index)}
                     >
-                      <td className="sticky left-0 z-10 bg-[#121212] px-4 py-3 whitespace-nowrap border-r border-gray-800">
+                      <td className="sticky left-0 z-10 bg-mns-card px-4 py-3 whitespace-nowrap border-r border-gray-800">
                         <div className="flex items-center gap-2">
                           <div className="text-sm font-medium text-white">
                             {player.name}
@@ -233,7 +233,7 @@ export const RosterTable = memo(function RosterTable({
                                 e.target.value as Decision
                               )
                             }
-                            className="block w-full rounded-md bg-[#0a0a0a] border-gray-700 text-white shadow-sm focus:border-green-400 focus:ring-green-400 text-sm"
+                            className="block w-full rounded-md bg-mns-dark border-gray-700 text-white shadow-sm focus:border-green-400 focus:ring-green-400 text-sm"
                           >
                             <option value="DROP">Drop</option>
                             <option value="KEEP">Keep</option>

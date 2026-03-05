@@ -43,7 +43,7 @@ export const CapThermometer = memo(function CapThermometer({ summary, maxKeepers
   const isOverSecondApron = hasAprons && capUsed > secondApron;
 
   return (
-    <div className="bg-[#121212] p-6 rounded-lg border border-gray-800">
+    <div className="bg-mns-card p-6 rounded-lg border border-gray-800">
       <h3 className="text-lg font-semibold mb-4 text-white">Salary Cap Status</h3>
 
       {/* Salary cap scale */}

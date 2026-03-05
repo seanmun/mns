@@ -40,19 +40,19 @@ export function AdminRosterManager() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-white mb-8">Roster Management</h1>
 
         {/* League Selection */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
           <h2 className="text-xl font-semibold text-white mb-4">Select League</h2>
           <div className="grid gap-3">
             {leagues.map((league) => (

@@ -520,14 +520,14 @@ export function OwnerDashboard() {
 
   if (teamLoading || playersLoading || rosterLoading || statsLoading || feesLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -593,7 +593,7 @@ export function OwnerDashboard() {
                 className={`flex-1 px-4 py-2.5 text-sm font-semibold transition-colors ${
                   carouselIndex === 0
                     ? 'bg-green-400/10 text-green-400 border-b-2 border-green-400'
-                    : 'bg-[#121212] text-gray-400 hover:text-white'
+                    : 'bg-mns-card text-gray-400 hover:text-white'
                 }`}
               >
                 Salary Cap
@@ -603,7 +603,7 @@ export function OwnerDashboard() {
                 className={`flex-1 px-4 py-2.5 text-sm font-semibold transition-colors ${
                   carouselIndex === 1
                     ? 'bg-green-400/10 text-green-400 border-b-2 border-green-400'
-                    : 'bg-[#121212] text-gray-400 hover:text-white'
+                    : 'bg-mns-card text-gray-400 hover:text-white'
                 }`}
               >
                 Fees & Roster
@@ -621,7 +621,7 @@ export function OwnerDashboard() {
 
         {/* Scenario Selector Dropdown - Only show when keepers are not locked and user is owner */}
         {isOwner && roster?.status !== 'adminLocked' && league?.keepersLocked !== true && (
-          <div className="bg-[#121212] p-6 rounded-lg border border-gray-800 mb-6">
+          <div className="bg-mns-card p-6 rounded-lg border border-gray-800 mb-6">
             <label className="block text-sm font-medium text-white mb-2">
               Load Scenario
             </label>
@@ -645,7 +645,7 @@ export function OwnerDashboard() {
                   }
                 }
               }}
-              className="w-full rounded-md bg-[#0a0a0a] border-gray-700 text-white shadow-sm focus:border-green-400 focus:ring-green-400"
+              className="w-full rounded-md bg-mns-dark border-gray-700 text-white shadow-sm focus:border-green-400 focus:ring-green-400"
             >
               <option value="">Blank Slate (All Dropped)</option>
               {roster?.savedScenarios?.map((scenario) => (
@@ -683,7 +683,7 @@ export function OwnerDashboard() {
                       className={`p-4 rounded-lg shadow-sm text-left transition-all ${
                         draftCarouselIndex === 0
                           ? 'bg-green-400 text-black ring-2 ring-green-400'
-                          : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
+                          : 'bg-mns-card text-white hover:bg-mns-hover border border-gray-800'
                       }`}
                     >
                       <div className="text-xs font-medium opacity-80">Draft Board</div>
@@ -694,7 +694,7 @@ export function OwnerDashboard() {
                       className={`p-4 rounded-lg shadow-sm text-left transition-all ${
                         draftCarouselIndex === 1
                           ? 'bg-green-400 text-black ring-2 ring-green-400'
-                          : 'bg-[#121212] text-white hover:bg-[#1a1a1a] border border-gray-800'
+                          : 'bg-mns-card text-white hover:bg-mns-hover border border-gray-800'
                       }`}
                     >
                       <div className="text-xs font-medium opacity-80">Watch List</div>
@@ -763,7 +763,7 @@ export function OwnerDashboard() {
 
         {/* Actions - Only visible to team owner */}
         {!isLocked && isOwner && (
-          <div className="bg-[#121212] p-6 rounded-lg border border-gray-800">
+          <div className="bg-mns-card p-6 rounded-lg border border-gray-800">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Save Scenario */}
               <div>
@@ -776,7 +776,7 @@ export function OwnerDashboard() {
                     value={scenarioName}
                     onChange={(e) => setScenarioName(e.target.value)}
                     placeholder="e.g., Final v1, Conservative, Aggressive"
-                    className="flex-1 rounded-md bg-[#0a0a0a] border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-green-400 focus:ring-green-400"
+                    className="flex-1 rounded-md bg-mns-dark border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-green-400 focus:ring-green-400"
                   />
                   <button
                     onClick={handleSaveScenario}
@@ -813,7 +813,7 @@ export function OwnerDashboard() {
 
         {/* Position Eligibility Counts */}
         {canViewDecisions && (
-          <div className="mt-6 bg-[#121212] rounded-lg border border-gray-800 p-6">
+          <div className="mt-6 bg-mns-card rounded-lg border border-gray-800 p-6">
             <h2 className="text-xl font-bold text-white mb-4">Position Eligibility</h2>
             <p className="text-sm text-gray-400 mb-4">
               Number of keepers eligible for each position category
@@ -847,7 +847,7 @@ export function OwnerDashboard() {
         )}
 
         {/* Rookie Draft Picks */}
-        <div className="mt-6 bg-[#121212] rounded-lg border border-gray-800 p-6">
+        <div className="mt-6 bg-mns-card rounded-lg border border-gray-800 p-6">
           <h2 className="text-xl font-bold text-white mb-4">
             Rookie Draft Picks
             {rookiePicks.length > 0 && (
@@ -887,7 +887,7 @@ export function OwnerDashboard() {
                             className={`p-3 rounded border ${
                               isTraded
                                 ? 'bg-purple-400/10 border-purple-400/30'
-                                : 'bg-[#0a0a0a] border-gray-700'
+                                : 'bg-mns-dark border-gray-700'
                             }`}
                           >
                             <div className="flex items-center justify-between">

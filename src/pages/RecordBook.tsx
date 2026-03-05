@@ -35,7 +35,7 @@ export function RecordBook() {
   const { leagueId } = useParams<{ leagueId: string }>();
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-mns-dark">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -58,7 +58,7 @@ export function RecordBook() {
         {/* Records Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* 1st Place Finishes */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-3xl">🥇</span>
               <h2 className="text-xl font-bold text-yellow-400">1st Place</h2>
@@ -76,7 +76,7 @@ export function RecordBook() {
           </div>
 
           {/* 2nd Place Finishes */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-3xl">🥈</span>
               <h2 className="text-xl font-bold text-gray-400">2nd Place</h2>
@@ -94,7 +94,7 @@ export function RecordBook() {
           </div>
 
           {/* 3rd Place Finishes */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-3xl">🥉</span>
               <h2 className="text-xl font-bold text-orange-400">3rd Place</h2>

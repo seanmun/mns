@@ -79,7 +79,7 @@ export function RookieDraft() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
@@ -90,7 +90,7 @@ export function RookieDraft() {
   const round2 = picks.filter((p) => p.round === 2);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-mns-dark">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -104,7 +104,7 @@ export function RookieDraft() {
         {/* Draft Picks */}
         <div className="space-y-6">
           {/* Round 1 */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800">
+          <div className="bg-mns-card rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white">Round 1</h2>
             </div>
@@ -116,7 +116,7 @@ export function RookieDraft() {
                   {round1.map((pick) => (
                     <div
                       key={pick.player.id}
-                      className="flex items-center justify-between py-3 px-4 rounded bg-[#0a0a0a] border border-gray-800 hover:border-green-400 transition-colors"
+                      className="flex items-center justify-between py-3 px-4 rounded bg-mns-dark border border-gray-800 hover:border-green-400 transition-colors"
                     >
                       <div className="flex items-center gap-4">
                         <span className="text-lg font-bold text-green-400 w-10">
@@ -142,7 +142,7 @@ export function RookieDraft() {
 
           {/* Round 2 */}
           {round2.length > 0 && (
-            <div className="bg-[#121212] rounded-lg border border-gray-800">
+            <div className="bg-mns-card rounded-lg border border-gray-800">
               <div className="p-6 border-b border-gray-800">
                 <h2 className="text-xl font-bold text-white">Round 2</h2>
               </div>
@@ -151,7 +151,7 @@ export function RookieDraft() {
                   {round2.map((pick) => (
                     <div
                       key={pick.player.id}
-                      className="flex items-center justify-between py-3 px-4 rounded bg-[#0a0a0a] border border-gray-800 hover:border-green-400 transition-colors"
+                      className="flex items-center justify-between py-3 px-4 rounded bg-mns-dark border border-gray-800 hover:border-green-400 transition-colors"
                     >
                       <div className="flex items-center gap-4">
                         <span className="text-lg font-bold text-green-400 w-10">
@@ -176,7 +176,7 @@ export function RookieDraft() {
           )}
 
           {/* Rules Section */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800">
+          <div className="bg-mns-card rounded-lg border border-gray-800">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white">Rookie Draft Rules</h2>
             </div>

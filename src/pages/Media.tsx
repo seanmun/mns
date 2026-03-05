@@ -21,7 +21,7 @@ const accentColors = [
 
 export function Media() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-mns-dark text-white">
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="mb-8">
           <Link to="/" className="text-gray-400 hover:text-green-400 text-sm transition-colors">
@@ -38,7 +38,7 @@ export function Media() {
           {/* Branding */}
           <section>
             <h2 className="text-xl font-bold text-white mb-4">Branding</h2>
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <div className="flex flex-wrap items-center gap-6 mb-6">
                 <img
                   src="/icons/moneyneversleeps-icon.webp"
@@ -68,7 +68,7 @@ export function Media() {
           {/* Colors */}
           <section>
             <h2 className="text-xl font-bold text-white mb-4">Colors</h2>
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 space-y-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6 space-y-6">
               <div>
                 <h3 className="text-sm font-semibold text-gray-300 mb-3">Core Palette</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -115,7 +115,7 @@ export function Media() {
           {/* Vibe */}
           <section>
             <h2 className="text-xl font-bold text-white mb-4">Vibe</h2>
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 space-y-4">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6 space-y-4">
               <p className="text-gray-400 leading-relaxed">
                 MNS blends Wall Street intensity with street basketball culture. The visual identity is dark, moody, and electric — think late-night trading floors meets midnight pickup games.
               </p>
@@ -143,11 +143,11 @@ export function Media() {
           {/* Image Prompt Template */}
           <section>
             <h2 className="text-xl font-bold text-white mb-4">Image Prompt Template</h2>
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 space-y-4">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6 space-y-4">
               <p className="text-gray-400 text-sm">
                 Use this template when generating MNS-branded images with AI tools (Midjourney, DALL-E, etc.):
               </p>
-              <div className="bg-[#0a0a0a] rounded-md border border-gray-700 p-4">
+              <div className="bg-mns-dark rounded-md border border-gray-700 p-4">
                 <code className="text-green-400 text-sm leading-relaxed whitespace-pre-wrap">
                   [subject], neon green lighting, faint brick wall in background, dark moody atmosphere, cinematic, high contrast, green glow accents, urban basketball aesthetic, Wall Street energy
                 </code>
@@ -161,7 +161,7 @@ export function Media() {
           {/* Ads */}
           <section>
             <h2 className="text-xl font-bold text-white mb-4">Advertising</h2>
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <p className="text-gray-400 text-sm">
                 Ad placements and partnership opportunities coming soon. Contact us for early access.
               </p>

@@ -49,7 +49,7 @@ export function PlayoffConfig({
             <select
               value={playoffTeams}
               onChange={(e) => onChange('schedule.playoffTeams', parseInt(e.target.value))}
-              className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
+              className="w-full px-3 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
             >
               <option value={0}>No Playoffs</option>
               {teamOptions.map(n => (
@@ -67,7 +67,7 @@ export function PlayoffConfig({
                 <select
                   value={playoffWeeks}
                   onChange={(e) => onChange('schedule.playoffWeeks', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
+                  className="w-full px-3 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
                 >
                   {[1, 2, 3, 4].map(n => (
                     <option key={n} value={n}>{n} week{n !== 1 ? 's' : ''}</option>
@@ -82,7 +82,7 @@ export function PlayoffConfig({
                 <select
                   value={playoffByeTeams}
                   onChange={(e) => onChange('schedule.playoffByeTeams', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
+                  className="w-full px-3 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
                 >
                   {Array.from({ length: Math.max(playoffTeams - 1, 1) }, (_, i) => i)
                     .filter(n => n % 2 === 0)
@@ -99,7 +99,7 @@ export function PlayoffConfig({
 
         {/* Bracket Preview */}
         {rounds.length > 0 && (
-          <div className="bg-[#0a0a0a] rounded-lg border border-gray-800 p-4 mt-4">
+          <div className="bg-mns-dark rounded-lg border border-gray-800 p-4 mt-4">
             <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
               Bracket Preview
             </h4>
@@ -131,7 +131,7 @@ export function PlayoffConfig({
               <select
                 value={consolationWeeks}
                 onChange={(e) => onChange('schedule.consolationWeeks', parseInt(e.target.value))}
-                className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
+                className="w-full px-3 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
               >
                 <option value={0}>No Consolation</option>
                 {[1, 2, 3, 4, 5].map(n => (
@@ -147,7 +147,7 @@ export function PlayoffConfig({
           </div>
 
           {consolationWeeks > 0 && (
-            <div className="bg-[#0a0a0a] rounded-lg border border-gray-800 p-4 mt-4">
+            <div className="bg-mns-dark rounded-lg border border-gray-800 p-4 mt-4">
               <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
                 Consolation Format
               </h4>

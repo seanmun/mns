@@ -372,26 +372,26 @@ export function AdminWNBAScraper() {
 
       {/* Stats bar */}
       <div className={`grid gap-3 grid-cols-2 ${scrapeData ? 'sm:grid-cols-5' : 'sm:grid-cols-2'} mb-6`}>
-        <div className="bg-[#121212] border border-gray-800 rounded-lg p-4">
+        <div className="bg-mns-card border border-gray-800 rounded-lg p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider">In Database</p>
           <p className="text-xl font-bold text-white mt-1">{existingCount}</p>
         </div>
         {scrapeData && (
           <>
-            <div className="bg-[#121212] border border-gray-800 rounded-lg p-4">
+            <div className="bg-mns-card border border-gray-800 rounded-lg p-4">
               <p className="text-xs text-gray-500 uppercase tracking-wider">Scraped</p>
               <p className="text-xl font-bold text-white mt-1">{scrapeData.totalCount}</p>
             </div>
-            <div className="bg-[#121212] border border-gray-800 rounded-lg p-4">
+            <div className="bg-mns-card border border-gray-800 rounded-lg p-4">
               <p className="text-xs text-gray-500 uppercase tracking-wider">New</p>
               <p className="text-xl font-bold text-green-400 mt-1">{newCount}</p>
             </div>
-            <div className="bg-[#121212] border border-gray-800 rounded-lg p-4">
+            <div className="bg-mns-card border border-gray-800 rounded-lg p-4">
               <p className="text-xs text-gray-500 uppercase tracking-wider">Updated</p>
               <p className="text-xl font-bold text-yellow-400 mt-1">{updatedCount}</p>
             </div>
             {fuzzyCount > 0 && (
-              <div className="bg-[#121212] border border-orange-500/30 rounded-lg p-4">
+              <div className="bg-mns-card border border-orange-500/30 rounded-lg p-4">
                 <p className="text-xs text-orange-400 uppercase tracking-wider">Fuzzy Match</p>
                 <p className="text-xl font-bold text-orange-400 mt-1">{fuzzyCount}</p>
               </div>
@@ -469,7 +469,7 @@ export function AdminWNBAScraper() {
         <div className="space-y-4">
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex gap-1 bg-[#121212] border border-gray-800 rounded-lg p-0.5">
+            <div className="flex gap-1 bg-mns-card border border-gray-800 rounded-lg p-0.5">
               {([
                 { key: 'all' as Filter, label: `All (${scrapeData.totalCount})` },
                 { key: 'new' as Filter, label: `New (${newCount})` },
@@ -519,7 +519,7 @@ export function AdminWNBAScraper() {
           <div className="overflow-x-auto border border-gray-800 rounded-lg">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#0a0a0a] border-b border-gray-800">
+                <tr className="bg-mns-dark border-b border-gray-800">
                   <th className="w-10 px-3 py-2">
                     <input
                       type="checkbox"
@@ -546,7 +546,7 @@ export function AdminWNBAScraper() {
                   return (
                     <tr
                       key={p.slug}
-                      className={`border-b border-gray-800/50 hover:bg-[#1a1a1a] transition-colors ${
+                      className={`border-b border-gray-800/50 hover:bg-mns-hover transition-colors ${
                         status === 'fuzzy_match' ? 'bg-orange-900/5' : ''
                       }`}
                     >

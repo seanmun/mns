@@ -455,7 +455,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
     return (
       <tr
         key={player.id}
-        className={`hover:bg-[#1a1a1a] ${isBench ? 'opacity-60' : ''}`}
+        className={`hover:bg-mns-hover ${isBench ? 'opacity-60' : ''}`}
       >
         <td className="px-4 py-3">
           <div className="text-white">{player.name}</div>
@@ -580,7 +580,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
             className={`flex-1 px-4 py-2.5 text-sm font-semibold transition-colors ${
               mobileCapTab === 0
                 ? 'bg-green-400/10 text-green-400 border-b-2 border-green-400'
-                : 'bg-[#121212] text-gray-400 hover:text-white'
+                : 'bg-mns-card text-gray-400 hover:text-white'
             }`}
           >
             Salary Cap
@@ -590,7 +590,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
             className={`flex-1 px-4 py-2.5 text-sm font-semibold transition-colors ${
               mobileCapTab === 1
                 ? 'bg-green-400/10 text-green-400 border-b-2 border-green-400'
-                : 'bg-[#121212] text-gray-400 hover:text-white'
+                : 'bg-mns-card text-gray-400 hover:text-white'
             }`}
           >
             Fees & Roster
@@ -606,7 +606,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
       </div>
 
       {/* Active Roster */}
-      <div className="bg-[#121212] rounded-lg border border-gray-800">
+      <div className="bg-mns-card rounded-lg border border-gray-800">
         <div className="p-4 border-b border-gray-800">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">Active Roster</h3>
@@ -666,7 +666,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-[#0a0a0a]">
+            <thead className="bg-mns-dark">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Player</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase hidden sm:table-cell">Pos</th>
@@ -691,7 +691,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
                   {/* Bench separator */}
                   {benchPlayers.length > 0 && (
                     <tr>
-                      <td colSpan={isOwner ? 6 : 5} className="px-4 py-2 bg-[#0a0a0a]">
+                      <td colSpan={isOwner ? 6 : 5} className="px-4 py-2 bg-mns-dark">
                         <div className="flex items-center gap-3">
                           <div className="h-px flex-1 bg-gray-700" />
                           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Bench</span>
@@ -711,7 +711,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
       </div>
 
       {/* IR Slots */}
-      <div className="bg-[#121212] rounded-lg border border-gray-800">
+      <div className="bg-mns-card rounded-lg border border-gray-800">
         <div className="p-4 border-b border-gray-800">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">IR Slots</h3>
@@ -720,7 +720,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-[#0a0a0a]">
+            <thead className="bg-mns-dark">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Player</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Pos</th>
@@ -738,7 +738,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
                 </tr>
               ) : (
                 irPlayers.map((player) => (
-                  <tr key={player.id} className="hover:bg-[#1a1a1a]">
+                  <tr key={player.id} className="hover:bg-mns-hover">
                     <td className="px-4 py-3 text-white">{player.name}</td>
                     <td className="px-4 py-3 text-gray-400 text-sm">{player.position}</td>
                     <td className="px-4 py-3 text-gray-400 text-sm">{player.nbaTeam}</td>
@@ -787,7 +787,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
 
       {/* Redshirt Players */}
       {redshirtPlayers.length > 0 && (
-        <div className="bg-[#121212] rounded-lg border border-gray-800">
+        <div className="bg-mns-card rounded-lg border border-gray-800">
           <div className="p-4 border-b border-gray-800">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-white">Redshirt Players</h3>
@@ -797,7 +797,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-[#0a0a0a]">
+              <thead className="bg-mns-dark">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Player</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Pos</th>
@@ -808,7 +808,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
               </thead>
               <tbody className="divide-y divide-gray-800">
                 {redshirtPlayers.map((player) => (
-                  <tr key={player.id} className="hover:bg-[#1a1a1a]">
+                  <tr key={player.id} className="hover:bg-mns-hover">
                     <td className="px-4 py-3 text-white">{player.name}</td>
                     <td className="px-4 py-3 text-gray-400 text-sm">{player.position}</td>
                     <td className="px-4 py-3 text-gray-400 text-sm">{player.nbaTeam}</td>
@@ -836,7 +836,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
 
       {/* International Players */}
       {internationalPlayers.length > 0 && (
-        <div className="bg-[#121212] rounded-lg border border-gray-800">
+        <div className="bg-mns-card rounded-lg border border-gray-800">
           <div className="p-4 border-b border-gray-800">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-white">International Stash</h3>
@@ -846,7 +846,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-[#0a0a0a]">
+              <thead className="bg-mns-dark">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Player</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Pos</th>
@@ -856,7 +856,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
               </thead>
               <tbody className="divide-y divide-gray-800">
                 {internationalPlayers.map((player) => (
-                  <tr key={player.id} className="hover:bg-[#1a1a1a]">
+                  <tr key={player.id} className="hover:bg-mns-hover">
                     <td className="px-4 py-3 text-white">{player.name}</td>
                     <td className="px-4 py-3 text-gray-400 text-sm">{player.position}</td>
                     <td className="px-4 py-3 text-gray-400 text-sm">{player.nbaTeam}</td>

@@ -184,7 +184,7 @@ export function AdminDataAudit() {
   const slotIssues = issues.filter(i => i.type === 'invalid_slot' || i.type === 'free_agent_bad_slot');
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-4xl mx-auto px-4">
         <h1 className="text-2xl font-bold text-white mb-2">Data Integrity Audit</h1>
         <p className="text-gray-400 mb-6 text-sm">
@@ -209,7 +209,7 @@ export function AdminDataAudit() {
 
         {/* Fix All buttons */}
         {issues.length > 0 && (
-          <div className="bg-[#121212] border border-gray-800 rounded-lg p-4 mb-6">
+          <div className="bg-mns-card border border-gray-800 rounded-lg p-4 mb-6">
             <h3 className="text-white font-semibold mb-3">Quick Fixes</h3>
             <div className="flex flex-wrap gap-3">
               {orphanedIssues.length > 0 && (
@@ -243,7 +243,7 @@ export function AdminDataAudit() {
             <p className="text-gray-400 text-sm mb-4">
               Players whose team_id doesn't match any team in the league.
             </p>
-            <div className="bg-[#121212] border border-gray-800 rounded-lg divide-y divide-gray-800">
+            <div className="bg-mns-card border border-gray-800 rounded-lg divide-y divide-gray-800">
               {orphanedIssues.map((issue, idx) => (
                 <div key={idx} className="p-3 text-sm">
                   <span className="text-white font-medium">{issue.playerName}</span>
@@ -263,7 +263,7 @@ export function AdminDataAudit() {
             <p className="text-gray-400 text-sm mb-4">
               Players with invalid or inconsistent slot values.
             </p>
-            <div className="bg-[#121212] border border-gray-800 rounded-lg divide-y divide-gray-800">
+            <div className="bg-mns-card border border-gray-800 rounded-lg divide-y divide-gray-800">
               {slotIssues.map((issue, idx) => (
                 <div key={idx} className="p-3 text-sm">
                   <span className="text-white font-medium">{issue.playerName}</span>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { Prospect } from '../types';
+import type { Prospect, Sport } from '../types';
 
 export function Prospects() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -9,13 +9,29 @@ export function Prospects() {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPosition, setSelectedPosition] = useState<string>('ALL');
+  const [sport, setSport] = useState<Sport>('nba');
+  const [seasonYear, setSeasonYear] = useState<number>(2025);
 
   useEffect(() => {
-    const fetchProspects = async () => {
+    if (!leagueId) return;
+
+    const fetchData = async () => {
       try {
+        // Fetch league to get sport, then filter prospects accordingly
+        const { data: leagueData } = await supabase
+          .from('leagues')
+          .select('sport, season_year')
+          .eq('id', leagueId)
+          .single();
+
+        const leagueSport: Sport = leagueData?.sport || 'nba';
+        setSport(leagueSport);
+        setSeasonYear(leagueData?.season_year ? leagueData.season_year + 1 : 2026);
+
         const { data, error } = await supabase
           .from('prospects')
           .select('*')
+          .eq('sport', leagueSport)
           .order('rank', { ascending: true });
 
         if (error) throw error;
@@ -45,18 +61,22 @@ export function Prospects() {
       }
     };
 
-    fetchProspects();
-  }, []);
+    fetchData();
+  }, [leagueId]);
 
-  const positions = ['ALL', 'PG', 'SG', 'SF', 'PF', 'C'];
+  const positions = sport === 'wnba'
+    ? ['ALL', 'G', 'F', 'C']
+    : ['ALL', 'PG', 'SG', 'SF', 'PF', 'C'];
 
   const filteredProspects = selectedPosition === 'ALL'
     ? prospects.slice(0, 25)
     : prospects.filter(p => p.position === selectedPosition).slice(0, 25);
 
+  const sportLabel = sport === 'wnba' ? 'WNBA' : 'NBA';
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] py-8">
+      <div className="min-h-screen bg-mns-dark py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-12">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-500 border-r-transparent" />
@@ -68,7 +88,7 @@ export function Prospects() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -77,11 +97,11 @@ export function Prospects() {
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-3xl font-bold text-white">Prospects</h1>
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-green-400 text-black">
-                  2025 NBA Draft
+                  {seasonYear} {sportLabel} Draft
                 </span>
               </div>
               <p className="text-gray-400 mt-1">
-                Top 25 college basketball prospects for the 2025 NBA Draft
+                Top 25 prospects for the {seasonYear} {sportLabel} Draft
               </p>
             </div>
             <button
@@ -110,7 +130,7 @@ export function Prospects() {
                 className={`px-4 py-2 rounded-lg font-semibold transition-all ${
                   selectedPosition === pos
                     ? 'bg-green-400 text-black'
-                    : 'bg-[#121212] text-gray-400 border border-gray-800 hover:border-green-400/50'
+                    : 'bg-mns-card text-gray-400 border border-gray-800 hover:border-green-400/50'
                 }`}
               >
                 {pos}
@@ -123,10 +143,10 @@ export function Prospects() {
         </div>
 
         {/* Prospects Table */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+        <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-[#0a0a0a] border-b border-gray-800">
+              <thead className="bg-mns-dark border-b border-gray-800">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     Rank
@@ -155,7 +175,7 @@ export function Prospects() {
                 {filteredProspects.map((prospect) => (
                   <tr
                     key={prospect.id}
-                    className="hover:bg-[#1a1a1a] transition-colors"
+                    className="hover:bg-mns-hover transition-colors"
                   >
                     <td className="px-4 py-4">
                       <div className="flex items-center">
@@ -214,7 +234,7 @@ export function Prospects() {
 
         {/* Empty State */}
         {filteredProspects.length === 0 && (
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-12 text-center">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-12 text-center">
             <div className="text-4xl mb-4">🔍</div>
             <h3 className="text-lg font-bold text-white mb-2">No prospects found</h3>
             <p className="text-sm text-gray-400">
@@ -229,7 +249,7 @@ export function Prospects() {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <a
             href={`/league/${leagueId}/free-agents`}
-            className="bg-[#121212] rounded-lg border border-gray-800 p-6 hover:border-pink-400/50 hover:bg-pink-400/5 transition-all group"
+            className="bg-mns-card rounded-lg border border-gray-800 p-6 hover:border-pink-400/50 hover:bg-pink-400/5 transition-all group"
           >
             <div className="flex items-center gap-3 mb-2">
               <img src="/icons/baseketball-icon.webp" alt="Free Agents" className="w-8 h-8 rounded-full" />
@@ -242,7 +262,7 @@ export function Prospects() {
 
           <a
             href={`/league/${leagueId}/draft`}
-            className="bg-[#121212] rounded-lg border border-gray-800 p-6 hover:border-purple-400/50 hover:bg-purple-400/5 transition-all group"
+            className="bg-mns-card rounded-lg border border-gray-800 p-6 hover:border-purple-400/50 hover:bg-purple-400/5 transition-all group"
           >
             <div className="flex items-center gap-3 mb-2">
               <img src="/icons/draft-icon.webp" alt="Draft" className="w-8 h-8 rounded-full" />
@@ -255,7 +275,7 @@ export function Prospects() {
 
           <a
             href={`/league/${leagueId}/rookie-draft`}
-            className="bg-[#121212] rounded-lg border border-gray-800 p-6 hover:border-blue-400/50 hover:bg-blue-400/5 transition-all group"
+            className="bg-mns-card rounded-lg border border-gray-800 p-6 hover:border-blue-400/50 hover:bg-blue-400/5 transition-all group"
           >
             <div className="flex items-center gap-3 mb-2">
               <img src="/icons/rookie-icon.webp" alt="Rookie Draft" className="w-8 h-8 rounded-full" />

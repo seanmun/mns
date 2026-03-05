@@ -115,7 +115,7 @@ export function AdminDraftTest() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading teams...</div>
       </div>
     );
@@ -175,7 +175,7 @@ export function AdminDraftTest() {
     .map((team) => team.id);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Warning Banner */}
         <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
@@ -199,7 +199,7 @@ export function AdminDraftTest() {
         {!isOrderSet ? (
           /* Step 1: Set Draft Order */
           <div className="space-y-6">
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <h2 className="text-xl font-semibold text-white mb-4">Step 1: Set Draft Order</h2>
 
               <button
@@ -218,7 +218,7 @@ export function AdminDraftTest() {
                       return (
                         <div
                           key={teamId}
-                          className="flex items-center gap-2 p-2 bg-[#0a0a0a] border border-gray-700 rounded"
+                          className="flex items-center gap-2 p-2 bg-mns-dark border border-gray-700 rounded"
                         >
                           <span className="text-green-400 font-bold">{index + 1}.</span>
                           <span className="text-white text-sm">
@@ -245,7 +245,7 @@ export function AdminDraftTest() {
           /* Step 2: View Draft Board */
           <div className="space-y-6">
             {/* Round Tabs */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
               <div className="flex flex-wrap gap-2">
                 {Array.from({ length: 13 }, (_, i) => i + 1).map((round) => (
                   <button
@@ -254,7 +254,7 @@ export function AdminDraftTest() {
                     className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
                       selectedRound === round
                         ? 'bg-green-500 text-white'
-                        : 'bg-[#0a0a0a] text-gray-400 hover:text-white hover:bg-gray-800'
+                        : 'bg-mns-dark text-gray-400 hover:text-white hover:bg-gray-800'
                     }`}
                   >
                     {round}
@@ -264,7 +264,7 @@ export function AdminDraftTest() {
             </div>
 
             {/* Legend */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
               <div className="flex flex-wrap gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded bg-blue-500/10 border border-blue-500/30"></div>
@@ -275,14 +275,14 @@ export function AdminDraftTest() {
                   <span className="text-gray-400">Your Pick</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-[#0a0a0a] border border-gray-700"></div>
+                  <div className="w-4 h-4 rounded bg-mns-dark border border-gray-700"></div>
                   <span className="text-gray-400">Other Teams</span>
                 </div>
               </div>
             </div>
 
             {/* Draft Board */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-xl font-semibold text-white">
@@ -323,7 +323,7 @@ export function AdminDraftTest() {
                         ? 'bg-blue-500/10 border-blue-500/30'
                         : isUserPick
                         ? 'bg-green-500/10 border-green-500/30'
-                        : 'bg-[#0a0a0a] border-gray-700'
+                        : 'bg-mns-dark border-gray-700'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -371,23 +371,23 @@ export function AdminDraftTest() {
 
             {/* Summary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+              <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
                 <div className="text-sm text-gray-400">Total Picks</div>
                 <div className="text-2xl font-bold text-white">{teams.length * 13}</div>
               </div>
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+              <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
                 <div className="text-sm text-gray-400">Keeper Slots</div>
                 <div className="text-2xl font-bold text-blue-400">
                   {draftBoard.filter((p) => p.isKeeperSlot).length}
                 </div>
               </div>
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+              <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
                 <div className="text-sm text-gray-400">Available Picks</div>
                 <div className="text-2xl font-bold text-green-400">
                   {draftBoard.filter((p) => !p.isKeeperSlot).length}
                 </div>
               </div>
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+              <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
                 <div className="text-sm text-gray-400">Format</div>
                 <div className="text-lg font-bold text-purple-400">Snake</div>
               </div>

@@ -234,7 +234,7 @@ export function AdminDraftPicks() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
@@ -257,7 +257,7 @@ export function AdminDraftPicks() {
   const rounds = Object.keys(picksByRound).sort((a, b) => Number(a) - Number(b)).map(Number);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Draft Picks Manager</h1>
@@ -265,7 +265,7 @@ export function AdminDraftPicks() {
         </div>
 
         {/* Actions */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
           <div className="flex gap-4">
             {picks.length === 0 ? (
               <button
@@ -293,7 +293,7 @@ export function AdminDraftPicks() {
 
         {/* Picks by Round */}
         {rounds.map(round => (
-          <div key={round} className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+          <div key={round} className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
             <h2 className="text-xl font-bold text-white mb-4">Round {round}</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -309,7 +309,7 @@ export function AdminDraftPicks() {
                         ? 'bg-yellow-400/10 border-yellow-400/30'
                         : pick.isKeeperSlot
                         ? 'bg-green-400/10 border-green-400/30'
-                        : 'bg-[#0a0a0a] border-gray-700'
+                        : 'bg-mns-dark border-gray-700'
                     }`}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -348,7 +348,7 @@ export function AdminDraftPicks() {
         {/* Initialize Modal */}
         {showInitModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
-            <div className="bg-[#121212] rounded-lg border border-gray-700 p-6 max-w-2xl w-full mx-4 my-8">
+            <div className="bg-mns-card rounded-lg border border-gray-700 p-6 max-w-2xl w-full mx-4 my-8">
               <h3 className="text-xl font-bold text-white mb-4">Set Draft Order (Round 1)</h3>
               <p className="text-sm text-gray-400 mb-4">
                 Select teams in draft order for Round 1. Snake draft will be applied for subsequent rounds.
@@ -365,7 +365,7 @@ export function AdminDraftPicks() {
                         newOrder[index] = e.target.value;
                         setDraftOrder(newOrder);
                       }}
-                      className="flex-1 px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded text-white"
+                      className="flex-1 px-3 py-2 bg-mns-dark border border-gray-700 rounded text-white"
                     >
                       <option value="">Select team...</option>
                       {teams.map(team => (
@@ -403,7 +403,7 @@ export function AdminDraftPicks() {
         {/* Edit Modal */}
         {editingPick && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#121212] rounded-lg border border-gray-700 p-6 max-w-md w-full mx-4">
+            <div className="bg-mns-card rounded-lg border border-gray-700 p-6 max-w-md w-full mx-4">
               <h3 className="text-xl font-bold text-white mb-4">Change Pick Ownership</h3>
 
               <div className="mb-4">
@@ -417,7 +417,7 @@ export function AdminDraftPicks() {
                 <select
                   value={newOwner}
                   onChange={(e) => setNewOwner(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded text-white"
+                  className="w-full px-3 py-2 bg-mns-dark border border-gray-700 rounded text-white"
                 >
                   <option value="">Select team...</option>
                   {teams.map(team => (

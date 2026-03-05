@@ -248,8 +248,10 @@ export function TradeMachine() {
       players,
       tradeDelta: tradeDeltas,
       teamNames: tNames,
+      cap: currentLeague?.cap,
+      fees: currentLeague?.fees,
     });
-  }, [tradeAssets, teams, rosters, players]);
+  }, [tradeAssets, teams, rosters, players, currentLeague]);
 
   // Validate trade
   const canSubmit = useMemo(() => {
@@ -357,7 +359,7 @@ export function TradeMachine() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading Trade Machine...</div>
       </div>
     );
@@ -396,7 +398,7 @@ export function TradeMachine() {
         className={`w-full text-left px-3 py-2 rounded text-sm flex items-center justify-between transition-colors ${
           isSelected
             ? 'bg-cyan-400/10 border border-cyan-400/30 text-cyan-400'
-            : 'bg-[#0a0a0a] text-white hover:bg-gray-800/80 border border-transparent'
+            : 'bg-mns-dark text-white hover:bg-gray-800/80 border border-transparent'
         }`}
       >
         <span className="truncate">
@@ -409,7 +411,7 @@ export function TradeMachine() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6">
@@ -433,7 +435,7 @@ export function TradeMachine() {
         )}
 
         {/* ============ STEP 1: Select Teams ============ */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-5 mb-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-5 mb-6">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h2 className="text-lg font-bold text-white">Select Teams</h2>
@@ -462,7 +464,7 @@ export function TradeMachine() {
                       ? isMyTeam
                         ? 'bg-green-400/20 border-green-400 text-green-400'
                         : 'bg-cyan-400/20 border-cyan-400 text-cyan-400'
-                      : 'bg-[#0a0a0a] border-gray-700 text-gray-400 hover:border-gray-500 disabled:opacity-30 disabled:cursor-not-allowed'
+                      : 'bg-mns-dark border-gray-700 text-gray-400 hover:border-gray-500 disabled:opacity-30 disabled:cursor-not-allowed'
                   }`}
                 >
                   {team.abbrev}
@@ -500,7 +502,7 @@ export function TradeMachine() {
                 return (
                   <div
                     key={team.id}
-                    className={`bg-[#121212] rounded-lg border overflow-hidden flex flex-col ${
+                    className={`bg-mns-card rounded-lg border overflow-hidden flex flex-col ${
                       isMyTeam ? 'border-green-400/50' : 'border-gray-800'
                     }`}
                   >
@@ -521,7 +523,7 @@ export function TradeMachine() {
 
                     {/* Trade Summary Bar — what's moving */}
                     {(outgoing.length > 0 || incoming.length > 0) && (
-                      <div className="px-4 py-2 border-b border-gray-800 bg-[#0a0a0a]">
+                      <div className="px-4 py-2 border-b border-gray-800 bg-mns-dark">
                         {outgoing.length > 0 && (
                           <div className="text-xs text-red-400 mb-1">
                             Sending {outgoing.length} asset{outgoing.length !== 1 ? 's' : ''}
@@ -616,14 +618,14 @@ export function TradeMachine() {
 
             {/* ============ Trade Details (3+ teams: destination pickers) ============ */}
             {selectedTeamIds.length > 2 && tradeAssets.length > 0 && (
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-5 mb-6">
+              <div className="bg-mns-card rounded-lg border border-gray-800 p-5 mb-6">
                 <h3 className="text-sm font-bold text-white mb-3">Assign Destinations</h3>
                 <p className="text-xs text-gray-500 mb-3">
                   For 3+ team trades, select which team receives each asset.
                 </p>
                 <div className="space-y-2">
                   {tradeAssets.map((asset, index) => (
-                    <div key={index} className="bg-[#0a0a0a] rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-2">
+                    <div key={index} className="bg-mns-dark rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-2">
                       <button
                         onClick={() => removeAsset(index)}
                         className="text-red-400 hover:text-red-300 text-xs self-start"
@@ -650,7 +652,7 @@ export function TradeMachine() {
                         <select
                           value={asset.toTeamId}
                           onChange={(e) => updateDestination(index, e.target.value)}
-                          className="px-2 py-1.5 bg-[#121212] border border-gray-700 rounded text-white text-xs"
+                          className="px-2 py-1.5 bg-mns-card border border-gray-700 rounded text-white text-xs"
                         >
                           <option value="">To...</option>
                           {selectedTeamIds
@@ -669,13 +671,13 @@ export function TradeMachine() {
 
             {/* ============ Cap Impact ============ */}
             {capImpact.length > 0 && (
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-5 mb-6">
+              <div className="bg-mns-card rounded-lg border border-gray-800 p-5 mb-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Cap Impact</h3>
                 <div className={`grid gap-4 ${
                   capImpact.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'
                 }`}>
                   {capImpact.map(impact => (
-                    <div key={impact.teamId} className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                    <div key={impact.teamId} className="bg-mns-dark rounded-lg p-4 border border-gray-800">
                       <h4 className="text-sm font-semibold text-white mb-3">{impact.teamName}</h4>
                       <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                         <div>
@@ -716,7 +718,7 @@ export function TradeMachine() {
 
             {/* ============ Submit ============ */}
             {tradeAssets.length > 0 && (
-              <div className="bg-[#121212] rounded-lg border border-cyan-400/30 p-5 mb-8">
+              <div className="bg-mns-card rounded-lg border border-cyan-400/30 p-5 mb-8">
                 <div className="mb-4">
                   <label className="text-sm text-gray-400 mb-1 block">Note (optional)</label>
                   <input
@@ -724,7 +726,7 @@ export function TradeMachine() {
                     value={tradeNote}
                     onChange={(e) => setTradeNote(e.target.value)}
                     placeholder="Add a message to the other teams..."
-                    className="w-full px-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600"
+                    className="w-full px-4 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600"
                   />
                 </div>
                 {/* Expiration Timer */}
@@ -732,7 +734,7 @@ export function TradeMachine() {
                   <label className="text-sm text-gray-400 mb-2 block">Offer expires in</label>
                   <div className="flex items-center gap-3">
                     {/* Unit selector */}
-                    <div className="flex bg-[#0a0a0a] border border-gray-700 rounded-lg overflow-hidden">
+                    <div className="flex bg-mns-dark border border-gray-700 rounded-lg overflow-hidden">
                       {(['minutes', 'hours', 'days'] as const).map(unit => (
                         <button
                           key={unit}

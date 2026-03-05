@@ -30,7 +30,7 @@ export function SavedScenarios({ scenarios, onLoad, onDelete }: SavedScenariosPr
   };
 
   return (
-    <div className="bg-[#121212] p-6 rounded-lg border border-gray-800">
+    <div className="bg-mns-card p-6 rounded-lg border border-gray-800">
       <h3 className="text-lg font-semibold text-white mb-4">
         Saved Scenarios ({scenarios.length})
       </h3>
@@ -39,7 +39,7 @@ export function SavedScenarios({ scenarios, onLoad, onDelete }: SavedScenariosPr
         {scenarios.map((scenario) => (
           <div
             key={scenario.scenarioId}
-            className="border border-gray-800 rounded-lg p-4 hover:border-green-400 transition-colors bg-[#0a0a0a]"
+            className="border border-gray-800 rounded-lg p-4 hover:border-green-400 transition-colors bg-mns-dark"
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">

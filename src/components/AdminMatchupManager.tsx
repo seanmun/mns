@@ -311,14 +311,14 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-[#121212] rounded-lg p-8 text-gray-400">Loading...</div>
+        <div className="bg-mns-card rounded-lg p-8 text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-[#121212] rounded-lg border border-gray-800 max-w-4xl w-full my-8">
+      <div className="bg-mns-card rounded-lg border border-gray-800 max-w-4xl w-full my-8">
         {/* Header */}
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-center justify-between">
@@ -369,7 +369,7 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
             <select
               value={selectedWeek}
               onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-              className="px-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
+              className="px-4 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
             >
               {matchupWeeks.map(w => (
                 <option key={w} value={w}>
@@ -402,7 +402,7 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
                         updated[idx] = { ...updated[idx], homeTeamId: e.target.value };
                         setEditRows(updated);
                       }}
-                      className="flex-1 px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-green-400"
+                      className="flex-1 px-3 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-green-400"
                     >
                       <option value="">-- Home --</option>
                       {teams.map(t => (
@@ -417,7 +417,7 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
                         updated[idx] = { ...updated[idx], awayTeamId: e.target.value };
                         setEditRows(updated);
                       }}
-                      className="flex-1 px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-green-400"
+                      className="flex-1 px-3 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-green-400"
                     >
                       <option value="">-- Away --</option>
                       {teams.map(t => (
@@ -453,7 +453,7 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
                     const awayTeam = teamMap.get(matchup.awayTeamId);
 
                     return (
-                      <div key={edit.id} className="flex items-center gap-3 bg-[#0a0a0a] rounded-lg p-3 border border-gray-800">
+                      <div key={edit.id} className="flex items-center gap-3 bg-mns-dark rounded-lg p-3 border border-gray-800">
                         <div className="flex-1 min-w-0">
                           <span className="text-sm font-semibold text-white truncate block">
                             {homeTeam?.name || '???'}
@@ -472,7 +472,7 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
                             updated[idx] = { ...updated[idx], homeScore: e.target.value };
                             setScoreEdits(updated);
                           }}
-                          className="w-20 px-3 py-2 bg-[#121212] border border-gray-700 rounded-lg text-white text-sm text-center focus:outline-none focus:border-green-400"
+                          className="w-20 px-3 py-2 bg-mns-card border border-gray-700 rounded-lg text-white text-sm text-center focus:outline-none focus:border-green-400"
                         />
                         <span className="text-xs text-gray-600">—</span>
                         <input
@@ -487,7 +487,7 @@ export function AdminMatchupManager({ leagueId, seasonYear, scoringMode, onClose
                             updated[idx] = { ...updated[idx], awayScore: e.target.value };
                             setScoreEdits(updated);
                           }}
-                          className="w-20 px-3 py-2 bg-[#121212] border border-gray-700 rounded-lg text-white text-sm text-center focus:outline-none focus:border-green-400"
+                          className="w-20 px-3 py-2 bg-mns-card border border-gray-700 rounded-lg text-white text-sm text-center focus:outline-none focus:border-green-400"
                         />
                         <div className="flex-1 min-w-0 text-right">
                           <span className="text-sm font-semibold text-white truncate block">

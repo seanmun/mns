@@ -623,7 +623,7 @@ export function Draft() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading draft...</div>
       </div>
     );
@@ -631,9 +631,9 @@ export function Draft() {
 
   if (!draft) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-mns-dark flex items-center justify-center p-4">
         <div className="max-w-2xl w-full">
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-8 text-center">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-8 text-center">
             <h1 className="text-3xl font-bold text-white mb-4">Draft Not Available</h1>
             <p className="text-gray-300 mb-6">
               The draft has not been set up yet. Please contact your league admin.
@@ -729,7 +729,7 @@ export function Draft() {
 
   if (view === 'players') {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] py-8">
+      <div className="min-h-screen bg-mns-dark py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header with Back Button */}
           <div className="mb-6 flex items-center justify-between">
@@ -771,7 +771,7 @@ export function Draft() {
           )}
 
           {/* Search and Filters */}
-          <div className="bg-[#121212] border border-gray-800 rounded-lg p-6 mb-6">
+          <div className="bg-mns-card border border-gray-800 rounded-lg p-6 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
@@ -782,7 +782,7 @@ export function Draft() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search by name or NBA team..."
-                  className="w-full bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
+                  className="w-full bg-mns-dark border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
                 />
               </div>
               <div>
@@ -792,7 +792,7 @@ export function Draft() {
                 <select
                   value={positionFilter}
                   onChange={(e) => setPositionFilter(e.target.value)}
-                  className="w-full bg-[#0a0a0a] border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
+                  className="w-full bg-mns-dark border border-gray-800 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-green-400"
                 >
                   <option value="all">All Positions</option>
                   <option value="PG">PG</option>
@@ -829,12 +829,12 @@ export function Draft() {
           </div>
 
           {/* Players Table */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+          <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-800">
-                <thead className="bg-[#0a0a0a]">
+                <thead className="bg-mns-dark">
                   <tr>
-                    <th className="sticky left-0 z-10 bg-[#0a0a0a] px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800 w-48">
+                    <th className="sticky left-0 z-10 bg-mns-dark px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800 w-48">
                       Player
                     </th>
                     <th
@@ -974,7 +974,7 @@ export function Draft() {
                     )}
                   </tr>
                 </thead>
-                <tbody className="bg-[#121212] divide-y divide-gray-800">
+                <tbody className="bg-mns-card divide-y divide-gray-800">
                   {availablePlayers.map((player) => {
                     const stats = projectedStats.get(player.fantraxId);
                     const isWatched = watchList?.playerIds.includes(player.fantraxId) || false;
@@ -983,7 +983,7 @@ export function Draft() {
                         key={player.id}
                         className="hover:bg-gray-800/30 transition-colors"
                       >
-                        <td className="sticky left-0 z-10 bg-[#121212] px-4 py-3 border-r border-gray-800 w-48">
+                        <td className="sticky left-0 z-10 bg-mns-card px-4 py-3 border-r border-gray-800 w-48">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={(e) => handleToggleWatchList(e, player.fantraxId)}
@@ -1072,7 +1072,7 @@ export function Draft() {
       .sort((a, b) => a.overallPick - b.overallPick);
 
     return (
-      <div className="min-h-screen bg-[#0a0a0a] py-8">
+      <div className="min-h-screen bg-mns-dark py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-6 flex items-start justify-between">
@@ -1100,36 +1100,36 @@ export function Draft() {
 
           {/* Draft Summary Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
               <div className="text-xs text-gray-400 mb-1">Total Picks</div>
               <div className="text-2xl font-bold text-white">{allPicks.length}</div>
             </div>
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
               <div className="text-xs text-gray-400 mb-1">Keeper Slots</div>
               <div className="text-2xl font-bold text-blue-400">
                 {draft.picks.filter(p => p.isKeeperSlot).length}
               </div>
             </div>
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
               <div className="text-xs text-gray-400 mb-1">Drafted Players</div>
               <div className="text-2xl font-bold text-green-400">
                 {allPicks.filter(p => !p.isKeeperSlot).length}
               </div>
             </div>
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
               <div className="text-xs text-gray-400 mb-1">Teams</div>
               <div className="text-2xl font-bold text-purple-400">{teams.length}</div>
             </div>
           </div>
 
           {/* All Picks Table */}
-          <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+          <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
             <div className="p-4 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white">Complete Draft Order</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-[#0a0a0a] border-b border-gray-800">
+                <thead className="bg-mns-dark border-b border-gray-800">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Pick</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Round</th>
@@ -1143,7 +1143,7 @@ export function Draft() {
                   {allPicks.map((pick) => {
                     const player = players.find(p => p.id === pick.playerId);
                     return (
-                      <tr key={pick.overallPick} className="hover:bg-[#0a0a0a] transition-colors">
+                      <tr key={pick.overallPick} className="hover:bg-mns-dark transition-colors">
                         <td className="px-4 py-3 text-sm text-white font-semibold">
                           #{pick.overallPick}
                         </td>
@@ -1205,7 +1205,7 @@ export function Draft() {
 
   // Draft Board View
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6 flex items-start justify-between">
@@ -1251,7 +1251,7 @@ export function Draft() {
         )}
 
         {/* Round Tabs */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-4 mb-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-4 mb-6">
           <div className="flex flex-wrap gap-2">
             {Array.from({ length: 13 }, (_, i) => i + 1).map((round) => (
               <button
@@ -1260,7 +1260,7 @@ export function Draft() {
                 className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
                   selectedRound === round
                     ? 'bg-green-500 text-white'
-                    : 'bg-[#0a0a0a] text-gray-400 hover:text-white hover:bg-gray-800'
+                    : 'bg-mns-dark text-gray-400 hover:text-white hover:bg-gray-800'
                 }`}
               >
                 {round}
@@ -1270,7 +1270,7 @@ export function Draft() {
         </div>
 
         {/* Legend */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-4 mb-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-4 mb-6">
           <div className="flex flex-wrap gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-blue-500/10 border border-blue-500/30"></div>
@@ -1288,7 +1288,7 @@ export function Draft() {
         </div>
 
         {/* Draft Board */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold text-white">
@@ -1337,7 +1337,7 @@ export function Draft() {
                       ? 'bg-blue-500/10 border-blue-500/30'
                       : isUserPick
                       ? 'bg-green-500/10 border-green-500/30'
-                      : 'bg-[#0a0a0a] border-gray-700'
+                      : 'bg-mns-dark border-gray-700'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -1425,23 +1425,23 @@ export function Draft() {
 
         {/* Summary Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
             <div className="text-sm text-gray-400">Total Picks</div>
             <div className="text-2xl font-bold text-white">{draft.picks.length}</div>
           </div>
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
             <div className="text-sm text-gray-400">Keeper Slots</div>
             <div className="text-2xl font-bold text-blue-400">
               {draft.picks.filter((p) => p.isKeeperSlot).length}
             </div>
           </div>
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
             <div className="text-sm text-gray-400">Picks Made</div>
             <div className="text-2xl font-bold text-green-400">
               {draft.picks.filter((p) => p.pickedAt).length}
             </div>
           </div>
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-4">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-4">
             <div className="text-sm text-gray-400">Remaining</div>
             <div className="text-2xl font-bold text-purple-400">
               {draft.picks.filter((p) => !p.pickedAt).length}
@@ -1453,7 +1453,7 @@ export function Draft() {
       {/* Add Keeper Modal */}
       {showAddKeeperModal && selectedPick && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#121212] rounded-lg border border-gray-800 max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="bg-mns-card rounded-lg border border-gray-800 max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white">Add Keeper to Pick #{selectedPick.overallPick}</h2>
               <p className="text-sm text-gray-400 mt-1">
@@ -1485,7 +1485,7 @@ export function Draft() {
                     <button
                       key={player.id}
                       onClick={() => addKeeperToPick(player)}
-                      className="w-full flex items-center justify-between p-4 bg-[#0a0a0a] border border-gray-800 rounded-lg hover:border-green-400/50 hover:bg-green-400/5 transition-colors text-left"
+                      className="w-full flex items-center justify-between p-4 bg-mns-dark border border-gray-800 rounded-lg hover:border-green-400/50 hover:bg-green-400/5 transition-colors text-left"
                     >
                       <div className="flex-1">
                         <div className="font-semibold text-white">{player.name}</div>

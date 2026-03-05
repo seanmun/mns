@@ -313,14 +313,14 @@ export function LeagueHome() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-mns-dark">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header with Season Switcher */}
         <div className="mb-8">
@@ -331,7 +331,7 @@ export function LeagueHome() {
             <div className="relative" ref={seasonDropdownRef}>
               <button
                 onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-1 bg-[#121212] border border-gray-800 rounded-lg hover:bg-gray-800 transition-colors"
+                className="flex items-center gap-2 px-3 py-1 bg-mns-card border border-gray-800 rounded-lg hover:bg-gray-800 transition-colors"
               >
                 <span className="text-lg font-bold text-green-400">
                   {currentSeason}-{(currentSeason + 1) % 100}
@@ -350,7 +350,7 @@ export function LeagueHome() {
 
               {/* Season Dropdown */}
               {isSeasonDropdownOpen && (
-                <div className="absolute left-0 mt-2 w-40 bg-[#121212] rounded-lg shadow-lg border border-gray-800 py-1 z-50">
+                <div className="absolute left-0 mt-2 w-40 bg-mns-card rounded-lg shadow-lg border border-gray-800 py-1 z-50">
                   <div className="px-3 py-2 text-xs text-gray-500 uppercase tracking-wider">
                     Seasons
                   </div>
@@ -451,7 +451,7 @@ export function LeagueHome() {
             })()}
             {/* Portfolio Section */}
             {portfolio && portfolio.walletAddress && portfolio.cachedUsdValue !== undefined && (
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+              <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
                 {/* Total Prize Pool Value - Front and Center */}
                 <div className="bg-gradient-to-r from-green-400/10 to-purple-400/10 rounded-lg p-6 border border-green-400/30 mb-6">
                   <div className="flex items-center justify-between mb-4">
@@ -517,19 +517,19 @@ export function LeagueHome() {
                 {showPortfolioDetails && (
                   <div className="space-y-3 pt-4 border-t border-gray-800">
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                      <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
                         <div className="text-xs text-gray-400 mb-1">Total Collected</div>
                         <div className="text-2xl font-bold text-white">${teams.length * buyIn + totalKeeperFees}</div>
                       </div>
-                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                      <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
                         <div className="text-xs text-gray-400 mb-1">USD Invested</div>
                         <div className="text-2xl font-bold text-yellow-400">${portfolio.usdInvested}</div>
                       </div>
-                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                      <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
                         <div className="text-xs text-gray-400 mb-1">Cash on Hand</div>
                         <div className="text-2xl font-bold text-blue-400">${teams.length * buyIn + totalKeeperFees - portfolio.usdInvested}</div>
                       </div>
-                      <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                      <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
                         <div className="text-xs text-gray-400 mb-1">Wallet Value</div>
                         <div className="text-2xl font-bold text-purple-400">${portfolio.cachedUsdValue.toFixed(2)}</div>
                         <div className="text-xs text-gray-500 mt-1">{portfolio.cachedEthBalance?.toFixed(4)} ETH</div>
@@ -627,7 +627,7 @@ export function LeagueHome() {
               const prizeInfo = calculatePrizePayouts(totalPrizePool, totalCollected);
 
               return (
-                <div className="bg-[#121212] rounded-lg border border-gray-800">
+                <div className="bg-mns-card rounded-lg border border-gray-800">
                   <div className="p-6">
                     {/* Header with Image and Payouts */}
                     <div className="flex flex-col md:flex-row items-start gap-6">
@@ -643,7 +643,7 @@ export function LeagueHome() {
                           {prizeInfo.payouts.map((payout, idx) => (
                             <div
                               key={idx}
-                              className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800"
+                              className="bg-mns-dark rounded-lg p-4 border border-gray-800"
                             >
                               <div className="flex items-center justify-between">
                                 <div>
@@ -670,7 +670,7 @@ export function LeagueHome() {
                         <img
                           src={prizeInfo.image}
                           alt={prizeInfo.zoneName}
-                          className="w-full h-auto rounded-lg object-contain bg-[#0a0a0a]"
+                          className="w-full h-auto rounded-lg object-contain bg-mns-dark"
                         />
                       </div>
                     </div>
@@ -681,7 +681,7 @@ export function LeagueHome() {
 
             {/* Live Wagers Section */}
             {liveWagers.length > 0 && (
-              <div className="bg-[#121212] rounded-lg border border-gray-800">
+              <div className="bg-mns-card rounded-lg border border-gray-800">
                 <div className="p-6 border-b border-gray-800">
                   <div className="flex items-center justify-between">
                     <div>
@@ -732,7 +732,7 @@ export function LeagueHome() {
 
             {/* Propose Wager Button (when no live wagers) */}
             {liveWagers.length === 0 && myTeam && (
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+              <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
                 <div className="text-center">
                   <img src="/icons/money-icon.webp" alt="Wager" className="w-16 h-16 rounded-full mx-auto mb-3" />
                   <h3 className="text-lg font-bold text-white mb-2">No Live Wagers</h3>
@@ -750,7 +750,7 @@ export function LeagueHome() {
             )}
 
             {/* Standings Section */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800">
+            <div className="bg-mns-card rounded-lg border border-gray-800">
               <div className="p-6 border-b border-gray-800">
                 <h2 className="text-xl font-bold text-white">Standings</h2>
                 <p className="text-sm text-gray-400 mt-1">

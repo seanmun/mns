@@ -374,7 +374,7 @@ export function CompleteDraftModal({
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Loading draft data">
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-8">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-8">
           <div className="text-white">Loading draft data...</div>
         </div>
       </div>
@@ -384,7 +384,7 @@ export function CompleteDraftModal({
   if (step === 'processing') {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Archiving draft">
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-8">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-8">
           <div className="text-white text-center">
             <div className="text-2xl mb-4">🏀</div>
             <div className="text-xl font-bold mb-2">Archiving Draft...</div>
@@ -398,7 +398,7 @@ export function CompleteDraftModal({
   if (step === 'complete') {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Draft archived">
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-8">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-8">
           <div className="text-white text-center">
             <div className="text-4xl mb-4">✓</div>
             <div className="text-xl font-bold mb-2 text-green-400">Draft Archived!</div>
@@ -421,7 +421,7 @@ export function CompleteDraftModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="archive-draft-title">
-      <div ref={modalRef} className="bg-[#121212] rounded-lg border border-gray-800 max-w-4xl w-full my-8">
+      <div ref={modalRef} className="bg-mns-card rounded-lg border border-gray-800 max-w-4xl w-full my-8">
         {/* Header */}
         <div className="p-6 border-b border-gray-800">
           <h2 id="archive-draft-title" className="text-2xl font-bold text-white">Archive Draft</h2>
@@ -433,30 +433,30 @@ export function CompleteDraftModal({
         {/* Summary */}
         <div className="p-6 border-b border-gray-800">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+            <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
               <div className="text-xs text-gray-400 mb-1">Total Picks</div>
               <div className="text-2xl font-bold text-white">{draft.picks.length}</div>
             </div>
-            <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+            <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
               <div className="text-xs text-gray-400 mb-1">Drafted</div>
               <div className="text-2xl font-bold text-green-400">{draftedPicks}</div>
             </div>
-            <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+            <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
               <div className="text-xs text-gray-400 mb-1">Keepers</div>
               <div className="text-2xl font-bold text-blue-400">{totalKeeperSlots}</div>
             </div>
-            <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+            <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
               <div className="text-xs text-gray-400 mb-1">Teams</div>
               <div className="text-2xl font-bold text-purple-400">{teams.length}</div>
             </div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-4">
-            <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+            <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
               <div className="text-xs text-gray-400 mb-1">Redshirt Players</div>
               <div className="text-xl font-bold text-yellow-400">{totalRedshirts}</div>
             </div>
-            <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+            <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
               <div className="text-xs text-gray-400 mb-1">International Players</div>
               <div className="text-xl font-bold text-cyan-400">{totalInternational}</div>
             </div>

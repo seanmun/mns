@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import type { RosterSummary, LeagueCapSettings, LeagueFeeSettings } from '../types';
-import { CAP_CONSTANTS } from '../types';
+import { NBA_FEE_DEFAULTS } from '../types';
 
 interface SummaryCardProps {
   summary: RosterSummary;
@@ -14,14 +14,14 @@ interface SummaryCardProps {
 export const SummaryCard = memo(function SummaryCard({ summary, maxKeepers = 8, maxActive = 13, isRegularSeason = false, cap, fees }: SummaryCardProps) {
   const formatMoney = (cents: number) => `$${cents.toFixed(0)}`;
   const buyIn = fees?.buyIn ?? 50;
-  const franchiseTagFee = fees?.franchiseTagFee ?? CAP_CONSTANTS.FRANCHISE_TAG_FEE;
-  const redshirtFee = fees?.redshirtFee ?? CAP_CONSTANTS.REDSHIRT_FEE;
-  const activationFee = fees?.activationFee ?? CAP_CONSTANTS.IN_SEASON_ACTIVATION_FEE;
-  const penaltyRate = fees?.penaltyRatePerM ?? CAP_CONSTANTS.PENALTY_RATE_PER_M;
+  const franchiseTagFee = fees?.franchiseTagFee ?? NBA_FEE_DEFAULTS.franchiseTagFee;
+  const redshirtFee = fees?.redshirtFee ?? NBA_FEE_DEFAULTS.redshirtFee;
+  const activationFee = fees?.activationFee ?? NBA_FEE_DEFAULTS.activationFee;
+  const penaltyRate = fees?.penaltyRatePerM ?? NBA_FEE_DEFAULTS.penaltyRatePerM;
   const hasAprons = (cap?.firstApron || 0) > 0 && (cap?.secondApron || 0) > 0;
 
   return (
-    <div className="bg-[#121212] p-6 rounded-lg border border-gray-800">
+    <div className="bg-mns-card p-6 rounded-lg border border-gray-800">
       <h3 className="text-lg font-semibold mb-3 text-white">Roster Summary and Fees</h3>
 
       {/* Counts */}

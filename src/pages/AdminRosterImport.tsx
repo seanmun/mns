@@ -269,14 +269,14 @@ export function AdminRosterImport() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-mns-dark flex items-center justify-center">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-4 md:p-8 max-w-5xl mx-auto">
+    <div className="min-h-screen bg-mns-dark text-white p-4 md:p-8 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">Admin Roster Import</h1>
       <p className="text-gray-400 text-sm mb-6">
         Paste a Fantrax roster export to set a team's roster. Updates{' '}

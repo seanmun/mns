@@ -112,7 +112,7 @@ export function ProposeWagerModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="wager-modal-title">
-      <div ref={modalRef} className="bg-[#121212] rounded-lg border border-gray-800 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div ref={modalRef} className="bg-mns-card rounded-lg border border-gray-800 max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-center justify-between">
@@ -147,7 +147,7 @@ export function ProposeWagerModal({
             <select
               value={selectedOpponentId}
               onChange={(e) => setSelectedOpponentId(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+              className="w-full bg-mns-dark border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
               disabled={isSubmitting}
             >
               <option value="">Select opponent...</option>
@@ -170,7 +170,7 @@ export function ProposeWagerModal({
               placeholder="e.g., My team will finish higher in the standings than yours"
               rows={4}
               maxLength={500}
-              className="w-full bg-[#0a0a0a] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent resize-none"
+              className="w-full bg-mns-dark border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent resize-none"
               disabled={isSubmitting}
             />
             <div className="text-xs text-gray-500 mt-1 text-right">
@@ -192,7 +192,7 @@ export function ProposeWagerModal({
                 placeholder="0.00"
                 min="0"
                 step="0.01"
-                className="w-full bg-[#0a0a0a] border border-gray-800 rounded-lg pl-8 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+                className="w-full bg-mns-dark border border-gray-800 rounded-lg pl-8 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
                 disabled={isSubmitting}
               />
             </div>
@@ -208,7 +208,7 @@ export function ProposeWagerModal({
               value={settlementDate}
               onChange={(e) => setSettlementDate(e.target.value)}
               min={todayET()}
-              className="w-full bg-[#0a0a0a] border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+              className="w-full bg-mns-dark border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
               disabled={isSubmitting}
             />
             <p className="text-xs text-gray-500 mt-1">

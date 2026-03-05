@@ -91,7 +91,7 @@ export function ScheduleWeekPreview({
 
   const renderTile = (tile: typeof tiles[0]) => {
     let borderClass = 'border-gray-700';
-    let bgClass = 'bg-[#0a0a0a]';
+    let bgClass = 'bg-mns-dark';
 
     if (tile.isPlayoff && tile.isConsolation) {
       borderClass = 'border-purple-400/50';
@@ -167,7 +167,7 @@ export function ScheduleWeekPreview({
       {/* Legend */}
       <div className="flex flex-wrap gap-4 mt-3 text-[10px] text-gray-500">
         <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-sm border border-gray-700 bg-[#0a0a0a]" /> Regular
+          <span className="w-2.5 h-2.5 rounded-sm border border-gray-700 bg-mns-dark" /> Regular
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-sm border border-orange-400/50 bg-orange-400/5" /> Combined

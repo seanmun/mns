@@ -226,7 +226,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-8">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-8">
           <div className="text-white">Loading...</div>
         </div>
       </div>
@@ -235,7 +235,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-[#121212] rounded-lg border border-gray-800 max-w-4xl w-full my-8">
+      <div className="bg-mns-card rounded-lg border border-gray-800 max-w-4xl w-full my-8">
         {/* Header */}
         <div className="p-6 border-b border-gray-800">
           <h2 className="text-2xl font-bold text-white">Admin Roster Management</h2>
@@ -258,7 +258,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
                 setSelectedPlayer('');
                 setSearchTerm('');
               }}
-              className="w-full px-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+              className="w-full px-4 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
             >
               <option value="">-- Select Team --</option>
               {teams.map(team => (
@@ -271,7 +271,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
 
           {/* Current Roster Summary */}
           {selectedTeam && (
-            <div className="bg-[#0a0a0a] rounded-lg border border-gray-800 p-4">
+            <div className="bg-mns-dark rounded-lg border border-gray-800 p-4">
               <div className="text-sm font-semibold text-white mb-3">Current Roster</div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
@@ -307,7 +307,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
                 setSearchTerm('');
               }}
               disabled={!selectedTeam}
-              className="w-full px-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 disabled:opacity-50"
+              className="w-full px-4 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 disabled:opacity-50"
             >
               <option value="add_free_agent">Add Free Agent to Active Roster</option>
               <option value="add_to_ir">Move Player to IR</option>
@@ -327,7 +327,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by name, team, or position..."
-                className="w-full px-4 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                className="w-full px-4 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
               />
             </div>
           )}
@@ -338,7 +338,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Select Player ({availablePlayers.length} available)
               </label>
-              <div className="max-h-64 overflow-y-auto bg-[#0a0a0a] border border-gray-700 rounded-lg">
+              <div className="max-h-64 overflow-y-auto bg-mns-dark border border-gray-700 rounded-lg">
                 {availablePlayers.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">
                     No players available for this action
@@ -349,7 +349,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
                       <button
                         key={player.id}
                         onClick={() => setSelectedPlayer(player.id)}
-                        className={`w-full px-4 py-3 text-left hover:bg-[#1a1a1a] transition-colors ${
+                        className={`w-full px-4 py-3 text-left hover:bg-mns-hover transition-colors ${
                           selectedPlayer === player.id ? 'bg-purple-500/20 border-l-4 border-purple-500' : ''
                         }`}
                       >
@@ -402,19 +402,19 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
             <span>Create New Player</span>
           </button>
           {showCreatePlayer && (
-            <div className="mt-3 bg-[#0a0a0a] border border-gray-700 rounded-lg p-4 space-y-3">
+            <div className="mt-3 bg-mns-dark border border-gray-700 rounded-lg p-4 space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <input
                   type="text"
                   placeholder="Player Name *"
                   value={newPlayer.name}
                   onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
-                  className="px-3 py-2 bg-[#121212] border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-green-400"
+                  className="px-3 py-2 bg-mns-card border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-green-400"
                 />
                 <select
                   value={newPlayer.position}
                   onChange={(e) => setNewPlayer({ ...newPlayer, position: e.target.value })}
-                  className="px-3 py-2 bg-[#121212] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-green-400"
+                  className="px-3 py-2 bg-mns-card border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-green-400"
                 >
                   <option value="G">G</option>
                   <option value="F">F</option>
@@ -428,14 +428,14 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
                   placeholder={sport === 'wnba' ? 'WNBA Team' : 'NBA Team'}
                   value={newPlayer.nbaTeam}
                   onChange={(e) => setNewPlayer({ ...newPlayer, nbaTeam: e.target.value })}
-                  className="px-3 py-2 bg-[#121212] border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-green-400"
+                  className="px-3 py-2 bg-mns-card border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-green-400"
                 />
                 <input
                   type="number"
                   placeholder="Salary"
                   value={newPlayer.salary || ''}
                   onChange={(e) => setNewPlayer({ ...newPlayer, salary: parseInt(e.target.value) || 0 })}
-                  className="px-3 py-2 bg-[#121212] border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-green-400"
+                  className="px-3 py-2 bg-mns-card border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-green-400"
                 />
               </div>
               <button

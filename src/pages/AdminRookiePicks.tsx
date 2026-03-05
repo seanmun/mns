@@ -212,7 +212,7 @@ export function AdminRookiePicks() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
@@ -238,7 +238,7 @@ export function AdminRookiePicks() {
   const years = Object.keys(picksByYear).sort().map(Number);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Rookie Draft Picks Manager</h1>
@@ -246,7 +246,7 @@ export function AdminRookiePicks() {
         </div>
 
         {/* Actions */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+        <div className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
           <div className="flex gap-4">
             {picks.length === 0 ? (
               <button
@@ -274,7 +274,7 @@ export function AdminRookiePicks() {
 
         {/* Picks by Year */}
         {years.map(year => (
-          <div key={year} className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+          <div key={year} className="bg-mns-card rounded-lg border border-gray-800 p-6 mb-6">
             <h2 className="text-xl font-bold text-white mb-4">{year} Rookie Draft</h2>
 
             <div className="space-y-6">
@@ -297,7 +297,7 @@ export function AdminRookiePicks() {
                               className={`p-4 rounded border ${
                                 isTraded
                                   ? 'bg-yellow-400/10 border-yellow-400/30'
-                                  : 'bg-[#0a0a0a] border-gray-700'
+                                  : 'bg-mns-dark border-gray-700'
                               }`}
                             >
                               <div className="font-semibold text-white">
@@ -329,7 +329,7 @@ export function AdminRookiePicks() {
         {/* Edit Modal */}
         {editingPick && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#121212] rounded-lg border border-gray-700 p-6 max-w-md w-full mx-4">
+            <div className="bg-mns-card rounded-lg border border-gray-700 p-6 max-w-md w-full mx-4">
               <h3 className="text-xl font-bold text-white mb-4">Change Pick Ownership</h3>
 
               <div className="mb-4">
@@ -343,7 +343,7 @@ export function AdminRookiePicks() {
                 <select
                   value={newOwner}
                   onChange={(e) => setNewOwner(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded text-white"
+                  className="w-full px-3 py-2 bg-mns-dark border border-gray-700 rounded text-white"
                 >
                   <option value="">Select team...</option>
                   {teams.map(team => (

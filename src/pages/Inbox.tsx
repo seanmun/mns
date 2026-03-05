@@ -110,7 +110,7 @@ export function Inbox() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -121,7 +121,7 @@ export function Inbox() {
         </div>
 
         {/* Daily Quote Message */}
-        <div className={`bg-[#121212] rounded-lg border overflow-hidden transition-colors ${
+        <div className={`bg-mns-card rounded-lg border overflow-hidden transition-colors ${
           isRead ? 'border-gray-800' : 'border-green-400/50 shadow-[0_0_15px_rgba(74,222,128,0.3)]'
         }`}>
           {/* Message Header - Clickable */}
@@ -258,7 +258,7 @@ export function Inbox() {
           <div className="mt-8">
             <button
               onClick={() => setIsArchiveOpen(!isArchiveOpen)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-[#121212] rounded-lg border border-gray-800 hover:bg-gray-800/30 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3 bg-mns-card rounded-lg border border-gray-800 hover:bg-gray-800/30 transition-colors"
             >
               <div className="flex items-center gap-2">
                 <svg

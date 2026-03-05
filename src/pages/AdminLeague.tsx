@@ -695,18 +695,18 @@ export function AdminLeague() {
     }
   };
 
-  const inputClass = "w-full px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400";
+  const inputClass = "w-full px-3 py-2 bg-mns-dark border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400";
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-8">
+    <div className="min-h-screen bg-mns-dark py-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header — title + league dropdown + action buttons */}
@@ -720,7 +720,7 @@ export function AdminLeague() {
                   const league = leagues.find(l => l.id === e.target.value);
                   if (league) handleSelectLeague(league);
                 }}
-                className="px-4 py-2 bg-[#121212] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
+                className="px-4 py-2 bg-mns-card border border-gray-700 rounded-lg text-white focus:outline-none focus:border-green-400"
               >
                 {!selectedLeague && <option value="" disabled>Select League</option>}
                 {leagues.map(l => (
@@ -748,14 +748,14 @@ export function AdminLeague() {
         </div>
 
         {!selectedLeague ? (
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-12 text-center text-gray-500">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-12 text-center text-gray-500">
             Select a league to configure
           </div>
         ) : (
           <div className="space-y-6">
 
             {/* Phase Stepper */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">League Phase</h2>
 
               <div className="flex items-center justify-between mb-6">
@@ -839,7 +839,7 @@ export function AdminLeague() {
                     setSelectedLeague(prev => prev ? { ...prev, leaguePhase: newPhase } : null);
                     toast.success(`Phase set to ${LEAGUE_PHASE_LABELS[newPhase]}`);
                   }}
-                  className="px-3 py-2.5 text-sm bg-[#0a0a0a] border border-gray-700 rounded-lg text-gray-400 hover:text-white focus:outline-none focus:border-green-400"
+                  className="px-3 py-2.5 text-sm bg-mns-dark border border-gray-700 rounded-lg text-gray-400 hover:text-white focus:outline-none focus:border-green-400"
                 >
                   {LEAGUE_PHASE_ORDER.map(phase => (
                     <option key={phase} value={phase}>{LEAGUE_PHASE_LABELS[phase]}</option>
@@ -858,7 +858,7 @@ export function AdminLeague() {
             </div>
 
             {/* Basic Info */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Basic Info</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -918,7 +918,7 @@ export function AdminLeague() {
             </div>
 
             {/* Salary Cap */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Salary Cap</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
@@ -963,7 +963,7 @@ export function AdminLeague() {
             </div>
 
             {/* Roster Settings */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Roster Settings</h2>
               <div className="grid grid-cols-3 gap-4">
                 <div>
@@ -1006,7 +1006,7 @@ export function AdminLeague() {
             </div>
 
             {/* Fee Settings */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Fee Settings</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
@@ -1055,7 +1055,7 @@ export function AdminLeague() {
             </div>
 
             {/* Schedule + Week Preview */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Schedule</h2>
 
               {/* Schedule inputs */}
@@ -1180,7 +1180,7 @@ export function AdminLeague() {
             </div>
 
             {/* Playoffs */}
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Playoffs</h2>
               <PlayoffConfig
                 playoffTeams={editForm['schedule.playoffTeams']}
@@ -1194,7 +1194,7 @@ export function AdminLeague() {
 
             {/* Fee Management */}
             {selectedLeague.leaguePhase === 'regular_season' && (
-              <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+              <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Fee Management</h2>
                   <button
@@ -1254,7 +1254,7 @@ export function AdminLeague() {
                                     placeholder={(ft.salary / 1_000_000).toFixed(1)}
                                     value={capPeaks.get(ft.teamId) || ''}
                                     onChange={(e) => setCapPeaks(prev => new Map(prev).set(ft.teamId, e.target.value))}
-                                    className="w-24 px-2 py-1 text-right bg-[#0a0a0a] border border-gray-700 rounded text-white text-xs focus:outline-none focus:border-green-400"
+                                    className="w-24 px-2 py-1 text-right bg-mns-dark border border-gray-700 rounded text-white text-xs focus:outline-none focus:border-green-400"
                                   />
                                 </td>
                                 <td className="py-2 text-right">

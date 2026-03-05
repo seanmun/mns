@@ -349,14 +349,14 @@ export function FreeAgents() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+      <div className="flex items-center justify-center min-h-screen bg-mns-dark">
         <div className="text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-mns-dark">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -367,7 +367,7 @@ export function FreeAgents() {
         </div>
 
         {/* Search Bar */}
-        <div className="mb-6 bg-[#121212] p-4 rounded-lg border border-gray-800">
+        <div className="mb-6 bg-mns-card p-4 rounded-lg border border-gray-800">
           <label className="block text-sm font-medium text-white mb-2">
             Search Players
           </label>
@@ -376,7 +376,7 @@ export function FreeAgents() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by name, position, or team..."
-            className="w-full md:w-96 rounded-md bg-[#0a0a0a] border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-green-400 focus:ring-green-400 px-4 py-2"
+            className="w-full md:w-96 rounded-md bg-mns-dark border-gray-700 text-white placeholder-gray-500 shadow-sm focus:border-green-400 focus:ring-green-400 px-4 py-2"
           />
           {searchTerm && (
             <button
@@ -389,12 +389,12 @@ export function FreeAgents() {
         </div>
 
         {/* Table */}
-        <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+        <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-800">
-              <thead className="bg-[#0a0a0a]">
+              <thead className="bg-mns-dark">
                 <tr>
-                  <th className="sticky left-0 z-10 bg-[#0a0a0a] px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800 w-36 sm:w-48">
+                  <th className="sticky left-0 z-10 bg-mns-dark px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-800 w-36 sm:w-48">
                     Player
                   </th>
                   {renderSortHeader('Salary', 'salary', 'right')}
@@ -414,7 +414,7 @@ export function FreeAgents() {
                   )}
                 </tr>
               </thead>
-              <tbody className="bg-[#121212] divide-y divide-gray-800">
+              <tbody className="bg-mns-card divide-y divide-gray-800">
                 {freeAgents && freeAgents.map((player, index) => {
                   const stats = projectedStats.get(player.fantraxId);
                   const isWatched = watchList?.playerIds.includes(player.fantraxId) || false;
@@ -428,7 +428,7 @@ export function FreeAgents() {
                         setSelectedPlayerIndex(index);
                       }}
                     >
-                      <td className="sticky left-0 z-10 bg-[#121212] px-2 sm:px-4 py-3 border-r border-gray-800 w-36 sm:w-48">
+                      <td className="sticky left-0 z-10 bg-mns-card px-2 sm:px-4 py-3 border-r border-gray-800 w-36 sm:w-48">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={(e) => handleToggleWatchList(e, player.fantraxId)}
@@ -539,7 +539,7 @@ export function FreeAgents() {
       {/* Add Player Modal */}
       {addingPlayer && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#121212] rounded-lg border border-gray-800 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-mns-card rounded-lg border border-gray-800 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-start mb-6">
                 <div>
@@ -563,7 +563,7 @@ export function FreeAgents() {
 
               {/* Roster Status */}
               <div className="mb-6">
-                <div className="bg-[#0a0a0a] rounded-lg p-4 border border-gray-800">
+                <div className="bg-mns-dark rounded-lg p-4 border border-gray-800">
                   <div className="text-sm text-gray-400">Active Roster</div>
                   <div className={`text-2xl font-bold ${userTeamActiveCount >= maxActive ? 'text-pink-400' : 'text-white'}`}>
                     {userTeamActiveCount}/{maxActive}
@@ -587,7 +587,7 @@ export function FreeAgents() {
                         className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                           playerToDrop === player.id
                             ? 'border-pink-500 bg-pink-500/10'
-                            : 'border-gray-700 hover:border-gray-600 bg-[#0a0a0a]'
+                            : 'border-gray-700 hover:border-gray-600 bg-mns-dark'
                         }`}
                       >
                         <input

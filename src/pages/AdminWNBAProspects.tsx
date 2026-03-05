@@ -224,17 +224,17 @@ export function AdminWNBAProspects() {
 
       {/* Stats bar */}
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 mb-6">
-        <div className="bg-[#121212] border border-gray-800 rounded-lg p-4">
+        <div className="bg-mns-card border border-gray-800 rounded-lg p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider">In Database</p>
           <p className="text-xl font-bold text-white mt-1">{existingCount}</p>
         </div>
         {scrapeData && (
           <>
-            <div className="bg-[#121212] border border-gray-800 rounded-lg p-4">
+            <div className="bg-mns-card border border-gray-800 rounded-lg p-4">
               <p className="text-xs text-gray-500 uppercase tracking-wider">Scraped</p>
               <p className="text-xl font-bold text-white mt-1">{scrapeData.totalCount}</p>
             </div>
-            <div className="bg-[#121212] border border-gray-800 rounded-lg p-4">
+            <div className="bg-mns-card border border-gray-800 rounded-lg p-4">
               <p className="text-xs text-gray-500 uppercase tracking-wider">New</p>
               <p className="text-xl font-bold text-green-400 mt-1">{newCount}</p>
             </div>
@@ -314,7 +314,7 @@ export function AdminWNBAProspects() {
           <div className="overflow-x-auto border border-gray-800 rounded-lg">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#0a0a0a] border-b border-gray-800">
+                <tr className="bg-mns-dark border-b border-gray-800">
                   <th className="w-10 px-3 py-2">
                     <input
                       type="checkbox"
@@ -346,7 +346,7 @@ export function AdminWNBAProspects() {
                   return (
                     <tr
                       key={p.slug}
-                      className="border-b border-gray-800/50 hover:bg-[#1a1a1a] transition-colors"
+                      className="border-b border-gray-800/50 hover:bg-mns-hover transition-colors"
                     >
                       <td className="px-3 py-2">
                         <input

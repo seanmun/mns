@@ -71,7 +71,7 @@ export function LeagueBottomNav() {
       {/* More dropdown */}
       {moreOpen && (
         <div className="fixed bottom-16 right-2 left-2 z-50 lg:hidden">
-          <div className="bg-[#121212] border border-gray-800 rounded-xl shadow-2xl shadow-black/50 overflow-hidden mx-auto max-w-sm">
+          <div className="bg-mns-card border border-gray-800 rounded-xl shadow-2xl shadow-black/50 overflow-hidden mx-auto max-w-sm">
             {/* Draft section */}
             <div className="px-4 pt-3 pb-1">
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Draft</span>
@@ -114,7 +114,7 @@ export function LeagueBottomNav() {
       )}
 
       {/* Bottom tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-[#0a0a0a]/95 backdrop-blur-sm border-t border-gray-800"
+      <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-mns-dark/95 backdrop-blur-sm border-t border-gray-800"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         aria-label="League navigation"
       >

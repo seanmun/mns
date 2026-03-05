@@ -1,5 +1,6 @@
 import { stackKeeperRounds, computeSummary } from './keeperAlgorithms';
-import type { RosterEntry, Player, RosterSummary, Decision } from '../types';
+import type { RosterEntry, Player, RosterSummary, Decision, LeagueCapSettings, LeagueFeeSettings } from '../types';
+import { NBA_CAP_DEFAULTS, NBA_FEE_DEFAULTS } from '../types';
 
 export interface TradeAssetForCap {
   type: 'keeper' | 'redshirt' | 'int_stash' | 'rookie_pick';
@@ -29,8 +30,10 @@ export function computeTradeCapImpact(params: {
   players: Map<string, Player>;
   tradeDelta: Map<string, number>;
   teamNames: Map<string, string>;
+  cap?: LeagueCapSettings;
+  fees?: LeagueFeeSettings;
 }): TeamCapImpact[] {
-  const { assets, rosters, players, tradeDelta, teamNames } = params;
+  const { assets, rosters, players, tradeDelta, teamNames, cap, fees } = params;
 
   // Find all involved teams
   const involvedTeamIds = new Set<string>();
@@ -99,26 +102,34 @@ export function computeTradeCapImpact(params: {
       .filter(a => a.toTeamId === teamId && a.type !== 'rookie_pick')
       .reduce((sum, a) => sum + a.salary, 0);
 
-    // Generate warnings
+    // Generate warnings using league-specific cap/fee settings
     const warnings: string[] = [];
-    const FIRST_APRON = 195_000_000;
-    const SECOND_APRON = 225_000_000;
+    const firstApron = cap?.firstApron ?? NBA_CAP_DEFAULTS.firstApron;
+    const secondApron = cap?.secondApron ?? NBA_CAP_DEFAULTS.secondApron;
+    const hardCap = cap?.max ?? NBA_CAP_DEFAULTS.max;
+    const apronFee = fees?.firstApronFee ?? NBA_FEE_DEFAULTS.firstApronFee;
+    const penaltyRate = fees?.penaltyRatePerM ?? NBA_FEE_DEFAULTS.penaltyRatePerM;
+    const hasAprons = firstApron > 0 && secondApron > 0;
 
-    if (afterSummary.capUsed > FIRST_APRON && beforeSummary.capUsed <= FIRST_APRON) {
-      warnings.push('Crosses first apron ($195M) — $50 one-time fee');
-    }
-    if (afterSummary.capUsed > SECOND_APRON && beforeSummary.capUsed <= SECOND_APRON) {
-      warnings.push(`Crosses second apron ($225M) — $2/M penalty applies`);
-    }
-    if (afterSummary.capUsed > SECOND_APRON && beforeSummary.capUsed > SECOND_APRON) {
-      const beforeOver = Math.ceil((beforeSummary.capUsed - SECOND_APRON) / 1_000_000);
-      const afterOver = Math.ceil((afterSummary.capUsed - SECOND_APRON) / 1_000_000);
-      if (afterOver > beforeOver) {
-        warnings.push(`Increases second apron penalty from $${beforeOver * 2} to $${afterOver * 2}`);
+    const fmtCap = (v: number) => `$${Math.round(v / 1_000_000)}M`;
+
+    if (hasAprons) {
+      if (afterSummary.capUsed > firstApron && beforeSummary.capUsed <= firstApron) {
+        warnings.push(`Crosses first apron (${fmtCap(firstApron)}) — $${apronFee} one-time fee`);
+      }
+      if (afterSummary.capUsed > secondApron && beforeSummary.capUsed <= secondApron) {
+        warnings.push(`Crosses second apron (${fmtCap(secondApron)}) — $${penaltyRate}/M penalty applies`);
+      }
+      if (afterSummary.capUsed > secondApron && beforeSummary.capUsed > secondApron) {
+        const beforeOver = Math.ceil((beforeSummary.capUsed - secondApron) / 1_000_000);
+        const afterOver = Math.ceil((afterSummary.capUsed - secondApron) / 1_000_000);
+        if (afterOver > beforeOver) {
+          warnings.push(`Increases second apron penalty from $${beforeOver * penaltyRate} to $${afterOver * penaltyRate}`);
+        }
       }
     }
-    if (afterSummary.capUsed > 255_000_000) {
-      warnings.push('Exceeds hard cap ceiling ($255M)');
+    if (afterSummary.capUsed > hardCap) {
+      warnings.push(`Exceeds hard cap ceiling (${fmtCap(hardCap)})`);
     }
 
     results.push({

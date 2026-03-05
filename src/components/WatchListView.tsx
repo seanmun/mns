@@ -22,7 +22,7 @@ export function WatchListView({ watchList, allPlayers, projectedStats }: WatchLi
   });
 
   return (
-    <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 flex flex-col h-full">
+    <div className="bg-mns-card rounded-lg border border-gray-800 p-6 flex flex-col h-full">
       <h2 className="text-xl font-bold text-white mb-4">⭐ Watch List</h2>
       <p className="text-sm text-gray-400 mb-6">
         Players you're tracking from the free agent pool

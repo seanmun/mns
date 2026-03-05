@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export function About() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-mns-dark text-white">
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="mb-8">
           <Link to="/" className="text-gray-400 hover:text-green-400 text-sm transition-colors">
@@ -16,14 +16,14 @@ export function About() {
         </p>
 
         <div className="space-y-8">
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
             <h2 className="text-xl font-bold text-white mb-3">What is MNS?</h2>
             <p className="text-gray-400 leading-relaxed">
               Money Never Sleeps is a fantasy basketball platform built for serious keeper leagues. We combine salary cap management, live drafts, and deep roster strategy into a single experience designed for dynasty leagues that play for keeps.
             </p>
           </div>
 
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
             <h2 className="text-xl font-bold text-white mb-3">Built Different</h2>
             <ul className="space-y-3 text-gray-400">
               <li className="flex items-start gap-2">
@@ -45,7 +45,7 @@ export function About() {
             </ul>
           </div>
 
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
             <h2 className="text-xl font-bold text-white mb-3">Where We're Headed</h2>
             <p className="text-gray-400 leading-relaxed">
               MNS started as a tool for a single league. We're building it into a multi-tenant platform where anyone can create and manage their own keeper league — starting with WNBA in 2026, then expanding to full NBA and beyond.
@@ -58,7 +58,7 @@ export function About() {
             </Link>
           </div>
 
-          <div className="bg-[#121212] rounded-lg border border-gray-800 p-6">
+          <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
             <h2 className="text-xl font-bold text-white mb-3">Contact</h2>
             <p className="text-gray-400 mb-3">
               Built by Sean Munley.
