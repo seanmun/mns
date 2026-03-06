@@ -91,7 +91,7 @@ export function LeagueTopNav() {
   ];
 
   return (
-    <div className="hidden lg:block sticky top-0 z-40 bg-mns-dark/95 backdrop-blur-sm border-b border-gray-800">
+    <div className="hidden lg:block sticky top-0 z-40 bg-mns-dark border-b border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-1 h-10">
           {navItems.map((item) => (

@@ -114,7 +114,7 @@ export function LeagueBottomNav() {
       )}
 
       {/* Bottom tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-mns-dark/95 backdrop-blur-sm border-t border-gray-800"
+      <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-mns-dark border-t border-gray-800"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         aria-label="League navigation"
       >
