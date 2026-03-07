@@ -132,7 +132,7 @@ export function LeagueTopNav() {
             </button>
 
             {moreOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-mns-card border border-gray-800 rounded-lg shadow-2xl shadow-black/50 overflow-hidden min-w-[160px] z-50">
+              <div className="absolute top-full left-0 mt-1 bg-mns-surface border border-gray-700 rounded-lg shadow-2xl shadow-black/50 overflow-hidden min-w-[160px] z-50">
                 {moreItems.map((item) => (
                   <button
                     key={item.path}

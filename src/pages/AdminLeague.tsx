@@ -52,6 +52,7 @@ export function AdminLeague() {
     'roster.maxKeepers': 8,
     'roster.rookieDraftRounds': 2,
     'roster.rookieDraftYears': 3,
+    'roster.rookieDraftOrderMethod': 'manual' as 'season_record' | 'manual',
     'fees.buyIn': 100,
     'fees.firstApronFee': 50,
     'fees.penaltyRatePerM': 2,
@@ -60,6 +61,8 @@ export function AdminLeague() {
     'fees.activationFee': 25,
     telegramChatId: '',
   });
+  const [leagueTeams, setLeagueTeams] = useState<{ id: string; name: string; abbrev: string }[]>([]);
+  const [rookieDraftOrder, setRookieDraftOrder] = useState<string[]>([]);
   const [generatingWeeks, setGeneratingWeeks] = useState(false);
   const [weeksGenerated, setWeeksGenerated] = useState(false);
   const [scheduleAnalysis, setScheduleAnalysis] = useState<ScheduleAnalysis | null>(null);
@@ -181,6 +184,7 @@ export function AdminLeague() {
       'roster.maxKeepers': league.roster?.maxKeepers ?? 8,
       'roster.rookieDraftRounds': league.roster?.rookieDraftRounds ?? 2,
       'roster.rookieDraftYears': league.roster?.rookieDraftYears ?? 3,
+      'roster.rookieDraftOrderMethod': league.roster?.rookieDraftOrderMethod ?? 'manual',
       'fees.buyIn': league.fees?.buyIn ?? 100,
       'fees.firstApronFee': league.fees?.firstApronFee ?? 50,
       'fees.penaltyRatePerM': league.fees?.penaltyRatePerM ?? 2,
@@ -191,6 +195,23 @@ export function AdminLeague() {
     });
     setWeeksGenerated(false);
     fetchScheduleAnalysis(league.seasonYear);
+
+    // Load teams for rookie draft order
+    supabase
+      .from('teams')
+      .select('id, name, abbrev')
+      .eq('league_id', league.id)
+      .then(({ data }) => {
+        const teams = (data || []).map((t: any) => ({ id: t.id, name: t.name, abbrev: t.abbrev }));
+        setLeagueTeams(teams);
+        // Use saved order if it exists, otherwise default to team list order
+        const savedOrder = league.roster?.rookieDraftOrder;
+        if (savedOrder && savedOrder.length > 0) {
+          setRookieDraftOrder(savedOrder);
+        } else {
+          setRookieDraftOrder(teams.map((t: any) => t.id));
+        }
+      });
   };
 
   const handleSave = async () => {
@@ -234,6 +255,8 @@ export function AdminLeague() {
             maxKeepers: editForm['roster.maxKeepers'],
             rookieDraftRounds: editForm['roster.rookieDraftRounds'],
             rookieDraftYears: editForm['roster.rookieDraftYears'],
+            rookieDraftOrderMethod: editForm['roster.rookieDraftOrderMethod'],
+            rookieDraftOrder: rookieDraftOrder,
           },
           fees: {
             buyIn: editForm['fees.buyIn'],
@@ -286,6 +309,8 @@ export function AdminLeague() {
                   maxKeepers: editForm['roster.maxKeepers'],
                   rookieDraftRounds: editForm['roster.rookieDraftRounds'],
                   rookieDraftYears: editForm['roster.rookieDraftYears'],
+                  rookieDraftOrderMethod: editForm['roster.rookieDraftOrderMethod'],
+                  rookieDraftOrder: rookieDraftOrder,
                 },
                 fees: {
                   buyIn: editForm['fees.buyIn'],
@@ -1002,7 +1027,63 @@ export function AdminLeague() {
                     onChange={(e) => setEditForm({ ...editForm, 'roster.rookieDraftYears': parseInt(e.target.value) || 3 })}
                     className={inputClass} />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1">Rookie Draft Order</label>
+                  <select
+                    value={editForm['roster.rookieDraftOrderMethod']}
+                    onChange={(e) => setEditForm({ ...editForm, 'roster.rookieDraftOrderMethod': e.target.value as 'season_record' | 'manual' })}
+                    className={inputClass}
+                  >
+                    <option value="season_record">Season Record</option>
+                    <option value="manual">Manual Entry</option>
+                  </select>
+                </div>
               </div>
+
+              {/* Rookie Draft Order — manual reorder */}
+              {editForm['roster.rookieDraftOrderMethod'] === 'manual' && rookieDraftOrder.length > 0 && (
+                <div className="mt-4 border-t border-gray-800 pt-4">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Draft Pick Order (1st pick at top)</label>
+                  <div className="space-y-1">
+                    {rookieDraftOrder.map((teamId, index) => {
+                      const team = leagueTeams.find(t => t.id === teamId);
+                      return (
+                        <div key={teamId} className="flex items-center gap-2 p-2 bg-mns-dark border border-gray-700 rounded-lg">
+                          <span className="text-green-400 font-bold text-sm w-6 text-right">{index + 1}.</span>
+                          <span className="flex-1 text-white text-sm">{team?.abbrev} — {team?.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (index === 0) return;
+                              const next = [...rookieDraftOrder];
+                              [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                              setRookieDraftOrder(next);
+                            }}
+                            disabled={index === 0}
+                            className="p-1 text-gray-400 hover:text-white disabled:opacity-30"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" /></svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (index === rookieDraftOrder.length - 1) return;
+                              const next = [...rookieDraftOrder];
+                              [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                              setRookieDraftOrder(next);
+                            }}
+                            disabled={index === rookieDraftOrder.length - 1}
+                            className="p-1 text-gray-400 hover:text-white disabled:opacity-30"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">Reorder teams using the arrows. This order is used by the mock draft and rookie draft.</p>
+                </div>
+              )}
             </div>
 
             {/* Fee Settings */}

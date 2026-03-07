@@ -162,7 +162,7 @@ export function Header() {
 
               {/* League Dropdown */}
               {isLeagueDropdownOpen && !leaguesLoading && (
-                <div className="absolute left-0 mt-2 w-64 bg-mns-card rounded-lg shadow-lg border border-gray-800 py-1 z-50" role="menu">
+                <div className="absolute left-0 mt-2 w-64 bg-mns-surface rounded-lg shadow-lg border border-gray-700 py-1 z-50" role="menu">
                   {userLeagues.length > 0 ? (
                     <>
                       <div className="px-4 py-2 text-xs text-gray-500 uppercase tracking-wider">
@@ -266,7 +266,7 @@ export function Header() {
 
               {/* Dropdown Menu */}
               {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-mns-card rounded-lg shadow-lg border border-gray-800 py-1 z-50" role="menu">
+                <div className="absolute right-0 mt-2 w-48 bg-mns-surface rounded-lg shadow-lg border border-gray-700 py-1 z-50" role="menu">
                   {/* My Team Link - only show if user has a team in current league */}
                   {userTeamId && currentLeague && (
                     <>

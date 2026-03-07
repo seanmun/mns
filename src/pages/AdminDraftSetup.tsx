@@ -159,6 +159,10 @@ export function AdminDraftSetup() {
           const loadedOrder = round1Picks.map((pick: any) => pick.original_team);
           console.log('[Draft Setup] Loaded draft order from draftPicks:', loadedOrder);
           setDraftOrder(loadedOrder);
+        } else if (currentLeague.roster?.rookieDraftOrder && currentLeague.roster.rookieDraftOrder.length > 0) {
+          // Fall back to the saved rookie draft order from league settings
+          console.log('[Draft Setup] Using saved rookie draft order from league settings');
+          setDraftOrder(currentLeague.roster.rookieDraftOrder);
         }
       }
     } catch (error) {
@@ -187,6 +191,70 @@ export function AdminDraftSetup() {
       .map((team) => team.id)
       .sort(() => Math.random() - 0.5);
     setDraftOrder(shuffled);
+  };
+
+  const handleGenerateFromStandings = async () => {
+    if (!currentLeagueId || !currentLeague) return;
+
+    try {
+      const { data: matchups, error: matchupsErr } = await supabase
+        .from('league_matchups')
+        .select('home_team_id, away_team_id, home_score, away_score')
+        .eq('league_id', currentLeagueId)
+        .eq('season_year', currentLeague.seasonYear);
+
+      if (matchupsErr) throw matchupsErr;
+
+      // Build W-L records from completed matchups
+      const records = new Map<string, { wins: number; losses: number; ties: number }>();
+      for (const t of teams) {
+        records.set(t.id, { wins: 0, losses: 0, ties: 0 });
+      }
+
+      const scoringMode = currentLeague.scoringMode || 'category_record';
+
+      for (const m of matchups || []) {
+        if (m.home_score === null || m.away_score === null) continue;
+        const homeRec = records.get(m.home_team_id);
+        const awayRec = records.get(m.away_team_id);
+        if (!homeRec || !awayRec) continue;
+
+        if (scoringMode === 'category_record') {
+          homeRec.wins += m.home_score;
+          homeRec.losses += m.away_score;
+          awayRec.wins += m.away_score;
+          awayRec.losses += m.home_score;
+        } else {
+          if (m.home_score > m.away_score) {
+            homeRec.wins++;
+            awayRec.losses++;
+          } else if (m.away_score > m.home_score) {
+            awayRec.wins++;
+            homeRec.losses++;
+          } else {
+            homeRec.ties++;
+            awayRec.ties++;
+          }
+        }
+      }
+
+      // Sort worst record first (lowest win pct picks first)
+      const sorted = [...teams].sort((a, b) => {
+        const ra = records.get(a.id)!;
+        const rb = records.get(b.id)!;
+        const totalA = ra.wins + ra.losses + ra.ties;
+        const totalB = rb.wins + rb.losses + rb.ties;
+        const pctA = totalA > 0 ? ra.wins / totalA : 0;
+        const pctB = totalB > 0 ? rb.wins / totalB : 0;
+        return pctA - pctB;
+      });
+
+      setDraftOrder(sorted.map(t => t.id));
+      toast.success('Draft order generated from season standings (worst record picks first)');
+    } catch (error: any) {
+      logger.error('Error generating standings order:', error);
+      toast.error(`Failed to generate from standings: ${error?.message || 'Unknown error'}`);
+    }
   };
 
   const handleMoveUp = (index: number) => {
@@ -618,12 +686,22 @@ export function AdminDraftSetup() {
             </label>
           </div>
 
-          <button
-            onClick={handleGenerateRandomOrder}
-            className="mb-6 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
-          >
-            Generate Random Order
-          </button>
+          <div className="flex gap-3 mb-6">
+            {currentLeague?.roster?.rookieDraftOrderMethod === 'season_record' && (
+              <button
+                onClick={handleGenerateFromStandings}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              >
+                Generate from Standings
+              </button>
+            )}
+            <button
+              onClick={handleGenerateRandomOrder}
+              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+            >
+              Generate Random Order
+            </button>
+          </div>
 
           {draftOrder.length > 0 && (
             <div className="space-y-2">

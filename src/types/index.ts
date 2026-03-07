@@ -105,6 +105,8 @@ export interface LeagueRosterSettings {
   maxKeepers: number;      // default 8  — max keepers per team
   rookieDraftRounds: number; // default 2 — number of rookie draft rounds
   rookieDraftYears: number;  // default 3 — years of future picks to generate
+  rookieDraftOrderMethod?: 'season_record' | 'manual'; // default 'manual'
+  rookieDraftOrder?: string[]; // manual team ID order (first = 1st pick)
 }
 
 export const DEFAULT_ROSTER_SETTINGS: LeagueRosterSettings = {
@@ -114,6 +116,7 @@ export const DEFAULT_ROSTER_SETTINGS: LeagueRosterSettings = {
   maxKeepers: 8,
   rookieDraftRounds: 2,
   rookieDraftYears: 3,
+  rookieDraftOrderMethod: 'manual',
 };
 
 export const NBA_CAP_DEFAULTS: LeagueCapSettings = {

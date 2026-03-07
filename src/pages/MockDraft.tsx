@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useMatchups } from '../hooks/useMatchups';
@@ -10,6 +10,7 @@ import {
   runMockDraft,
 } from '../lib/lottery';
 import type { TeamStanding, LotteryOdds, LotteryResult, MockPick } from '../lib/lottery';
+import html2canvas from 'html2canvas';
 import type { Team, League, Prospect } from '../types';
 import { DEFAULT_ROSTER_SETTINGS } from '../types';
 
@@ -43,6 +44,8 @@ export function MockDraft() {
   const [lotteryResults, setLotteryResults] = useState<EnrichedLotteryResult[]>([]);
   const [mockPicks, setMockPicks] = useState<EnrichedMockPick[]>([]);
   const [rookiePickTrades, setRookiePickTrades] = useState<Map<string, RookiePickTrade>>(new Map());
+  const [sharing, setSharing] = useState(false);
+  const draftBoardRef = useRef<HTMLDivElement>(null);
 
   // Fetch matchups for W-L records
   const { records: teamRecords } = useMatchups({
@@ -148,7 +151,11 @@ export function MockDraft() {
     fetchData();
   }, [leagueId]);
 
-  // Build standings from team records
+  // Check if draft order is manually set by LM
+  const isManualOrder = league?.roster?.rookieDraftOrderMethod === 'manual';
+  const savedDraftOrder = league?.roster?.rookieDraftOrder;
+
+  // Build standings from team records (used when method is 'season_record')
   const standings: TeamStanding[] = useMemo(() => {
     return [...teams]
       .map((team) => {
@@ -172,21 +179,36 @@ export function MockDraft() {
       });
   }, [teams, teamRecords]);
 
+  // Build manual order as standings (no lottery needed)
+  const manualStandings: TeamStanding[] = useMemo(() => {
+    if (!savedDraftOrder || savedDraftOrder.length === 0) return [];
+    return savedDraftOrder.map(teamId => {
+      const team = teams.find(t => t.id === teamId);
+      return {
+        teamId,
+        teamName: team?.name || 'Unknown',
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        pct: 0,
+      };
+    });
+  }, [savedDraftOrder, teams]);
+
   // Determine prize spots and lottery teams
   const prizeSpots = useMemo(() => {
-    // Simplified: use 3 as default (Gordon Gekko zone)
-    // In a real scenario we'd compute from portfolio data
+    if (isManualOrder) return 0;
     return getPrizeSpots(1000, 600);
-  }, []);
+  }, [isManualOrder]);
 
   const { lotteryTeams, moneyTeams } = useMemo(
-    () => getLotteryTeams(standings, prizeSpots),
-    [standings, prizeSpots]
+    () => isManualOrder ? { lotteryTeams: [], moneyTeams: [] } : getLotteryTeams(standings, prizeSpots),
+    [standings, prizeSpots, isManualOrder]
   );
 
   const odds: LotteryOdds[] = useMemo(
-    () => getLotteryOdds(lotteryTeams),
-    [lotteryTeams]
+    () => isManualOrder ? [] : getLotteryOdds(lotteryTeams),
+    [lotteryTeams, isManualOrder]
   );
 
   // Apply rookie pick trades to lottery results
@@ -208,6 +230,21 @@ export function MockDraft() {
   };
 
   const handleRunLottery = () => {
+    if (isManualOrder && manualStandings.length > 0) {
+      // Skip lottery — use the saved manual order directly
+      const results: LotteryResult[] = manualStandings.map((team, i) => ({
+        pick: i + 1,
+        teamId: team.teamId,
+        teamName: team.teamName,
+        isLotteryWinner: false,
+        originalPosition: i + 1,
+        movement: 0,
+      }));
+      const enriched = applyTrades(results);
+      setLotteryResults(enriched);
+      setPhase('lottery');
+      return;
+    }
     const results = runLottery(lotteryTeams, moneyTeams);
     const enriched = applyTrades(results);
     setLotteryResults(enriched);
@@ -231,6 +268,40 @@ export function MockDraft() {
     setPhase('odds');
     setLotteryResults([]);
     setMockPicks([]);
+  };
+
+  const handleShare = async () => {
+    if (!draftBoardRef.current) return;
+    setSharing(true);
+
+    try {
+      const canvas = await html2canvas(draftBoardRef.current, {
+        backgroundColor: '#0a0a0a',
+        scale: 2,
+        useCORS: true,
+      });
+
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+
+        // Try native share if available (mobile), otherwise download
+        if (navigator.share && navigator.canShare?.({ files: [new File([blob], 'mock-draft.png', { type: 'image/png' })] })) {
+          const file = new File([blob], 'mock-draft.png', { type: 'image/png' });
+          navigator.share({ files: [file], title: `${league?.name || 'MNS'} Mock Draft` });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `mock-draft-${league?.name?.toLowerCase().replace(/\s+/g, '-') || 'mns'}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/png');
+    } catch (err) {
+      console.error('Screenshot failed:', err);
+    } finally {
+      setSharing(false);
+    }
   };
 
   if (loading) {
@@ -297,103 +368,149 @@ export function MockDraft() {
           </div>
         )}
 
-        {/* Phase 1: Lottery Odds Table */}
+        {/* Phase 1: Draft Order / Lottery Odds */}
         {phase === 'odds' && (
           <div className="space-y-6">
-            <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
-              <div className="p-6 border-b border-gray-800">
-                <h2 className="text-lg font-bold text-white">Lottery Odds</h2>
-                <p className="text-sm text-gray-400 mt-1">
-                  {lotteryTeams.length} teams competing for the top {Math.min(4, lotteryTeams.length)} picks
-                </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-mns-dark border-b border-gray-800">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Rank</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Team</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Record</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Combos</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">#1 Pick Odds</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Odds Bar</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800">
-                    {odds.map((entry, i) => (
-                      <tr key={entry.team.teamId} className="hover:bg-mns-hover transition-colors">
-                        <td className="px-4 py-3">
-                          <span className="text-sm font-bold text-gray-400">{i + 1}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm font-semibold text-white">{entry.team.teamName}</span>
-                          {(() => {
-                            const trade = rookiePickTrades.get(entry.team.teamId);
-                            if (trade && trade.currentOwner !== trade.originalTeam) {
-                              const ownerTeam = teams.find(t => t.id === trade.currentOwner);
-                              return (
-                                <div className="text-xs text-yellow-400 mt-0.5">
-                                  Pick owned by {ownerTeam?.name || 'Unknown'}
-                                </div>
-                              );
-                            }
-                            return null;
-                          })()}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="text-sm text-gray-300">
-                            {entry.team.wins}-{entry.team.losses}{entry.team.ties > 0 ? `-${entry.team.ties}` : ''}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="text-sm text-gray-400">{entry.combinations}</span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="text-sm font-bold text-green-400">{entry.pctFirstPick.toFixed(1)}%</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="w-full bg-gray-800 rounded-full h-2 max-w-[120px]">
-                            <div
-                              className="bg-green-400 h-2 rounded-full transition-all"
-                              style={{ width: `${entry.pctFirstPick}%` }}
-                            />
+            {isManualOrder && manualStandings.length > 0 ? (
+              /* Manual Order — show the fixed draft order set by LM */
+              <>
+                <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
+                  <div className="p-6 border-b border-gray-800">
+                    <h2 className="text-lg font-bold text-white">Draft Order</h2>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Set by the league manager &middot; {manualStandings.length} teams
+                    </p>
+                  </div>
+                  <div className="divide-y divide-gray-800">
+                    {manualStandings.map((team, i) => {
+                      const trade = rookiePickTrades.get(team.teamId);
+                      const isTraded = trade && trade.currentOwner !== trade.originalTeam;
+                      const ownerTeam = isTraded ? teams.find(t => t.id === trade!.currentOwner) : null;
+                      return (
+                        <div key={team.teamId} className="flex items-center gap-4 px-6 py-3 hover:bg-mns-hover transition-colors">
+                          <span className="text-green-400 font-bold text-lg w-8 text-right">{i + 1}.</span>
+                          <div className="flex-1">
+                            <span className="text-white font-semibold">{team.teamName}</span>
+                            {isTraded && (
+                              <div className="text-xs text-yellow-400 mt-0.5">
+                                Pick owned by {ownerTeam?.name || 'Unknown'}
+                              </div>
+                            )}
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-            {/* How It Works */}
-            <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">How It Works</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-400">
-                <div>
-                  <span className="text-white font-semibold">1. Lottery Draw</span>
-                  <p className="mt-1">14 ping-pong balls create 1,000 combinations. Top {Math.min(4, lotteryTeams.length)} picks drawn randomly based on odds.</p>
+                <div className="text-center">
+                  <button
+                    onClick={handleRunLottery}
+                    className="px-8 py-4 bg-green-400 text-black font-bold text-lg rounded-lg hover:bg-green-300 hover:shadow-[0_0_20px_rgba(74,222,128,0.5)] transition-all"
+                  >
+                    Simulate Draft
+                  </button>
                 </div>
-                <div>
-                  <span className="text-white font-semibold">2. Remaining Picks</span>
-                  <p className="mt-1">Picks {Math.min(5, lotteryTeams.length)}+ assigned by inverse record (worst teams pick next).</p>
+              </>
+            ) : (
+              /* Season Record — show lottery odds */
+              <>
+                <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
+                  <div className="p-6 border-b border-gray-800">
+                    <h2 className="text-lg font-bold text-white">Lottery Odds</h2>
+                    <p className="text-sm text-gray-400 mt-1">
+                      {lotteryTeams.length} teams competing for the top {Math.min(4, lotteryTeams.length)} picks
+                    </p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-mns-dark border-b border-gray-800">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Rank</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Team</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Record</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Combos</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">#1 Pick Odds</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Odds Bar</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-800">
+                        {odds.map((entry, i) => (
+                          <tr key={entry.team.teamId} className="hover:bg-mns-hover transition-colors">
+                            <td className="px-4 py-3">
+                              <span className="text-sm font-bold text-gray-400">{i + 1}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm font-semibold text-white">{entry.team.teamName}</span>
+                              {(() => {
+                                const trade = rookiePickTrades.get(entry.team.teamId);
+                                if (trade && trade.currentOwner !== trade.originalTeam) {
+                                  const ownerTeam = teams.find(t => t.id === trade.currentOwner);
+                                  return (
+                                    <div className="text-xs text-yellow-400 mt-0.5">
+                                      Pick owned by {ownerTeam?.name || 'Unknown'}
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="text-sm text-gray-300">
+                                {entry.team.wins}-{entry.team.losses}{entry.team.ties > 0 ? `-${entry.team.ties}` : ''}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="text-sm text-gray-400">{entry.combinations}</span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="text-sm font-bold text-green-400">{entry.pctFirstPick.toFixed(1)}%</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="w-full bg-gray-800 rounded-full h-2 max-w-[120px]">
+                                <div
+                                  className="bg-green-400 h-2 rounded-full transition-all"
+                                  style={{ width: `${entry.pctFirstPick}%` }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-white font-semibold">3. Mock Draft</span>
-                  <p className="mt-1">Top prospects slotted with weighted randomness — top picks stable, later picks get chaotic.</p>
-                </div>
-              </div>
-            </div>
 
-            <div className="text-center">
-              <button
-                onClick={handleRunLottery}
-                disabled={lotteryTeams.length === 0}
-                className="px-8 py-4 bg-green-400 text-black font-bold text-lg rounded-lg hover:bg-green-300 hover:shadow-[0_0_20px_rgba(74,222,128,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Run Lottery
-              </button>
-            </div>
+                {/* How It Works */}
+                <div className="bg-mns-card rounded-lg border border-gray-800 p-6">
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">How It Works</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-400">
+                    <div>
+                      <span className="text-white font-semibold">1. Lottery Draw</span>
+                      <p className="mt-1">14 ping-pong balls create 1,000 combinations. Top {Math.min(4, lotteryTeams.length)} picks drawn randomly based on odds.</p>
+                    </div>
+                    <div>
+                      <span className="text-white font-semibold">2. Remaining Picks</span>
+                      <p className="mt-1">Picks {Math.min(5, lotteryTeams.length)}+ assigned by inverse record (worst teams pick next).</p>
+                    </div>
+                    <div>
+                      <span className="text-white font-semibold">3. Mock Draft</span>
+                      <p className="mt-1">Top prospects slotted with weighted randomness — top picks stable, later picks get chaotic.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <button
+                    onClick={handleRunLottery}
+                    disabled={lotteryTeams.length === 0}
+                    className="px-8 py-4 bg-green-400 text-black font-bold text-lg rounded-lg hover:bg-green-300 hover:shadow-[0_0_20px_rgba(74,222,128,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Run Lottery
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -510,7 +627,19 @@ export function MockDraft() {
         {/* Phase 3: Mock Draft Board */}
         {phase === 'draft' && (
           <div className="space-y-6">
-            <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden">
+            <div ref={draftBoardRef} className="bg-mns-dark p-0">
+              {/* Branded header — visible in screenshot */}
+              <div className="bg-mns-dark px-6 pt-6 pb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-white">{league?.name || 'MNS'} — Mock Draft</h2>
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    {league?.seasonYear ? `${league.seasonYear + 1}` : ''} {league?.sport === 'wnba' ? 'WNBA' : 'NBA'} Rookie Draft Simulator
+                  </p>
+                </div>
+                <span className="text-xs font-bold text-green-400 tracking-wider">MNS</span>
+              </div>
+
+            <div className="bg-mns-card rounded-lg border border-gray-800 overflow-hidden mx-6">
               <div className="p-6 border-b border-gray-800">
                 <h2 className="text-lg font-bold text-white">First Round Mock Draft</h2>
                 <p className="text-sm text-gray-400 mt-1">
@@ -597,7 +726,7 @@ export function MockDraft() {
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+            <div className="flex flex-wrap gap-4 text-xs text-gray-500 px-6 pt-4">
               <span className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-sm bg-orange-400/10 border border-orange-400/30" />
                 Reach (drafted above consensus)
@@ -612,12 +741,26 @@ export function MockDraft() {
               </span>
             </div>
 
+              {/* Footer — visible in screenshot */}
+              <div className="px-6 pt-3 pb-5 flex items-center justify-between">
+                <span className="text-[10px] text-gray-600">moneyneversleeps.app</span>
+                <span className="text-[10px] text-gray-600">Powered by TrustThePick.com</span>
+              </div>
+            </div>
+
             <div className="flex justify-center gap-4">
               <button
                 onClick={handleResimulate}
                 className="px-8 py-3 bg-green-400 text-black font-bold rounded-lg hover:bg-green-300 hover:shadow-[0_0_20px_rgba(74,222,128,0.5)] transition-all"
               >
                 Re-simulate
+              </button>
+              <button
+                onClick={handleShare}
+                disabled={sharing}
+                className="px-6 py-3 bg-gray-800 text-gray-200 font-semibold rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                {sharing ? 'Capturing...' : 'Share'}
               </button>
               <button
                 onClick={() => navigate(`/league/${leagueId}/prospects`)}
