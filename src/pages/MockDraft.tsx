@@ -10,7 +10,7 @@ import {
   runMockDraft,
 } from '../lib/lottery';
 import type { TeamStanding, LotteryOdds, LotteryResult, MockPick } from '../lib/lottery';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import type { Team, League, Prospect } from '../types';
 import { DEFAULT_ROSTER_SETTINGS } from '../types';
 
@@ -275,28 +275,18 @@ export function MockDraft() {
     setSharing(true);
 
     try {
-      const canvas = await html2canvas(draftBoardRef.current, {
+      const dataUrl = await toPng(draftBoardRef.current, {
         backgroundColor: '#0a0a0a',
-        scale: 2,
-        useCORS: true,
+        pixelRatio: 2,
       });
 
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-
-        // Try native share if available (mobile), otherwise download
-        if (navigator.share && navigator.canShare?.({ files: [new File([blob], 'mock-draft.png', { type: 'image/png' })] })) {
-          const file = new File([blob], 'mock-draft.png', { type: 'image/png' });
-          navigator.share({ files: [file], title: `${league?.name || 'MNS'} Mock Draft` });
-        } else {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `mock-draft-${league?.name?.toLowerCase().replace(/\s+/g, '-') || 'mns'}.png`;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-      }, 'image/png');
+      const filename = `mock-draft-${league?.name?.toLowerCase().replace(/\s+/g, '-') || 'mns'}.png`;
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } catch (err) {
       console.error('Screenshot failed:', err);
     } finally {
@@ -318,12 +308,12 @@ export function MockDraft() {
   }
 
   return (
-    <div className="min-h-screen bg-mns-dark py-8">
+    <div className="min-h-screen bg-mns-dark py-6 sm:py-8 pb-24 lg:pb-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-white">Mock Draft Simulator</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Mock Draft Simulator</h1>
           </div>
           <p className="text-gray-500 text-sm">
             Powered by{' '}
@@ -426,21 +416,21 @@ export function MockDraft() {
                     <table className="w-full">
                       <thead className="bg-mns-dark border-b border-gray-800">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Rank</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Team</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Record</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Combos</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">#1 Pick Odds</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Odds Bar</th>
+                          <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Rank</th>
+                          <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Team</th>
+                          <th className="px-3 sm:px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Record</th>
+                          <th className="hidden sm:table-cell px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Combos</th>
+                          <th className="px-3 sm:px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">#1 Pick</th>
+                          <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Odds Bar</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-800">
                         {odds.map((entry, i) => (
                           <tr key={entry.team.teamId} className="hover:bg-mns-hover transition-colors">
-                            <td className="px-4 py-3">
+                            <td className="px-3 sm:px-4 py-3">
                               <span className="text-sm font-bold text-gray-400">{i + 1}</span>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-3 sm:px-4 py-3">
                               <span className="text-sm font-semibold text-white">{entry.team.teamName}</span>
                               {(() => {
                                 const trade = rookiePickTrades.get(entry.team.teamId);
@@ -455,18 +445,18 @@ export function MockDraft() {
                                 return null;
                               })()}
                             </td>
-                            <td className="px-4 py-3 text-center">
+                            <td className="px-3 sm:px-4 py-3 text-center">
                               <span className="text-sm text-gray-300">
                                 {entry.team.wins}-{entry.team.losses}{entry.team.ties > 0 ? `-${entry.team.ties}` : ''}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-center">
+                            <td className="hidden sm:table-cell px-4 py-3 text-center">
                               <span className="text-sm text-gray-400">{entry.combinations}</span>
                             </td>
-                            <td className="px-4 py-3 text-center">
+                            <td className="px-3 sm:px-4 py-3 text-center">
                               <span className="text-sm font-bold text-green-400">{entry.pctFirstPick.toFixed(1)}%</span>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="hidden sm:table-cell px-4 py-3">
                               <div className="w-full bg-gray-800 rounded-full h-2 max-w-[120px]">
                                 <div
                                   className="bg-green-400 h-2 rounded-full transition-all"
@@ -530,13 +520,13 @@ export function MockDraft() {
                         : 'border-gray-700 bg-mns-card'
                     }`}
                   >
-                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Pick</div>
-                    <div className={`text-4xl font-black mb-2 ${
+                    <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider mb-1">Pick</div>
+                    <div className={`text-3xl sm:text-4xl font-black mb-2 ${
                       result.pick === 1 ? 'text-yellow-400' : 'text-white'
                     }`}>
                       #{result.pick}
                     </div>
-                    <div className="text-sm font-bold text-white mb-1">{result.teamName}</div>
+                    <div className="text-xs sm:text-sm font-bold text-white mb-1 truncate">{result.teamName}</div>
                     {result.viaTeamName && (
                       <div className="text-xs text-yellow-400 mb-1">via {result.viaTeamName}</div>
                     )}
@@ -564,61 +554,70 @@ export function MockDraft() {
                   return (
                     <div
                       key={result.pick}
-                      className={`px-4 py-3 flex items-center gap-4 ${
+                      className={`px-3 sm:px-4 py-3 flex items-center gap-3 sm:gap-4 ${
                         result.isLotteryWinner ? 'bg-green-400/5' : isMoneyTeam ? 'bg-yellow-400/5' : ''
                       }`}
                     >
-                      <span className={`text-lg font-black w-8 ${
+                      <span className={`text-base sm:text-lg font-black w-6 sm:w-8 shrink-0 ${
                         result.pick <= 4 ? 'text-green-400' : 'text-gray-500'
                       }`}>
                         {result.pick}
                       </span>
-                      <span className="text-sm font-semibold text-white flex-1">
-                        {result.teamName}
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-semibold text-white">
+                          {result.teamName}
+                        </span>
                         {result.viaTeamName && (
                           <span className="text-xs text-yellow-400 font-normal ml-1.5">via {result.viaTeamName}</span>
                         )}
-                      </span>
-                      {result.isLotteryWinner && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-400/20 text-green-400 border border-green-400/30">
-                          LOTTERY
-                        </span>
-                      )}
-                      {isMoneyTeam && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-400 border border-yellow-400/30">
-                          MONEY
-                        </span>
-                      )}
-                      {result.viaTeamName && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-purple-400/20 text-purple-400 border border-purple-400/30">
-                          TRADED
-                        </span>
-                      )}
-                      {result.movement !== 0 && !isMoneyTeam && (
-                        <span className={`text-xs font-semibold ${
-                          result.movement > 0 ? 'text-green-400' : 'text-red-400'
-                        }`}>
-                          {result.movement > 0 ? `+${result.movement}` : result.movement}
-                        </span>
-                      )}
+                        <div className="flex flex-wrap gap-1.5 mt-1 sm:hidden">
+                          {result.isLotteryWinner && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-400/20 text-green-400 border border-green-400/30">LOTTERY</span>
+                          )}
+                          {isMoneyTeam && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-400/20 text-yellow-400 border border-yellow-400/30">MONEY</span>
+                          )}
+                          {result.movement !== 0 && !isMoneyTeam && (
+                            <span className={`text-[10px] font-semibold ${result.movement > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {result.movement > 0 ? `+${result.movement}` : result.movement}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="hidden sm:flex items-center gap-2">
+                        {result.isLotteryWinner && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-400/20 text-green-400 border border-green-400/30">LOTTERY</span>
+                        )}
+                        {isMoneyTeam && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-400 border border-yellow-400/30">MONEY</span>
+                        )}
+                        {result.viaTeamName && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-400/20 text-purple-400 border border-purple-400/30">TRADED</span>
+                        )}
+                        {result.movement !== 0 && !isMoneyTeam && (
+                          <span className={`text-xs font-semibold ${result.movement > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {result.movement > 0 ? `+${result.movement}` : result.movement}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={handleResimulate}
-                className="px-6 py-3 bg-gray-800 text-gray-200 font-semibold rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Re-draw Lottery
-              </button>
+            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
               <button
                 onClick={handleRunMockDraft}
                 className="px-8 py-3 bg-green-400 text-black font-bold rounded-lg hover:bg-green-300 hover:shadow-[0_0_20px_rgba(74,222,128,0.5)] transition-all"
               >
                 Continue to Mock Draft
+              </button>
+              <button
+                onClick={handleResimulate}
+                className="px-6 py-3 bg-gray-800 text-gray-200 font-semibold rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Re-draw Lottery
               </button>
             </div>
           </div>
@@ -650,12 +649,12 @@ export function MockDraft() {
                 <table className="w-full">
                   <thead className="bg-mns-dark border-b border-gray-800">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Pick</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Team</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Prospect</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">School</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Pos</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Consensus</th>
+                      <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Pick</th>
+                      <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Team</th>
+                      <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Prospect</th>
+                      <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">School</th>
+                      <th className="px-3 sm:px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Pos</th>
+                      <th className="hidden sm:table-cell px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Consensus</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
@@ -673,8 +672,8 @@ export function MockDraft() {
                                 : 'bg-blue-400/5 hover:bg-blue-400/10'
                           }`}
                         >
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${
+                          <td className="px-3 sm:px-4 py-2.5 sm:py-3">
+                            <span className={`inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full font-bold text-xs sm:text-sm ${
                               pick.pick <= 4
                                 ? 'bg-green-400/20 text-green-400 border border-green-400/30'
                                 : 'bg-gray-800 text-gray-400'
@@ -682,29 +681,39 @@ export function MockDraft() {
                               {pick.pick}
                             </span>
                           </td>
-                          <td className="px-4 py-3">
-                            <span className="text-sm font-semibold text-white">{pick.teamName}</span>
+                          <td className="px-3 sm:px-4 py-2.5 sm:py-3">
+                            <span className="text-xs sm:text-sm font-semibold text-white">{pick.teamName}</span>
                             {pick.viaTeamName && (
-                              <div className="text-xs text-yellow-400">via {pick.viaTeamName}</div>
+                              <div className="text-[10px] sm:text-xs text-yellow-400">via {pick.viaTeamName}</div>
                             )}
                           </td>
-                          <td className="px-4 py-3">
-                            <div className="text-sm font-semibold text-white">
+                          <td className="px-3 sm:px-4 py-2.5 sm:py-3">
+                            <div className="text-xs sm:text-sm font-semibold text-white">
                               {pick.prospect.player}
                             </div>
+                            <div className="text-[10px] text-gray-500 sm:hidden">{pick.prospect.school}</div>
                             {pick.prospect.draftProjection && (
-                              <div className="text-xs text-gray-500">{pick.prospect.draftProjection}</div>
+                              <div className="hidden sm:block text-xs text-gray-500">{pick.prospect.draftProjection}</div>
+                            )}
+                            {!pick.wasExpected && (
+                              <div className="text-[10px] sm:hidden font-semibold mt-0.5">
+                                {isReach ? (
+                                  <span className="text-orange-400">#{pick.prospect.rank} (+{diff})</span>
+                                ) : (
+                                  <span className="text-blue-400">#{pick.prospect.rank} ({diff})</span>
+                                )}
+                              </div>
                             )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="hidden sm:table-cell px-4 py-3">
                             <span className="text-sm text-gray-300">{pick.prospect.school}</span>
                           </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-blue-400/20 text-blue-400 border border-blue-400/30">
+                          <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center">
+                            <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-semibold bg-blue-400/20 text-blue-400 border border-blue-400/30">
                               {pick.prospect.position}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-center">
+                          <td className="hidden sm:table-cell px-4 py-3 text-center">
                             {pick.wasExpected ? (
                               <span className="text-xs text-gray-500">#{pick.prospect.rank}</span>
                             ) : isReach ? (
@@ -748,7 +757,7 @@ export function MockDraft() {
               </div>
             </div>
 
-            <div className="flex justify-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
               <button
                 onClick={handleResimulate}
                 className="px-8 py-3 bg-green-400 text-black font-bold rounded-lg hover:bg-green-300 hover:shadow-[0_0_20px_rgba(74,222,128,0.5)] transition-all"
@@ -758,9 +767,12 @@ export function MockDraft() {
               <button
                 onClick={handleShare}
                 disabled={sharing}
-                className="px-6 py-3 bg-gray-800 text-gray-200 font-semibold rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {sharing ? 'Capturing...' : 'Share'}
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                {sharing ? 'Capturing...' : 'Download PNG'}
               </button>
               <button
                 onClick={() => navigate(`/league/${leagueId}/prospects`)}
