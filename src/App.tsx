@@ -43,6 +43,7 @@ const RookieDraft = lazy(() => import('./pages/RookieDraft').then(m => ({ defaul
 const Rules = lazy(() => import('./pages/Rules').then(m => ({ default: m.Rules })));
 const Prospects = lazy(() => import('./pages/Prospects').then(m => ({ default: m.Prospects })));
 const MockDraft = lazy(() => import('./pages/MockDraft').then(m => ({ default: m.MockDraft })));
+const DraftHistory = lazy(() => import('./pages/DraftHistory').then(m => ({ default: m.DraftHistory })));
 const TradeMachine = lazy(() => import('./pages/TradeMachine').then(m => ({ default: m.TradeMachine })));
 const Inbox = lazy(() => import('./pages/Inbox').then(m => ({ default: m.Inbox })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
@@ -318,6 +319,16 @@ function App() {
               <PrivateRoute>
                 <LeagueLayout>
                   <MockDraft />
+                </LeagueLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/league/:leagueId/draft-history"
+            element={
+              <PrivateRoute>
+                <LeagueLayout>
+                  <DraftHistory />
                 </LeagueLayout>
               </PrivateRoute>
             }

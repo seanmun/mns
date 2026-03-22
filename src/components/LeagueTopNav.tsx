@@ -53,6 +53,7 @@ export function LeagueTopNav() {
     { label: 'Mock Draft', path: `${base}/mock-draft` },
     { label: 'Prospects', path: `${base}/prospects` },
     { label: 'Rookie Draft', path: `${base}/rookie-draft` },
+    { label: 'Draft History', path: `${base}/draft-history` },
     { label: 'Record Book', path: `${base}/record-book` },
   ];
 
