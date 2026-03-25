@@ -15,7 +15,7 @@ interface AdminRosterManagementProps {
   onClose: () => void;
 }
 
-type ActionType = 'add_to_ir' | 'move_to_active' | 'drop_player' | 'add_free_agent';
+type ActionType = 'add_to_ir' | 'move_to_active' | 'drop_player' | 'add_free_agent' | 'activate_redshirt';
 
 export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = DEFAULT_ROSTER_SETTINGS, sport = 'nba', onClose }: AdminRosterManagementProps) {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -78,6 +78,9 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
         break;
       case 'move_to_active':
         filtered = teamPlayers.filter(p => p.slot === 'ir');
+        break;
+      case 'activate_redshirt':
+        filtered = teamPlayers.filter(p => p.slot === 'redshirt');
         break;
       case 'drop_player':
         filtered = teamPlayers;
@@ -152,6 +155,58 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
             leagueId,
             slot: 'active',
           });
+          break;
+        }
+
+        case 'activate_redshirt': {
+          result = await movePlayerSlot({
+            playerId: selectedPlayer,
+            teamId: selectedTeam,
+            leagueId,
+            toSlot: 'active',
+          });
+
+          // Apply $25 activation fee
+          if (result.success) {
+            const feesId = `${leagueId}_${selectedTeam}_${seasonYear}`;
+            const { data: currentFees } = await supabase
+              .from('team_fees')
+              .select('unredshirt_fees, total_fees, fee_transactions')
+              .eq('id', feesId)
+              .maybeSingle();
+
+            const currentUnredshirtFees = currentFees?.unredshirt_fees || 0;
+            const currentTotalFees = currentFees?.total_fees || 0;
+            const currentTransactions = currentFees?.fee_transactions || [];
+
+            const player = players.find(p => p.id === selectedPlayer);
+
+            const { error: feesError } = await supabase
+              .from('team_fees')
+              .upsert({
+                id: feesId,
+                league_id: leagueId,
+                team_id: selectedTeam,
+                season_year: seasonYear,
+                unredshirt_fees: currentUnredshirtFees + 25,
+                total_fees: currentTotalFees + 25,
+                fee_transactions: [
+                  ...currentTransactions,
+                  {
+                    type: 'unredshirt',
+                    amount: 25,
+                    timestamp: Date.now(),
+                    triggeredBy: selectedPlayer,
+                    note: `Activated ${player?.name || selectedPlayer} from redshirt (admin)`,
+                  },
+                ],
+              }, { onConflict: 'id' });
+
+            if (feesError) {
+              logger.error('Failed to apply activation fee:', feesError);
+              toast.error('Player activated but fee update failed');
+            }
+          }
           break;
         }
       }
@@ -312,6 +367,7 @@ export function AdminRosterManagement({ leagueId, seasonYear, rosterSettings = D
               <option value="add_free_agent">Add Free Agent to Active Roster</option>
               <option value="add_to_ir">Move Player to IR</option>
               <option value="move_to_active">Move Player from IR to Active</option>
+              <option value="activate_redshirt">Activate Redshirt</option>
               <option value="drop_player">Drop Player</option>
             </select>
           </div>

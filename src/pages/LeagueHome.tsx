@@ -102,6 +102,7 @@ export function LeagueHome() {
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
   const seasonDropdownRef = useRef<HTMLDivElement>(null);
   const [teamSalaries, setTeamSalaries] = useState<Map<string, number>>(new Map());
+  const [teamDues, setTeamDues] = useState<Map<string, number>>(new Map());
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
   const [showPortfolioDetails, setShowPortfolioDetails] = useState(false);
@@ -192,6 +193,7 @@ export function LeagueHome() {
 
         // Process fees — use sticky first apron + highest watermark second apron
         let franchiseTagDues = 0, redshirtDues = 0, activationDues = 0, firstApronFees = 0, secondApronPenalties = 0;
+        const duesMap = new Map<string, number>();
         (feesResult.data || []).forEach((row: any) => {
           const fees = mapTeamFees(row);
           franchiseTagDues += fees.franchiseTagFees || 0;
@@ -204,15 +206,26 @@ export function LeagueHome() {
           const leagueFirstApron = league?.cap?.firstApron || 195_000_000;
           const leagueFirstApronFee = league?.fees?.firstApronFee ?? 50;
           const dynamicFirstApron = (leagueFirstApron > 0 && teamSalary > leagueFirstApron) ? leagueFirstApronFee : 0;
-          firstApronFees += dbFirstApron > 0 ? dbFirstApron : dynamicFirstApron;
+          const teamFirstApron = dbFirstApron > 0 ? dbFirstApron : dynamicFirstApron;
+          firstApronFees += teamFirstApron;
 
           // Highest watermark second apron
           const dbPenalty = fees.secondApronPenalty || 0;
           const leagueSecondApron = league?.cap?.secondApron || 225_000_000;
           const leaguePenaltyRate = league?.fees?.penaltyRatePerM ?? 2;
           const dynamicPenalty = (leagueSecondApron > 0 && teamSalary > leagueSecondApron) ? Math.ceil((teamSalary - leagueSecondApron) / 1_000_000) * leaguePenaltyRate : 0;
-          secondApronPenalties += Math.max(dbPenalty, dynamicPenalty);
+          const teamPenalty = Math.max(dbPenalty, dynamicPenalty);
+          secondApronPenalties += teamPenalty;
+
+          // Per-team total dues (buy-in + penalty fees)
+          const teamTotal = buyIn + (fees.franchiseTagFees || 0) + (fees.redshirtFees || 0) + (fees.unredshirtFees || 0) + teamFirstApron + teamPenalty;
+          duesMap.set(fees.teamId, teamTotal);
         });
+        // Teams without a team_fees row still owe the buy-in
+        teamData.forEach(t => {
+          if (!duesMap.has(t.id)) duesMap.set(t.id, buyIn);
+        });
+        setTeamDues(duesMap);
 
         const totalPrizeFees = franchiseTagDues + redshirtDues + activationDues + firstApronFees + secondApronPenalties;
         setTotalKeeperFees(totalPrizeFees);
@@ -758,12 +771,13 @@ export function LeagueHome() {
                 </p>
               </div>
               {/* Table Header */}
-              <div className="hidden sm:grid grid-cols-[2.5rem_1fr_6rem_4rem_6rem] px-6 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-800">
+              <div className="hidden sm:grid grid-cols-[2.5rem_1fr_6rem_4rem_6rem_4rem] px-6 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-800">
                 <span>#</span>
                 <span>Team</span>
                 <span className="text-center">Record</span>
                 <span className="text-center">Pct</span>
                 <span className="text-right">Salary</span>
+                <span className="text-right">Dues</span>
               </div>
               <div className="divide-y divide-gray-800">
                 {sortedTeams.map((team, idx) => {
@@ -783,7 +797,7 @@ export function LeagueHome() {
                     <button
                       key={team.id}
                       onClick={() => handleTeamClick(team.id)}
-                      className={`w-full px-6 py-3 flex items-center sm:grid sm:grid-cols-[2.5rem_1fr_6rem_4rem_6rem] gap-2 hover:bg-gray-800/50 transition-colors text-left ${isMyTeam ? 'bg-green-400/5' : ''}`}
+                      className={`w-full px-6 py-3 flex items-center sm:grid sm:grid-cols-[2.5rem_1fr_6rem_4rem_6rem_4rem] gap-2 hover:bg-gray-800/50 transition-colors text-left ${isMyTeam ? 'bg-green-400/5' : ''}`}
                     >
                       {/* Rank */}
                       <span className={`text-lg font-bold ${rank <= 3 ? 'text-green-400' : rank <= 6 ? 'text-gray-300' : 'text-gray-500'}`}>
@@ -817,6 +831,13 @@ export function LeagueHome() {
                       <div className="hidden sm:block text-right">
                         <span className={`text-sm ${isOverApron ? 'text-yellow-400' : 'text-gray-400'}`}>
                           ${(totalSalary / 1_000_000).toFixed(1)}M
+                        </span>
+                      </div>
+
+                      {/* Dues */}
+                      <div className="hidden sm:block text-right">
+                        <span className={`text-sm ${(teamDues.get(team.id) || 0) > 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                          ${teamDues.get(team.id) || 0}
                         </span>
                       </div>
                     </button>

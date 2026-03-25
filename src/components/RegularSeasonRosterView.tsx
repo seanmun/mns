@@ -204,7 +204,11 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
 
       const { error: feesError } = await supabase
         .from('team_fees')
-        .update({
+        .upsert({
+          id: feesId,
+          league_id: league.id,
+          team_id: team.id,
+          season_year: league.seasonYear,
           unredshirt_fees: currentUnredshirtFees + 25,
           total_fees: currentTotalFees + 25,
           fee_transactions: [
@@ -217,8 +221,7 @@ export function RegularSeasonRosterView({ teamPlayers, team, teamFees, isOwner, 
               note: `Activated ${player.name} from redshirt`,
             },
           ],
-        })
-        .eq('id', feesId);
+        }, { onConflict: 'id' });
 
       if (feesError) throw feesError;
 
