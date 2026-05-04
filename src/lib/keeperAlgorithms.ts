@@ -312,7 +312,6 @@ export function validateRoster(
   const errors: ValidationError[] = [];
 
   const keepers = entries.filter((e) => e.decision === "KEEP");
-  const redshirts = entries.filter((e) => e.decision === "REDSHIRT");
   const intStashes = entries.filter((e) => e.decision === "INT_STASH");
 
   // Check keeper count
@@ -324,27 +323,8 @@ export function validateRoster(
     });
   }
 
-  // Check redshirt eligibility
-  redshirts.forEach((entry) => {
-    const player = allPlayers.get(entry.playerId);
-    if (player && player.roster.rookieDraftInfo) {
-      if (!player.roster.rookieDraftInfo.redshirtEligible) {
-        errors.push({
-          type: 'error',
-          field: 'redshirtEligibility',
-          message: `${player.name} is not eligible for redshirt.`,
-          playerId: player.id,
-        });
-      }
-    } else if (player && !player.roster.isRookie) {
-      errors.push({
-        type: 'error',
-        field: 'redshirtEligibility',
-        message: `${player.name} is not a rookie and cannot be redshirted.`,
-        playerId: player.id,
-      });
-    }
-  });
+  // Redshirt is allowed for ALL players (no eligibility check) — see PR enabling
+  // open redshirts. Validation intentionally removed.
 
   // Check int stash eligibility
   intStashes.forEach((entry) => {

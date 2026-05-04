@@ -237,18 +237,8 @@ export const RosterTable = memo(function RosterTable({
                           >
                             <option value="DROP">Drop</option>
                             <option value="KEEP">Keep</option>
-                            <option
-                              value="REDSHIRT"
-                              disabled={
-                                !player.roster.isRookie ||
-                                !player.roster.rookieDraftInfo?.redshirtEligible
-                              }
-                            >
+                            <option value="REDSHIRT">
                               Redshirt
-                              {!player.roster.isRookie ||
-                              !player.roster.rookieDraftInfo?.redshirtEligible
-                                ? ' (N/A)'
-                                : ''}
                             </option>
                             <option
                               value="INT_STASH"

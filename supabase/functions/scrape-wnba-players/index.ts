@@ -174,9 +174,11 @@ function baseSlug(value: string): string {
   return value.replace(/-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/, "");
 }
 
-async function discoverTeamSlugs(year: number): Promise<string[]> {
-  // Fetch one known team page; the dropdown lists all 15 teams
-  const seedUrl = `https://herhoopstats.com/salary-cap-sheet/wnba/team/${year}/dallas-wings-11eaecc7-3583-13fc-b611-2362f5011b0b/`;
+// Discovers team slugs AND returns the seed page HTML so we can parse it
+// without refetching (avoids HHS rate-limiting on the seed team).
+async function discoverTeamSlugs(year: number): Promise<{ slugs: string[]; seedSlug: string; seedHtml: string }> {
+  const seedSlug = "dallas-wings-11eaecc7-3583-13fc-b611-2362f5011b0b";
+  const seedUrl = `https://herhoopstats.com/salary-cap-sheet/wnba/team/${year}/${seedSlug}/`;
   console.log("[TEAMS] Discovering team slugs from:", seedUrl);
 
   const res = await fetch(seedUrl, {
@@ -186,19 +188,19 @@ async function discoverTeamSlugs(year: number): Promise<string[]> {
     throw new Error(`Failed to discover team slugs: HTTP ${res.status}`);
   }
 
-  const html = await res.text();
+  const seedHtml = await res.text();
   // Match dropdown options: <option value="slug-uuid">Team Name</option>
   const optionRe = /<option\s+value="([a-z-]+-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})">/g;
   const slugs: string[] = [];
   let m: RegExpExecArray | null;
-  while ((m = optionRe.exec(html)) !== null) {
+  while ((m = optionRe.exec(seedHtml)) !== null) {
     slugs.push(m[1]);
   }
 
   // Dedupe (dropdown may appear multiple times in HTML)
   const unique = [...new Set(slugs)];
   console.log("[TEAMS] Discovered", unique.length, "teams");
-  return unique;
+  return { slugs: unique, seedSlug, seedHtml };
 }
 
 function parseTeamPage(html: string, teamAbbrev: string): TeamPagePlayer[] {
@@ -240,16 +242,28 @@ function parseTeamPage(html: string, teamAbbrev: string): TeamPagePlayer[] {
 async function scrapeHerHoopStatsTeams(year: number): Promise<Map<string, TeamPagePlayer>> {
   const result = new Map<string, TeamPagePlayer>();
 
-  let slugs: string[];
+  let discovery: { slugs: string[]; seedSlug: string; seedHtml: string };
   try {
-    slugs = await discoverTeamSlugs(year);
+    discovery = await discoverTeamSlugs(year);
   } catch (err) {
     console.log("[TEAMS] Discovery failed:", (err as Error).message);
     throw err;
   }
+  const { slugs, seedSlug, seedHtml } = discovery;
 
-  // Fetch each team page sequentially with a small delay (be kind to HHS)
+  // Parse the seed team's HTML directly (already fetched during discovery)
+  // — avoids hitting HHS twice in quick succession for the seed team.
+  const seedBase = baseSlug(seedSlug);
+  const seedAbbrev = SLUG_TO_ABBREV[seedBase] || seedBase.toUpperCase();
+  const seedPlayers = parseTeamPage(seedHtml, seedAbbrev);
+  console.log(`[TEAMS] ${seedBase} (from seed): ${seedPlayers.length} players`);
+  for (const p of seedPlayers) {
+    result.set(normalizeName(p._name), p);
+  }
+
+  // Fetch the remaining team pages sequentially with a small delay
   for (const slug of slugs) {
+    if (slug === seedSlug) continue; // already handled via seed HTML
     const baseName = baseSlug(slug);
     const teamAbbrev = SLUG_TO_ABBREV[baseName] || baseName.toUpperCase();
     const url = `https://herhoopstats.com/salary-cap-sheet/wnba/team/${year}/${slug}/`;
