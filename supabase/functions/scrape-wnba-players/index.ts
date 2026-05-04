@@ -137,6 +137,150 @@ async function scrapeHerHoopStats(): Promise<Map<string, HHSSlim>> {
   return result;
 }
 
+// ============================================================
+// HHS Team Pages — pulls full roster per team (includes rookies
+// without 2025 stats that the main salary cap page filters out)
+// ============================================================
+interface TeamPagePlayer {
+  _name: string;
+  team_abbrev: string;
+  salary: number;
+  status: string | null; // UFA, RFA, Reserved, etc.
+}
+
+// Slug → standard team abbreviation (matches TEAM_MAP canonical values)
+const SLUG_TO_ABBREV: Record<string, string> = {
+  "atlanta-dream": "ATL",
+  "chicago-sky": "CHI",
+  "connecticut-sun": "CON",
+  "dallas-wings": "DAL",
+  "golden-state-valkyries": "GSV",
+  "indiana-fever": "IND",
+  "las-vegas-aces": "LVA",
+  "los-angeles-sparks": "LAS",
+  "minnesota-lynx": "MIN",
+  "new-york-liberty": "NYL",
+  "phoenix-mercury": "PHO",
+  "portland-fire": "POR",
+  "seattle-storm": "SEA",
+  "toronto-tempo": "TOR",
+  "washington-mystics": "WAS",
+};
+
+// Extract base slug (before UUID) from a URL-encoded team value like
+// "dallas-wings-11eaecc7-3583-13fc-b611-2362f5011b0b"
+function baseSlug(value: string): string {
+  // UUID is always 8-4-4-4-12; strip it from the end
+  return value.replace(/-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/, "");
+}
+
+async function discoverTeamSlugs(year: number): Promise<string[]> {
+  // Fetch one known team page; the dropdown lists all 15 teams
+  const seedUrl = `https://herhoopstats.com/salary-cap-sheet/wnba/team/${year}/dallas-wings-11eaecc7-3583-13fc-b611-2362f5011b0b/`;
+  console.log("[TEAMS] Discovering team slugs from:", seedUrl);
+
+  const res = await fetch(seedUrl, {
+    headers: { "User-Agent": "MNS-FantasyApp/1.0" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to discover team slugs: HTTP ${res.status}`);
+  }
+
+  const html = await res.text();
+  // Match dropdown options: <option value="slug-uuid">Team Name</option>
+  const optionRe = /<option\s+value="([a-z-]+-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})">/g;
+  const slugs: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = optionRe.exec(html)) !== null) {
+    slugs.push(m[1]);
+  }
+
+  // Dedupe (dropdown may appear multiple times in HTML)
+  const unique = [...new Set(slugs)];
+  console.log("[TEAMS] Discovered", unique.length, "teams");
+  return unique;
+}
+
+function parseTeamPage(html: string, teamAbbrev: string): TeamPagePlayer[] {
+  const players: TeamPagePlayer[] = [];
+
+  // Each player row starts with their name cell; we then look ahead for the
+  // first salary_cap_hit cell (which is the requested year's salary)
+  // and an optional salary_unsigned_status cell for free-agent designation.
+  const rowRe = /<td\s+sorttable_customkey="([^"]+)"\s+class="roster_stat_cell table_cell_left salary_player_name">([\s\S]*?)(?=<td[^>]*salary_player_name|<\/tbody>)/g;
+
+  let match: RegExpExecArray | null;
+  while ((match = rowRe.exec(html)) !== null) {
+    const name = match[1].trim();
+    const rowHtml = match[2];
+
+    // First salary_cap_hit cell after the name = the requested year salary
+    const salaryMatch = rowHtml.match(
+      /<td[^>]*sorttable_customkey="(\d+)"[^>]*class="roster_stat_cell table_cell_right salary_cap_hit[^"]*"/
+    );
+    const salary = salaryMatch ? parseInt(salaryMatch[1], 10) : 0;
+
+    // Status cell (UFA, RFA, etc.) — title attribute contains the human label
+    const statusMatch = rowHtml.match(
+      /class="roster_stat_cell table_cell_right salary_unsigned_status"[^>]*title="([^"]+)"/
+    );
+    const status = statusMatch ? statusMatch[1] : null;
+
+    players.push({
+      _name: name,
+      team_abbrev: teamAbbrev,
+      salary,
+      status,
+    });
+  }
+
+  return players;
+}
+
+async function scrapeHerHoopStatsTeams(year: number): Promise<Map<string, TeamPagePlayer>> {
+  const result = new Map<string, TeamPagePlayer>();
+
+  let slugs: string[];
+  try {
+    slugs = await discoverTeamSlugs(year);
+  } catch (err) {
+    console.log("[TEAMS] Discovery failed:", (err as Error).message);
+    throw err;
+  }
+
+  // Fetch each team page sequentially with a small delay (be kind to HHS)
+  for (const slug of slugs) {
+    const baseName = baseSlug(slug);
+    const teamAbbrev = SLUG_TO_ABBREV[baseName] || baseName.toUpperCase();
+    const url = `https://herhoopstats.com/salary-cap-sheet/wnba/team/${year}/${slug}/`;
+
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": "MNS-FantasyApp/1.0" },
+      });
+      if (!res.ok) {
+        console.log(`[TEAMS] ${baseName}: HTTP ${res.status}, skipping`);
+        continue;
+      }
+      const html = await res.text();
+      const players = parseTeamPage(html, teamAbbrev);
+      console.log(`[TEAMS] ${baseName}: ${players.length} players`);
+
+      for (const p of players) {
+        result.set(normalizeName(p._name), p);
+      }
+    } catch (err) {
+      console.log(`[TEAMS] ${baseName}: error -`, (err as Error).message);
+    }
+
+    // Small delay between team requests
+    await new Promise((r) => setTimeout(r, 200));
+  }
+
+  console.log("[TEAMS] Total unique players:", result.size);
+  return result;
+}
+
 interface BDLPlayer {
   first_name: string;
   last_name: string;
@@ -220,53 +364,82 @@ Deno.serve(async (req) => {
   try {
     console.log("[MAIN] Starting scrape");
 
-    // Scrape both sources in parallel
-    const [hhsResult, bdlResult] = await Promise.allSettled([
+    // Year for HHS team pages — defaults to current year, override via ?year=2026
+    const url = new URL(req.url);
+    const yearParam = url.searchParams.get("year");
+    const year = yearParam ? parseInt(yearParam, 10) : new Date().getFullYear();
+
+    // Scrape three sources in parallel:
+    //   - HHS all-players JSON (rich stats, but excludes rookies w/ no 2025 stats)
+    //   - HHS team pages (every contracted player including rookies; salary only)
+    //   - BDL (position, height enrichment)
+    const [hhsResult, hhsTeamsResult, bdlResult] = await Promise.allSettled([
       scrapeHerHoopStats(),
+      scrapeHerHoopStatsTeams(year),
       fetchBallDontLie(),
     ]);
 
-    console.log("[MAIN] Both sources settled");
-    console.log("[MAIN] HHS:", hhsResult.status);
+    console.log("[MAIN] All sources settled");
+    console.log("[MAIN] HHS json:", hhsResult.status);
+    console.log("[MAIN] HHS teams:", hhsTeamsResult.status);
     console.log("[MAIN] BDL:", bdlResult.status);
 
     const hhs =
-      hhsResult.status === "fulfilled" ? hhsResult.value : new Map();
+      hhsResult.status === "fulfilled" ? hhsResult.value : new Map<string, HHSSlim>();
+    const hhsTeams =
+      hhsTeamsResult.status === "fulfilled" ? hhsTeamsResult.value : new Map<string, TeamPagePlayer>();
     const bdl =
-      bdlResult.status === "fulfilled" ? bdlResult.value : new Map();
+      bdlResult.status === "fulfilled" ? bdlResult.value : new Map<string, BDLPlayer>();
 
     const hhsError =
       hhsResult.status === "rejected" ? hhsResult.reason?.message : null;
+    const hhsTeamsError =
+      hhsTeamsResult.status === "rejected" ? hhsTeamsResult.reason?.message : null;
     const bdlError =
       bdlResult.status === "rejected" ? bdlResult.reason?.message : null;
 
-    if (hhsError) console.log("[MAIN] HHS error:", hhsError);
+    if (hhsError) console.log("[MAIN] HHS json error:", hhsError);
+    if (hhsTeamsError) console.log("[MAIN] HHS teams error:", hhsTeamsError);
     if (bdlError) console.log("[MAIN] BDL error:", bdlError);
 
-    // Merge: HHS is primary (has salary + stats), BDL enriches (has position)
-    const allNames = new Set([...hhs.keys(), ...bdl.keys()]);
+    // Merge: union all names from all 3 sources.
+    //   - team page → salary, team, status (definitive contract data)
+    //   - JSON → detailed stats (only available for players with 2025 stats)
+    //   - BDL → position, height
+    const allNames = new Set([...hhs.keys(), ...hhsTeams.keys(), ...bdl.keys()]);
     const merged: unknown[] = [];
 
     for (const key of allNames) {
       const h = hhs.get(key);
+      const t = hhsTeams.get(key);
       const b = bdl.get(key);
       const sources: string[] = [];
       if (h) sources.push("herhoopstats");
+      if (t) sources.push("herhoopstats-team");
       if (b) sources.push("balldontlie");
 
-      const name = h?._name || (b ? `${b.first_name} ${b.last_name}` : key);
+      const name =
+        t?._name ||
+        h?._name ||
+        (b ? `${b.first_name} ${b.last_name}` : key);
+
+      // Confidence: full data from all 3 = 1.0; HHS only = 0.75; BDL only = 0.5
       const confidence =
-        sources.length === 2
+        sources.length === 3
           ? 1.0
-          : sources.includes("herhoopstats")
+          : sources.includes("herhoopstats") || sources.includes("herhoopstats-team")
             ? 0.75
             : 0.5;
 
       merged.push({
         name,
-        team: normalizeTeam(h?.team_abbrev || b?.team?.abbreviation || ""),
+        team: normalizeTeam(
+          t?.team_abbrev || h?.team_abbrev || b?.team?.abbreviation || ""
+        ),
         position: b?.position || "",
-        salary: h?.salary || 0,
+        // Prefer team-page salary (most current) over JSON salary
+        salary: t?.salary || h?.salary || 0,
+        status: t?.status || null,
         height: b?.height || null,
         stats: h
           ? {
@@ -300,8 +473,10 @@ Deno.serve(async (req) => {
         totalCount: merged.length,
         sourceStatus: {
           herhoopstats: hhsResult.status === "fulfilled" ? "ok" : "failed",
+          herhoopstatsTeams: hhsTeamsResult.status === "fulfilled" ? "ok" : "failed",
           balldontlie: bdlResult.status === "fulfilled" ? "ok" : "failed",
           hhsError,
+          hhsTeamsError,
           bdlError,
         },
         scrapedAt: new Date().toISOString(),

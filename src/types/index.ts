@@ -226,6 +226,7 @@ export interface WNBAScrapedPlayer {
   team: string;
   position: string;
   salary: number;
+  status?: string | null; // UFA, RFA, Reserved, Suspended, etc. (from HHS team page)
   height: string | null;
   stats: {
     gamesPlayed: number;

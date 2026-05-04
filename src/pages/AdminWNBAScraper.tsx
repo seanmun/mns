@@ -36,8 +36,10 @@ interface ScrapeResponse {
   totalCount: number;
   sourceStatus: {
     herhoopstats: string;
+    herhoopstatsTeams?: string;
     balldontlie: string;
     hhsError?: string | null;
+    hhsTeamsError?: string | null;
     bdlError?: string | null;
   };
   scrapedAt: string;
@@ -153,8 +155,10 @@ export function AdminWNBAScraper() {
 
         if (status === 'updated') {
           // Safe update: NEVER touch team_id, league_id, slot, on_ir
+          // Include fantrax_id so upsert can fall back to INSERT if existingIds is stale
           updateRows.push({
             id,
+            fantrax_id: id,
             name: p.name,
             salary: p.salary,
             position: p.position || 'G/F',
