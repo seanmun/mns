@@ -21,8 +21,20 @@ function normalizeTeam(raw: string): string {
   return TEAM_MAP[upper] || upper;
 }
 
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ");
+}
+
 function slugify(name: string): string {
-  return name
+  return decodeHtmlEntities(name)
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -213,7 +225,7 @@ function parseTeamPage(html: string, teamAbbrev: string): TeamPagePlayer[] {
 
   let match: RegExpExecArray | null;
   while ((match = rowRe.exec(html)) !== null) {
-    const name = match[1].trim();
+    const name = decodeHtmlEntities(match[1].trim());
     const rowHtml = match[2];
 
     // First salary_cap_hit cell after the name = the requested year salary

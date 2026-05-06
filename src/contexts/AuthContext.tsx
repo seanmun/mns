@@ -54,8 +54,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    console.log('[Auth] mount — URL:', window.location.href);
+    console.log('[Auth] storageKey contents:', window.localStorage.getItem('mns-auth-token'));
     // Check initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error: sessErr }) => {
+      console.log('[Auth] getSession resolved — session?', !!session?.user, 'error:', sessErr);
       if (session?.user) {
         const appUser = mapUser(session.user);
         setUser(appUser);
@@ -85,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes (sign in, sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('[Auth] onAuthStateChange — event:', _event, 'session?', !!session?.user);
       if (session?.user) {
         const appUser = mapUser(session.user);
         setUser(appUser);

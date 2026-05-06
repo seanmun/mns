@@ -8,13 +8,22 @@ export function useProjectedStats(seasonYear?: string) {
   const { data, isLoading: loading, error } = useQuery({
     queryKey: ['projectedStats', seasonYear],
     queryFn: async () => {
-      let query = supabase.from('projected_stats').select('*');
-      if (seasonYear) {
-        query = query.eq('season_year', seasonYear);
+      const PAGE_SIZE = 1000;
+      const all: any[] = [];
+      let from = 0;
+      while (true) {
+        let query = supabase.from('projected_stats').select('*').range(from, from + PAGE_SIZE - 1);
+        if (seasonYear) {
+          query = query.eq('season_year', seasonYear);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
       }
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []).map(mapProjectedStats);
+      return all.map(mapProjectedStats);
     },
   });
 
