@@ -39,8 +39,8 @@ export function LeagueBottomNav() {
   const isHome = path === base || path === `${base}/`;
   const isRoster = path.includes('/team/');
   const isPlayers = path.includes('/free-agents');
-  const isTrade = path.includes('/trade-machine');
-  const morePages = ['/draft', '/rookie-draft', '/mock-draft', '/prospects', '/draft-history', '/rules', '/record-book', '/inbox'];
+  const isDraftRoom = path === `${base}/draft`;
+  const morePages = ['/trade-machine', '/rookie-draft', '/mock-draft', '/prospects', '/draft-history', '/rules', '/record-book', '/inbox'];
   const isMoreActive = morePages.some(p => path === `${base}${p}`);
 
   const handleNav = (to: string) => {
@@ -49,7 +49,7 @@ export function LeagueBottomNav() {
   };
 
   const moreItems = [
-    { label: 'Draft Room', path: `${base}/draft`, section: 'Draft' },
+    { label: 'Trade Machine', path: `${base}/trade-machine`, section: 'Draft' },
     { label: 'Mock Draft', path: `${base}/mock-draft`, section: 'Draft' },
     { label: 'Prospects', path: `${base}/prospects`, section: 'Draft' },
     { label: 'Rookie Draft', path: `${base}/rookie-draft`, section: 'Draft' },
@@ -166,19 +166,19 @@ export function LeagueBottomNav() {
             <span className="text-[10px] font-medium">Players</span>
           </button>
 
-          {/* Trade */}
+          {/* Draft Room */}
           <button
-            onClick={() => handleNav(`${base}/trade-machine`)}
+            onClick={() => handleNav(`${base}/draft`)}
             className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors ${
-              isTrade ? 'text-green-400' : 'text-gray-500'
+              isDraftRoom ? 'text-green-400' : 'text-gray-500'
             }`}
-            aria-label="Trade machine"
-            aria-current={isTrade ? 'page' : undefined}
+            aria-label="Draft room"
+            aria-current={isDraftRoom ? 'page' : undefined}
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isTrade ? 2.5 : 1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isDraftRoom ? 2.5 : 1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
-            <span className="text-[10px] font-medium">Trade</span>
+            <span className="text-[10px] font-medium">Draft</span>
           </button>
 
           {/* More */}

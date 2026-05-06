@@ -438,7 +438,7 @@ export function AdminDraftSetup() {
         .from('drafts')
         .update({
           status: 'in_progress',
-          started_at: Date.now(),
+          started_at: new Date().toISOString(),
         })
         .eq('id', existingDraft.id);
       if (error) throw error;
