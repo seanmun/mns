@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { RosterEntry, Player } from '../types';
-import { stackKeeperRounds, computeSummary } from '../lib/keeperAlgorithms';
+import { stackKeeperRounds, computeSummary, assignInauguralKeeperRounds } from '../lib/keeperAlgorithms';
 import { mapRoster, mapPlayer, mapTeam, mapLeague } from '../lib/mappers';
 
 export function useRoster(leagueId: string, teamId: string, seasonYear?: number) {
@@ -190,6 +190,7 @@ interface UpdateRosterParams {
   entries: RosterEntry[];
   allPlayers: Map<string, Player>;
   tradeDelta: number;
+  stackingMode?: 'standard' | 'inaugural';
 }
 
 // Helper to remove undefined values from an object
@@ -207,11 +208,15 @@ function removeUndefined(obj: any): any {
 }
 
 export async function updateRoster(params: UpdateRosterParams) {
-  const { leagueId, teamId, entries, allPlayers, tradeDelta } = params;
+  const { leagueId, teamId, entries, allPlayers, tradeDelta, stackingMode = 'standard' } = params;
   const rosterId = `${leagueId}_${teamId}`;
 
-  // Apply stacking algorithm
-  const { entries: stackedEntries, franchiseTags } = stackKeeperRounds(entries);
+  // Apply round-assignment algorithm. 'inaugural' is for first-year leagues
+  // with no prior-year draft data — numbers KEEPs 1..N by salary desc.
+  const { entries: stackedEntries, franchiseTags } =
+    stackingMode === 'inaugural'
+      ? assignInauguralKeeperRounds(entries, allPlayers)
+      : stackKeeperRounds(entries);
 
   // Compute summary
   const summary = computeSummary({

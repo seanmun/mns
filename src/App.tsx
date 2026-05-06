@@ -60,6 +60,7 @@ const AdminTeams = lazy(() => import('./pages/AdminTeams').then(m => ({ default:
 const AdminPlayers = lazy(() => import('./pages/AdminPlayers').then(m => ({ default: m.AdminPlayers })));
 const AdminLeague = lazy(() => import('./pages/AdminLeague').then(m => ({ default: m.AdminLeague })));
 const AdminRosterManager = lazy(() => import('./pages/AdminRosterManager').then(m => ({ default: m.AdminRosterManager })));
+const LMKeeperManager = lazy(() => import('./pages/LMKeeperManager').then(m => ({ default: m.LMKeeperManager })));
 const AdminDraftTest = lazy(() => import('./pages/AdminDraftTest').then(m => ({ default: m.AdminDraftTest })));
 const AdminDraftSetup = lazy(() => import('./pages/AdminDraftSetup').then(m => ({ default: m.AdminDraftSetup })));
 const AdminRookiePicks = lazy(() => import('./pages/AdminRookiePicks').then(m => ({ default: m.AdminRookiePicks })));
@@ -519,6 +520,16 @@ function App() {
               <PrivateRoute>
                 <AppLayout>
                   <AdminRosterManager />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/lm/keepers"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <LMKeeperManager />
                 </AppLayout>
               </PrivateRoute>
             }

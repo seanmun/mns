@@ -621,6 +621,47 @@ export function Draft() {
     }
   };
 
+  // Memoize drafted player IDs (must run on every render to satisfy hook order)
+  const draftedPlayerIds = useMemo(() => {
+    if (!draft) return new Set<string>();
+    return new Set(draft.picks.filter(p => p.playerId).map(p => p.playerId!));
+  }, [draft]);
+
+  // Memoize available players (filtered + sorted)
+  const availablePlayers = useMemo(() => {
+    if (!draft) return [];
+    const filtered = players.filter(p => {
+      if (p.roster?.teamId || draftedPlayerIds.has(p.id)) return false;
+      const matchesSearch = !searchTerm ||
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.nbaTeam?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesPosition = positionFilter === 'all' || p.position.includes(positionFilter);
+      const matchesWatchlist = !showWatchlistOnly || watchList?.playerIds.includes(p.fantraxId);
+      return matchesSearch && matchesPosition && matchesWatchlist;
+    });
+
+    return [...filtered].sort((a, b) => {
+      let aValue: number | undefined;
+      let bValue: number | undefined;
+
+      if (sortColumn === 'salary') {
+        aValue = a.salary;
+        bValue = b.salary;
+      } else {
+        const aStats = projectedStats.get(a.fantraxId);
+        const bStats = projectedStats.get(b.fantraxId);
+        aValue = aStats?.[sortColumn];
+        bValue = bStats?.[sortColumn];
+      }
+
+      if (aValue === undefined && bValue === undefined) return 0;
+      if (aValue === undefined) return 1;
+      if (bValue === undefined) return -1;
+
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    });
+  }, [draft, players, draftedPlayerIds, searchTerm, positionFilter, showWatchlistOnly, watchList, sortColumn, sortDirection, projectedStats]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-mns-dark">
@@ -685,45 +726,6 @@ export function Draft() {
   const getRoundPicks = (round: number) => {
     return draft.picks.filter((pick) => pick.round === round);
   };
-
-  // Memoize drafted player IDs
-  const draftedPlayerIds = useMemo(() => new Set(
-    draft.picks.filter(p => p.playerId).map(p => p.playerId!)
-  ), [draft.picks]);
-
-  // Memoize available players (filtered + sorted)
-  const availablePlayers = useMemo(() => {
-    const filtered = players.filter(p => {
-      if (p.roster?.teamId || draftedPlayerIds.has(p.id)) return false;
-      const matchesSearch = !searchTerm ||
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.nbaTeam?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesPosition = positionFilter === 'all' || p.position.includes(positionFilter);
-      const matchesWatchlist = !showWatchlistOnly || watchList?.playerIds.includes(p.fantraxId);
-      return matchesSearch && matchesPosition && matchesWatchlist;
-    });
-
-    return [...filtered].sort((a, b) => {
-      let aValue: number | undefined;
-      let bValue: number | undefined;
-
-      if (sortColumn === 'salary') {
-        aValue = a.salary;
-        bValue = b.salary;
-      } else {
-        const aStats = projectedStats.get(a.fantraxId);
-        const bStats = projectedStats.get(b.fantraxId);
-        aValue = aStats?.[sortColumn];
-        bValue = bStats?.[sortColumn];
-      }
-
-      if (aValue === undefined && bValue === undefined) return 0;
-      if (aValue === undefined) return 1;
-      if (bValue === undefined) return -1;
-
-      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-    });
-  }, [players, draftedPlayerIds, searchTerm, positionFilter, showWatchlistOnly, watchList, sortColumn, sortDirection, projectedStats]);
 
   const currentPickTeam = teams.find(t => t.id === draft.currentPick?.teamId);
 

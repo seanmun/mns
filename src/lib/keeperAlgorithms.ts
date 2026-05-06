@@ -199,6 +199,46 @@ export function stackKeeperRounds(entries: RosterEntry[]): StackingResult {
   return { entries, franchiseTags };
 }
 
+/**
+ * Inaugural-year keeper-round assignment. Used when the league has no prior-year
+ * draft data, so stackKeeperRounds (which relies on priorYearRound) can't produce
+ * meaningful results. Numbers KEEPs sequentially from round 1 by salary DESC, with
+ * the LM's priority field as the tiebreaker.
+ *
+ * Mutates entries in place to mirror stackKeeperRounds. Decisions, baseRound, and
+ * non-KEEP entries are left alone — only keeperRound on KEEPs is rewritten.
+ */
+export function assignInauguralKeeperRounds(
+  entries: RosterEntry[],
+  allPlayers: Map<string, Player>,
+): StackingResult {
+  const keepers = entries.filter((e) => e.decision === 'KEEP');
+
+  const sorted = [...keepers].sort((a, b) => {
+    const salaryA = allPlayers.get(a.playerId)?.salary ?? 0;
+    const salaryB = allPlayers.get(b.playerId)?.salary ?? 0;
+    if (salaryA !== salaryB) return salaryB - salaryA; // higher salary → earlier round
+    const prioA = a.priority ?? 999;
+    const prioB = b.priority ?? 999;
+    return prioA - prioB; // lower priority value → earlier round
+  });
+
+  const roundByPlayer = new Map<string, number>();
+  sorted.forEach((entry, idx) => {
+    roundByPlayer.set(entry.playerId, idx + 1);
+  });
+
+  entries.forEach((entry) => {
+    if (entry.decision === 'KEEP') {
+      entry.keeperRound = roundByPlayer.get(entry.playerId);
+    } else {
+      entry.keeperRound = undefined;
+    }
+  });
+
+  return { entries, franchiseTags: 0 };
+}
+
 interface ComputeSummaryParams {
   entries: RosterEntry[];
   allPlayers: Map<string, Player>;

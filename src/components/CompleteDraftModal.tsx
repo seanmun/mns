@@ -119,7 +119,7 @@ export function CompleteDraftModal({
           keepers: draftHistory.keepers,
           redshirt_players: draftHistory.redshirtPlayers,
           international_players: draftHistory.internationalPlayers,
-          completed_at: draftHistory.completedAt,
+          completed_at: new Date(draftHistory.completedAt).toISOString(),
           completed_by: draftHistory.completedBy,
         });
 
@@ -160,8 +160,6 @@ export function CompleteDraftModal({
             fees_locked: teamFeesData.feesLocked,
             total_fees: teamFeesData.totalFees,
             fee_transactions: teamFeesData.feeTransactions,
-            created_at: teamFeesData.createdAt,
-            updated_at: teamFeesData.updatedAt,
           });
 
         if (feesError) throw feesError;
@@ -173,7 +171,7 @@ export function CompleteDraftModal({
         .from('drafts')
         .update({
           status: 'completed',
-          completed_at: Date.now()
+          completed_at: new Date().toISOString()
         })
         .eq('id', draftId);
 

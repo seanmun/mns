@@ -376,7 +376,6 @@ export function AdminDraftSetup() {
           allowAdminOverride: true,
           isTestDraft: isTestDraft,
         },
-        created_at: Date.now(),
         created_by: user?.email || 'unknown',
       };
 
@@ -405,7 +404,7 @@ export function AdminDraftSetup() {
         draftOrder,
         picks,
         settings: draftData.settings,
-        createdAt: draftData.created_at,
+        createdAt: Date.now(),
         createdBy: draftData.created_by,
         currentPick: draftData.current_pick ? {
           round: draftData.current_pick.round,

@@ -9,6 +9,7 @@ import { usePreviousStats } from '../hooks/usePreviousStats';
 import { useAuth } from '../contexts/AuthContext';
 import { useWatchList } from '../hooks/useWatchList';
 import { useTeamFees } from '../hooks/useTeamFees';
+import { useCanManageLeague } from '../hooks/useCanManageLeague';
 import { RosterTable } from '../components/RosterTable';
 import { CapThermometer } from '../components/CapThermometer';
 import { SummaryCard } from '../components/SummaryCard';
@@ -51,8 +52,11 @@ export function OwnerDashboard() {
   // Check if current user is the owner of this team
   const isOwner = team?.owners.includes(user?.email || '') || false;
 
-  // Check if user can see keeper decisions (own team or keepers are locked)
-  const canViewDecisions = isOwner || league?.keepersLocked;
+  // League managers + site admins can always view any team's keeper decisions
+  const canManage = useCanManageLeague();
+
+  // Check if user can see keeper decisions (own team, LM/admin, or keepers are locked)
+  const canViewDecisions = isOwner || canManage || league?.keepersLocked;
 
   const [entries, setEntries] = useState<RosterEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -106,16 +110,29 @@ export function OwnerDashboard() {
       // Otherwise, load most recent scenario if available
       else if (roster.savedScenarios && roster.savedScenarios.length > 0) {
         const mostRecent = [...roster.savedScenarios].sort((a, b) => b.timestamp - a.timestamp)[0];
-        // Recalculate baseRound for all entries to ensure they're up to date
-        const updatedEntries = mostRecent.entries.map((entry) => {
-          const player = playersMap.get(entry.playerId);
-          // Default to round 13 if no baseRound can be calculated
-          return {
-            ...entry,
-            baseRound: player ? (baseKeeperRound(player) || 13) : (entry.baseRound || 13),
-          };
-        });
-        setEntries(updatedEntries);
+        // Only keep scenario entries for players still on the team — drops stale
+        // entries (e.g. players removed from roster after the scenario was saved)
+        const teamPlayerIds = new Set(players.map((p) => p.id));
+        const scenarioEntries = mostRecent.entries
+          .filter((entry) => teamPlayerIds.has(entry.playerId))
+          .map((entry) => {
+            const player = playersMap.get(entry.playerId);
+            return {
+              ...entry,
+              baseRound: player ? (baseKeeperRound(player) || 13) : (entry.baseRound || 13),
+            };
+          });
+        // Merge in any team players added AFTER this scenario was saved
+        // (so they show up as DROP defaults instead of being missing entirely)
+        const scenarioPlayerIds = new Set(scenarioEntries.map((e) => e.playerId));
+        const newlyAddedEntries: RosterEntry[] = players
+          .filter((p) => !scenarioPlayerIds.has(p.id))
+          .map((p) => ({
+            playerId: p.id,
+            decision: 'DROP',
+            baseRound: baseKeeperRound(p) || 13,
+          }));
+        setEntries([...scenarioEntries, ...newlyAddedEntries]);
         setActiveScenarioId(mostRecent.scenarioId);
       } else {
         // No scenarios - show clean slate (all players as DROP)
@@ -657,8 +674,10 @@ export function OwnerDashboard() {
           </div>
         )}
 
-        {/* Roster table or Draft Board View */}
-        {roster?.status === 'submitted' ? (
+        {/* Roster table or Draft Board View — only swap to draft board once
+            picks have actually been generated for this team. Until then, keep
+            the locked roster table visible so submitted keepers stay onscreen. */}
+        {roster?.status === 'submitted' && teamDraftPicks.length > 0 ? (
           <>
             {/* Desktop: 2-column layout for owners, single column for others */}
             {isOwner ? (
